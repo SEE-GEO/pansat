@@ -51,6 +51,7 @@ def parse_identity_file():
         with open(_identity_file, "w") as file:
             file.write(json.dumps(identities))
 
+
 def add_identity(provider, user_name):
     """
     Add identity to known identities.
@@ -63,6 +64,7 @@ def add_identity(provider, user_name):
     identities[provider] = (user_name, getpass.getpass())
     with open(_identity_file, "w") as file:
         file.write(json.dumps(identities))
+
 
 def get_identity(provider):
     """
@@ -81,9 +83,11 @@ def get_identity(provider):
     if provider in identities:
         return identities[provider]
     else:
-        raise Exception(f"Could not find identity for {provider}. Add section to "
-                        " to configuration file {_identity_file} or add an identity"
-                        " manually using the 'add_identity' method.")
+        raise Exception(
+            f"Could not find identity for {provider}. Add section to "
+            " to configuration file {_identity_file} or add an identity"
+            " manually using the 'add_identity' method."
+        )
 
 
 parse_identity_file()
