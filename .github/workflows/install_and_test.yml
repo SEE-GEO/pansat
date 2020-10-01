@@ -1,0 +1,19 @@
+name: install_and_test
+on: [push]
+jobs:
+  install_job:
+  strategy:
+    matrix:
+      os: [ubuntu-latest, windows-latest, macos-latest]
+      python: [3.6, 3.8]
+  runs-on: ${{ matrix.os }}
+  steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: 'main'
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - run: pip install .
+    - run: pip install pytest
+    - run: pytest test/
