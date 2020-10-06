@@ -4,9 +4,9 @@ Tests for provider classes and download functions.
 """
 
 
-def test_copernicus_provider():
+def test_copernicus_provider(tmpdir):
     """
-    This test creates an instance for CopernicusProvider and downloads the global air temperatures for a randomly selected data product of the ERA5 reanalysis.
+    This test creates an instance for CopernicusProvider class and downloads global air temperatures for a randomly selected data product among available ERA5 reanalysis datasets.
     """
 
     import pansat.download.providers as provs
@@ -14,15 +14,21 @@ def test_copernicus_provider():
     import datetime
     import os
 
-    product  = random.choice(copernicus_products)
+    product  = random.choice(provs.copernicus_products)
+    variable = '2m_temperature'
+    if 'pressure' in product:
+        variable = 'temperature'
+    era = provs.CopernicusProvider(product, variable)
 
-    era = CopernicusProvider(product, 'temperature')
-    start = datetime.datetime.today()
-    end = datetime.datetime.today()
-    dest = product + '.nc'
+    start = datetime.datetime(2000, 1, 1, 10)
+    end = datetime.datetime(2000, 1, 1, 11)
+    dest = tmpdir / (product + '.nc')
+
     era.get_files(start, end, dest)
 
-    assert os.path.exists(dest) == True
+    assert dest.exists()
+
+
 
 
 
