@@ -21,5 +21,8 @@ setuptools.setup(
         "License :: GNU Affero",
         "Operating System :: OS Independent",
     ],
+    install_requires=[
+        "cryptography"
+    ],
     python_requires='>=3.6',
 )

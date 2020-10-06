@@ -15,7 +15,6 @@ import numpy as np
 
 from pansat.download.accounts import get_identity
 
-
 class DataProvider(metaclass=ABCMeta):
     """
     The DataProvider class implements generic methods related to querying
