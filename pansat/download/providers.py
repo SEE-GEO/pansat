@@ -244,8 +244,7 @@ class CopernicusProvider(DataProvider):
         else:
             self.domain = domain
 
-
-    def download(self, start, end, dest= None):
+    def get_files(self, start, end, dest= None):
         """Downloads files for given time range and stores at specified location.
         Hourly data products are saved per hour and monthly data products are saved per month.
         Note that you have to install the CDS API key before download is possible: https://cds.climate.copernicus.eu/api-how-to
