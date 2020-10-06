@@ -83,10 +83,7 @@ def hash_password(password, salt):
         The base64 encoded hash of the password.
     """
     password = password.encode()
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),
-                     length=32,
-                     salt=salt,
-                     iterations=100000)
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000)
     return base64.urlsafe_b64encode(kdf.derive(password))
 
 
@@ -202,14 +199,15 @@ def add_identity(provider, user_name):
         name is valid.
         user(``str``): User name for the data provider.
     """
-    print(f"Please enter password for provider '{provider}' and username"
-          f" '{user_name}':")
+    print(
+        f"Please enter password for provider '{provider}' and username"
+        f" '{user_name}':"
+    )
     password = getpass.getpass()
     password_encrypted = encrypt(password)
     user_name_encrypted = encrypt(user_name)
 
-    _IDENTITIES[provider] = (user_name_encrypted.decode(),
-                             password_encrypted.decode())
+    _IDENTITIES[provider] = (user_name_encrypted.decode(), password_encrypted.decode())
     with open(_IDENTITY_FILE, "w") as file:
         file.write(json.dumps(_IDENTITIES))
 

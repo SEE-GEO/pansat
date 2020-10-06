@@ -1,9 +1,12 @@
 from pathlib import Path, PurePath
 import pytest
 import os
+
 """
 Tests for management of user accounts.
 """
+
+
 def test_initialize_identity_file(monkeypatch, tmpdir):
     """
     This tests creates a new identities.json file in a temporary directory,
@@ -23,6 +26,7 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     assert user_name == "user_name"
     assert password == "abcd"
 
+
 def test_parse_identity_failure(monkeypatch, tmpdir):
     """
     This test reads the identity file from the ``test_data`` folder and
@@ -41,7 +45,10 @@ def test_parse_identity_failure(monkeypatch, tmpdir):
         accs.parse_identity_file()
         accs.authenticate()
 
+
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+
+
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 def test_parse_identity(monkeypatch, tmpdir):
     """
