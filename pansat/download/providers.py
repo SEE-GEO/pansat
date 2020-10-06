@@ -1,3 +1,4 @@
+
 """
 pansat.download.providers
 =========================
@@ -201,12 +202,9 @@ class DataProvider(metaclass=ABCMeta):
         return files[ind]
 
 
-
-
 ###############################################################################
 # cds.climate.copernicus.eu
 ##############################################################################
-
 
 copernicus_products = [
     'reanalysis-era5-land',
@@ -216,10 +214,9 @@ copernicus_products = [
     'reanalysis-era5-single-levels',
     'reanalysis-era5-single-levels-monthly-means']
 
-
 class CopernicusProvider(DataProvider):
     """
-    Base class for data products available from Copernicus.
+    Base class for reanalysis products available from Copernicus.
     """
 
     def __init__(self, product, variables, domain = None):
@@ -228,9 +225,9 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-       product(str): supported products are land, single-level, pressure-level
-       variables(list): list with ERA5 variable(s)
-       domain(list): list with strings to select region  [lat2,lon1,lat1,lon2], if None: global data is downloaded
+        product(str): prodct name, available products are land, single-level, pressure-level for hourly and monthly resolution
+        variables(list): list of strings with ERA5 variable(s) to be extracted
+        domain(list): list of strings to select region  [lat2, lon1, lat1, lon2], if None: global data will be downloaded
         """
         if not product.__name__ in copernicus_products:
             available_products = list(copernicus_products.keys())
@@ -240,7 +237,6 @@ class CopernicusProvider(DataProvider):
                 " {available_products}."
             )
 
-
         self.product = product
         self.variables = variables
         if domain == None:
@@ -248,80 +244,98 @@ class CopernicusProvider(DataProvider):
         else:
             self.domain = domain
 
-        self.cache= {}
 
-
-    def download(self, start, end, output):
-        """Downloads files for given time range and stores and specified location for each individual month. 
+    def download(self, start, end, dest= None):
+        """Downloads files for given time range and stores at specified location.
+        Hourly data products are saved per hour and monthly data products are saved per month.
+        Note that you have to install the CDS API key before download is possible: https://cds.climate.copernicus.eu/api-how-to
 
         Args:
 
-        start(datetime): start time
-        end(datetime)" end time
-
+        start(datetime.datetime) : start date and time (year, month, day, hour), if hour is not specified for hourly dataproduct, all hours are downloaded for each date
+        end(datetime.datetime) : end date and time (year, month, day, hour), if hour is not specified for hourly dataproduct, all hours are downloaded for each date
+        dest(str) : output path and filename
         """
 
         # open new client instance
         c = cdsapi.Client()
-        import itertools
-        if start.year != end.year:
-            # get years with complete nr. of months 
-            full_years_range = range(start.year + 1 , end.year)
-            full_years = list(itertools.chain.from_iterable(itertools.repeat(x, 12) for x in full_years_range))
-            all_months = np.arange(1,13).astype(str)
 
-            # get months of uncomplete years 
-            months_first_year = list(np.arange((start.month + 1),13 ).astype(str))
-            months_last_year =  list(np.arange(1, (end.month+1)).astype(str))
 
-            # create lists for years with months
-            years = [str(start.year)] * len(months_first_year) +  [str(f) for f in full_years]   +  [str(end.year)] * len(months_last_year) 
-            months = months_first_year +  [str(m) for m in all_months ]  * len(full_years_range) +  months_last_year
-        else:
-            months = np.arange(start.month, end.month + 1 ).astype(str)
-            nr_of_months = np.shape(months)[0]
-            years = [str(start.year)] * nr_of_months
-
-        # for monthly data products
+        ################### for monthly data products ##############################
         if 'monthly' in self.product:
-            hours = ['00:00']
+            day = ''
+            hour = '00:00'
             download_key = '"monthly_averaged_reanalysis"'
+
+            # handling data ranges over multiple years:
+            import itertools
+            if start.year != end.year:
+                # get years with complete nr. of months
+                full_years_range = range(start.year + 1 , end.year)
+                full_years = list(itertools.chain.from_iterable(itertools.repeat(x, 12) for x in full_years_range))
+                all_months = np.arange(1,13).astype(str)
+
+                # get months of uncomplete years
+                months_first_year = list(np.arange((start.month + 1),13 ).astype(str))
+                months_last_year =  list(np.arange(1, (end.month+1)).astype(str))
+
+                # create lists for years with months
+                years = [str(start.year)] * len(months_first_year) +  [str(f) for f in full_years]   +  [str(end.year)] * len(months_last_year) 
+                dates = months_first_year +  [str(m) for m in all_months ]  * len(full_years_range) +  months_last_year
+            else:
+                # getting all month for the specified year 
+                dates = np.arange(start.month, end.month + 1 ).astype(str)
+                nr_of_months = np.shape(months)[0]
+                years = [str(start.year)] * nr_of_months
         else:
-            # hor hourly data products 
-            hours = [
-            '00:00', '01:00', '02:00',
-            '03:00', '04:00', '05:00',
-            '06:00', '07:00', '08:00',
-            '09:00', '10:00', '11:00',
-            '12:00', '13:00', '14:00',
-            '15:00', '16:00', '17:00',
-            '18:00', '19:00', '20:00',
-            '21:00', '22:00', '23:00',]
-            download_key = 'reanalysis'
+            ############### for hourly data products ##############################
 
-        # download and save as monthly output 
-        for idx,month in enumerate(months):
-            year = years[idx]
-            filename = 'era5_'+ downloadkey +'_'+ year +  month +'_' + ''.join(self.variables) + '_' + ','.join(self.domain)+ '.nc'
-            filepath = os.path.join(self.path, filename)
+            # get list with all years, months, days, hours between the two dates
+            delta =(end - start)
+            hour = delta/3600
+            dates = []
+            for i in range(hour.seconds + 1):
+                h = start + datetime.timedelta(hours=i)
+                dates.append(h)
 
-            # check whether file already has been downloaded
-            if os.path.exists(output) == True:
-                print('omittted download for ', output)
+        # send API request, download and save as monthly output
+        for idx,date in enumerate(dates):
+            if 'monthly' in self.product:
+                # define download parameters for monthly download 
+                month = date
+                year = years[idx]
+                day = ''
+                hour = '00:00'
+                download_key = '"monthly_averaged_reanalysis"'
 
             else:
-                    # API request for specific year and month 
-                    c.retrieve(self.product, {
-                        "product_type":   download_key,
-                        "format":         "netcdf",
-                        "area":            '/'.join(self.domain),
-                        "variable":       self.variables,
-                        "year":           [year],
-                        "month":          [month],
-                        "time":            hours,
-                    }, filepath)
-                    print('file downloaded and saved as', output)
+                # define download parameters for hourly download
+                year = str(dates[idx].year)
+                month = str(dates[idx].month)
+                day = str(dates[idx].day)
+                hour= str(dates[idx].hour)
+                download_key = 'reanalysis'
 
+            if dest == None:
+                output = 'era5_'+ downloadkey +'_'+ year + month + day + hour +'_' + ''.join(self.variables) + '_' + ','.join(self.domain)+ '.nc'
+
+            # check whether file already exists
+            if os.path.exists(dest) == True:
+                print(output, ' already exists.')
+
+            else:
+                # API request for specific month or hour
+                c.retrieve(self.product, {
+                    "product_type":   download_key,
+                    "format":         "netcdf",
+                    "area":            '/'.join(self.domain),
+                    "variable":       self.variables,
+                    "year":           year,
+                    "month":          month,
+                    "days":           day,
+                    "time":           hour,
+                    }, output)
+                    print('file downloaded and saved as', dest)
 
 
 ################################################################################
