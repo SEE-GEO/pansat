@@ -1,0 +1,4 @@
+# Package installed editably
+*.egg-info
+# From autodoc
+*__pycache__*
