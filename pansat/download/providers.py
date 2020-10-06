@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from ftplib import FTP
 import os
 import numpy as np
+import cdsapi
 
 from pansat.download.accounts import get_identity
 
@@ -229,7 +230,9 @@ class CopernicusProvider(DataProvider):
         variables(list): list of strings with ERA5 variable(s) to be extracted
         domain(list): list of strings to select region  [lat2, lon1, lat1, lon2], if None: global data will be downloaded
         """
-        if not product.__name__ in copernicus_products:
+        super().__init__()
+
+        if not product in copernicus_products:
             available_products = list(copernicus_products.keys())
             raise ValueError(
                 f"{product.__name__}  not a available from the Copernicus data"
@@ -240,7 +243,7 @@ class CopernicusProvider(DataProvider):
         self.product = product
         self.variables = variables
         if domain == None:
-            self.domain= ""
+            self.domain= ''
         else:
             self.domain = domain
 
@@ -259,13 +262,13 @@ class CopernicusProvider(DataProvider):
         # open new client instance
         c = cdsapi.Client()
 
+        # subset region, if requested
+        area = '/'.join(self.domain)
+        if self.domain == None:
+            area = ''
 
-        ################### for monthly data products ##############################
+        ################### create time range for monthly data products ##############################
         if 'monthly' in self.product:
-            day = ''
-            hour = '00:00'
-            download_key = '"monthly_averaged_reanalysis"'
-
             # handling data ranges over multiple years:
             import itertools
             if start.year != end.year:
@@ -284,20 +287,20 @@ class CopernicusProvider(DataProvider):
             else:
                 # getting all month for the specified year 
                 dates = np.arange(start.month, end.month + 1 ).astype(str)
-                nr_of_months = np.shape(months)[0]
+                nr_of_months = np.shape(dates)[0]
                 years = [str(start.year)] * nr_of_months
         else:
-            ############### for hourly data products ##############################
+            ############### create time range for hourly data products ##############################
 
             # get list with all years, months, days, hours between the two dates
             delta =(end - start)
             hour = delta/3600
             dates = []
             for i in range(hour.seconds + 1):
-                h = start + datetime.timedelta(hours=i)
+                h = start + timedelta(hours=i)
                 dates.append(h)
 
-        # send API request, download and save as monthly output
+        # send API request for each specific month or hour 
         for idx,date in enumerate(dates):
             if 'monthly' in self.product:
                 # define download parameters for monthly download 
@@ -305,7 +308,7 @@ class CopernicusProvider(DataProvider):
                 year = years[idx]
                 day = ''
                 hour = '00:00'
-                download_key = '"monthly_averaged_reanalysis"'
+                download_key = 'monthly_averaged_reanalysis'
 
             else:
                 # define download parameters for hourly download
@@ -314,27 +317,28 @@ class CopernicusProvider(DataProvider):
                 day = str(dates[idx].day)
                 hour= str(dates[idx].hour)
                 download_key = 'reanalysis'
+                if 'land' in self.product:
+                    download_key = ''
 
             if dest == None:
-                output = 'era5_'+ downloadkey +'_'+ year + month + day + hour +'_' + ''.join(self.variables) + '_' + ','.join(self.domain)+ '.nc'
+                dest = 'era5_'+ downloadkey +'_'+ year + month + day + hour +'_' + ''.join(self.variables) + '_' + ','.join(self.domain)+ '.nc'
 
-            # check whether file already exists
+            # only download if file not already already exists
             if os.path.exists(dest) == True:
-                print(output, ' already exists.')
+                print(dest, ' already exists.')
 
             else:
-                # API request for specific month or hour
                 c.retrieve(self.product, {
-                    "product_type":   download_key,
-                    "format":         "netcdf",
-                    "area":            '/'.join(self.domain),
-                    "variable":       self.variables,
-                    "year":           year,
-                    "month":          month,
-                    "days":           day,
-                    "time":           hour,
-                    }, output)
-                    print('file downloaded and saved as', dest)
+                    'product_type':   download_key,
+                    'format':         'netcdf',
+                    'area':            area,
+                    'variable':       self.variables,
+                    'year':           year,
+                    'month':          month,
+                    'day':           day,
+                    'time':           hour,
+                    }, dest)
+                print('file downloaded and saved as', dest)
 
 
 ################################################################################
