@@ -15,7 +15,6 @@ setuptools.setup(
     url="https://github.com/SEE-MOF/pansat",
     packages=setuptools.find_packages(),
     install_requires=[
-        "keyring"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
