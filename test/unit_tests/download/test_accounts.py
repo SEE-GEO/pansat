@@ -13,6 +13,7 @@ def test_add_parse_get_identity(monkeypatch, tmpdir):
     monkeypatch.setattr("appdirs.user_config_dir", lambda x, y: tmpdir)
 
     import pansat.download.accounts as accs
+
     assert (tmpdir / "identities.json").exists()
 
     accs.add_identity("provider", "user_name")
