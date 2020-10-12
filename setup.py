@@ -3,7 +3,6 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-# TODO: create this email address
 setuptools.setup(
     name="pansat",
     version="0.0.1",
