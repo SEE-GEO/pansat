@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from ftplib import FTP
 import os
 import numpy as np
-import cdsapi
+import itertools
 
 from pansat.download.accounts import get_identity
 
@@ -260,6 +260,7 @@ class CopernicusProvider(DataProvider):
         """
 
         # open new client instance
+        import cdsapi 
         c = cdsapi.Client()
 
         # subset region, if requested
@@ -270,7 +271,6 @@ class CopernicusProvider(DataProvider):
         ################### create time range for monthly data products ##############################
         if 'monthly' in self.product:
             # handling data ranges over multiple years:
-            import itertools
             if start.year != end.year:
                 # get years with complete nr. of months
                 full_years_range = range(start.year + 1 , end.year)
