@@ -18,4 +18,5 @@ def test_identities(monkeypatch):
     monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", test_identity_file)
     monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     import pansat.download.accounts as accs
+
     accs.parse_identity_file()

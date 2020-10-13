@@ -187,6 +187,7 @@ def initialize_identity_file():
     with open(_IDENTITY_FILE, "w") as file:
         file.write(json.dumps(_IDENTITIES))
 
+
 def parse_identity_file():
     """
     If available, parses identity config file and adds entries to known
@@ -197,6 +198,7 @@ def parse_identity_file():
         _IDENTITIES = json.loads(open(_IDENTITY_FILE).read())
     else:
         initialize_identity_file()
+
 
 def get_identities():
     """
@@ -209,6 +211,7 @@ def get_identities():
     if not _IDENTITIES:
         parse_identity_file()
     return _IDENTITIES
+
 
 def add_identity(provider, user_name):
     """
