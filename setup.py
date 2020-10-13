@@ -18,7 +18,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "cryptography>=3.1"
+        "cryptography>=3.1","numpy", "cdsapi"
     ],
     python_requires='>=3.6',
 )
