@@ -22,10 +22,8 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-_IDENTITIES = {}
-"""
-Dictionary containing provider names and corresponding user names.
-"""
+# Dictionary containing provider names and corresponding user names.
+_IDENTITIES = None
 
 # The directory containing the configuration file.
 _APP_DIR = Path(user_config_dir("pansat", "pansat"))
@@ -149,7 +147,7 @@ def authenticate():
     if _PANSAT_SECRET:
         return
 
-    secret_hashed, salt = _IDENTITIES["pansat"]
+    secret_hashed, salt = get_identities()["pansat"]
     secret_hashed = secret_hashed.encode()
     salt = salt.encode()
 
@@ -202,6 +200,19 @@ def parse_identity_file():
         initialize_identity_file()
 
 
+def get_identities():
+    """
+    Access identity dictionary.
+
+    Return:
+        Dictionary holding identities for all known providers.
+    """
+    global _IDENTITIES
+    if not _IDENTITIES:
+        parse_identity_file()
+    return _IDENTITIES
+
+
 def add_identity(provider, user_name):
     """
     Add identity to known identities.
@@ -219,9 +230,10 @@ def add_identity(provider, user_name):
     password_encrypted = encrypt(password)
     user_name_encrypted = encrypt(user_name)
 
-    _IDENTITIES[provider] = (user_name_encrypted.decode(), password_encrypted.decode())
+    identities = get_identities()
+    identities[provider] = (user_name_encrypted.decode(), password_encrypted.decode())
     with open(_IDENTITY_FILE, "w") as file:
-        file.write(json.dumps(_IDENTITIES))
+        file.write(json.dumps(identities))
 
 
 def get_identity(provider):
@@ -240,8 +252,9 @@ def get_identity(provider):
     """
     if not _PANSAT_SECRET:
         authenticate()
-    if provider in _IDENTITIES:
-        user_name, password = _IDENTITIES[provider]
+    identities = get_identities()
+    if provider in identities:
+        user_name, password = identities[provider]
         password = password.encode()
         password = decrypt(password)
         user_name = user_name.encode()
@@ -252,6 +265,3 @@ def get_identity(provider):
         f"Could not find identity for {provider}. Use the `add_identity`"
         " function to add an identity for the requested provider."
     )
-
-
-parse_identity_file()
