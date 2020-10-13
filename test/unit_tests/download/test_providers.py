@@ -14,10 +14,10 @@ def test_copernicus_provider(tmpdir):
     import datetime
     import os
 
-    product  = random.choice(provs.copernicus_products)
-    variable = '2m_temperature'
-    if 'pressure' in product:
-        variable = 'temperature'
+    product = random.choice(provs.copernicus_products)
+    variable = "2m_temperature"
+    if "pressure" in product:
+        variable = "temperature"
     era = provs.CopernicusProvider(product, variable)
 
     start = datetime.datetime(2000, 1, 1, 10)
@@ -27,8 +27,3 @@ def test_copernicus_provider(tmpdir):
     era.download(start, end, dest)
 
     assert dest.exists()
-
-
-
-
-
