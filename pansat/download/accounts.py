@@ -7,7 +7,7 @@ The login data is stored in encrypted format in a configuration
 file ``identities.json`` in the user's home directory tree.
 
 Upon first usage the identities file is setup with a custom user password.
-This password is used to encrypt all data passwords passwords that is
+This password is used to encrypt all data passwords that are
  subsequently added by the user. The Fernet method is used to en- and
 decrypt the passwords. All password hashing is performed using random
 salt.
