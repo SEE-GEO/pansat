@@ -77,7 +77,7 @@ def hash_password(password, salt):
 
     Args:
         password(``str``): The password
-        slat(``bytes``): The salt to use to compute the hash.
+        salt(``bytes``): The salt to use to compute the hash.
 
     Return:
         The base64 encoded hash of the password.
