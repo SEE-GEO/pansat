@@ -6,6 +6,7 @@ from pathlib import Path, PurePath
 import pytest
 import pansat.download.accounts as accs
 
+
 def test_initialize_identity_file(monkeypatch, tmpdir):
     """
     This tests creates a new identities.json file in a temporary directory,
@@ -46,6 +47,7 @@ def test_parse_identity_failure(monkeypatch, tmpdir):
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
