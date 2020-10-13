@@ -22,9 +22,9 @@ def test_copernicus_provider(tmpdir):
 
     start = datetime.datetime(2000, 1, 1, 10)
     end = datetime.datetime(2000, 1, 1, 11)
-    dest = tmpdir / (product + '.nc')
+    dest = tmpdir
 
-    era.get_files(start, end, dest)
+    era.download(start, end, dest)
 
     assert dest.exists()
 
