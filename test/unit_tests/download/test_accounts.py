@@ -1,11 +1,10 @@
-from pathlib import Path, PurePath
-import pytest
-import os
-
 """
 Tests for management of user accounts.
 """
-
+import os
+from pathlib import Path, PurePath
+import pytest
+import pansat.download.accounts as accs
 
 def test_initialize_identity_file(monkeypatch, tmpdir):
     """
@@ -13,10 +12,12 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     adds an identity to it, re-reads it from disk and extracts user and
     entered password.
     """
-    monkeypatch.setattr("getpass.getpass", lambda: "abcd")
-    monkeypatch.setattr("appdirs.user_config_dir", lambda x, y: tmpdir)
+    identities_file = Path(tmpdir / "identities.json")
 
-    import pansat.download.accounts as accs
+    monkeypatch.setattr("getpass.getpass", lambda: "abcd")
+    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", identities_file)
+    monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
+    accs.parse_identity_file()
 
     assert (tmpdir / "identities.json").exists()
 
@@ -27,6 +28,7 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     assert password == "abcd"
 
 
+@pytest.mark.usefixtures("test_identities")
 def test_parse_identity_failure(monkeypatch, tmpdir):
     """
     This test reads the identity file from the ``test_data`` folder and
@@ -34,11 +36,8 @@ def test_parse_identity_failure(monkeypatch, tmpdir):
     an exception is thrown.
     """
     test_data = Path(PurePath(__file__).parent / "test_data" / "identities.json")
-    import pansat.download.accounts as accs
 
     monkeypatch.setattr("os.environ", {})
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", test_data)
-    monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     monkeypatch.setattr("getpass.getpass", lambda: "abcd")
 
     with pytest.raises(accs.WrongPasswordError):
@@ -48,21 +47,14 @@ def test_parse_identity_failure(monkeypatch, tmpdir):
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
-
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
 def test_parse_data_provider_failure(monkeypatch):
     """
     This test reads the identity file from the ``test_data`` folder and
     request login information for an unknown provider. This test asserts
     that the expected exception is thrown.
     """
-    test_data = Path(PurePath(__file__).parent / "test_data" / "identities.json")
-    import pansat.download.accounts as accs
-
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", test_data)
-    monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
-
-    accs.parse_identity_file()
     accs.authenticate()
     with pytest.raises(accs.MissingProviderError):
         accs.get_identity("Unknown")
@@ -75,13 +67,6 @@ def test_parse_identity(monkeypatch):
     tries to  authenticates with the password read from the PANSAT_PASSWORD
     environment variable.
     """
-    test_data = Path(PurePath(__file__).parent / "test_data" / "identities.json")
-    import pansat.download.accounts as accs
-
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", test_data)
-    monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
-
-    accs.parse_identity_file()
     accs.authenticate()
     login = accs.get_identity("Icare")
     assert login
