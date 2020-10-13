@@ -1,5 +1,5 @@
 name: check_formatting
-on: [push]
+on: [pull_request]
 jobs:
   formatting_job:
     runs-on: ubuntu-latest
