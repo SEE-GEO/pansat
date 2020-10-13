@@ -345,7 +345,7 @@ class CopernicusProvider(DataProvider):
             )
 
             if dest != None:
-                out = dest +'/' +  out
+                out = dest + "/" + out
 
             # only download if file not already already exists
             if os.path.exists(dest) == True:
