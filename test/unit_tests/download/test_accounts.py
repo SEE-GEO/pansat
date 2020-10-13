@@ -48,6 +48,7 @@ def test_parse_identity_failure(monkeypatch, tmpdir):
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
+
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 def test_parse_data_provider_failure(monkeypatch):
     """
@@ -84,4 +85,3 @@ def test_parse_identity(monkeypatch):
     accs.authenticate()
     login = accs.get_identity("Icare")
     assert login
-
