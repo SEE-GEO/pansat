@@ -14,15 +14,13 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/SEE-MOF/pansat",
     packages=setuptools.find_packages(),
-    install_requires=[
-    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: GNU Affero",
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "cryptography"
+        "cryptography>=3.1"
     ],
     python_requires='>=3.6',
 )

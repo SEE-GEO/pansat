@@ -6,11 +6,10 @@ The ``accounts`` sub-module handles login data for different data portals.
 The login data is stored in encrypted format in a configuration
 file ``identities.json`` in the user's home directory tree.
 
-Upon first usage the identities file is setup with a custom user password.
-This password is used to encrypt all data passwords that are
- subsequently added by the user. The Fernet method is used to en- and
-decrypt the passwords. All password hashing is performed using random
-salt.
+Upon first usage the ``identities.json`` file is setup with a custom user
+ password. This password is used to encrypt all data passwords that are
+ subsequently added by the user. The Fernet method is used to en- and decrypt
+ the passwords. All password hashing is performed using random salt.
 """
 import base64
 import getpass
@@ -43,13 +42,26 @@ _PANSAT_SECRET = None
 ###############################################################################
 
 
+class WrongPasswordError(Exception):
+    """
+    Exception that is thrown when an entered password in incorrect.
+    """
+
+
+class MissingProviderError(Exception):
+    """
+    Exception that is thrown when no login data can be found for a given
+    data provider name.
+    """
+
+
 def get_password(check=False):
     """
-    Check if password is provided as ``PANSAT_PASSWORD`` variable.
+    Check if password is provided as ``PANSAT_PASSWORD`` environment variable.
     If this is not the case query user to input password.
 
     Params:
-        check(``bool``): Whether or user should insert the password twice
+        check(``bool``): Whether user should insert the password twice
             to avoid spelling errors.
 
     Return:
@@ -130,11 +142,11 @@ def authenticate():
 
     Raises:
 
-        Exception if the provided password is incorrect.
+        WrongPasswordError if the provided password is incorrect.
     """
     global _PANSAT_SECRET
 
-    if _PANSAT_SECRET is not None:
+    if _PANSAT_SECRET:
         return
 
     secret_hashed, salt = _IDENTITIES["pansat"]
@@ -147,7 +159,7 @@ def authenticate():
     entered_secret_hashed = hash_password(entered_secret.decode(), salt)
 
     if secret_hashed != entered_secret_hashed:
-        raise Exception("The password you entered is incorrect.")
+        raise WrongPasswordError("The password you entered is incorrect.")
 
     _PANSAT_SECRET = entered_secret
 
@@ -156,8 +168,8 @@ def initialize_identity_file():
     """
     Initializes a new identity file.
 
-    If not existing identity file is found in the user directory, this
-    function sets up a new on, by generating a secret key using random
+    If no existing identity file is found in the user directory, this
+    function sets up a new one by generating a secret key using random
     salt and storing a hash of the key and the salt in the identity
     file.
 
@@ -224,9 +236,9 @@ def get_identity(provider):
        for the given domain.
 
     Raises:
-       Exception, if no identity for the given domain could be found.
+       MissingProviderError, if no identity for the given domain could be found.
     """
-    if _PANSAT_SECRET is None:
+    if not _PANSAT_SECRET:
         authenticate()
     if provider in _IDENTITIES:
         user_name, password = _IDENTITIES[provider]
@@ -236,10 +248,9 @@ def get_identity(provider):
         user_name = decrypt(user_name)
         return user_name, password
 
-    raise Exception(
-        f"Could not find identity for {provider}. Add section to "
-        " to configuration file {_identity_file} or add an identity"
-        " manually using the 'add_identity' method."
+    raise MissingProviderError(
+        f"Could not find identity for {provider}. Use the `add_identity`"
+        " function to add an identity for the requested provider."
     )
 
 
