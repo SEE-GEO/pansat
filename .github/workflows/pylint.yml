@@ -16,4 +16,5 @@ jobs:
       - name: Install pylint
         run: pip install pylint
       - name: Lint Code Base
-        run: pylint pansat
+      # omit conventions and minimum score is 7.5
+        run: pylint pansat --disable=C --fail-under=7.5
