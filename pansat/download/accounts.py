@@ -196,6 +196,7 @@ def parse_identity_file():
     if _IDENTITY_FILE.exists():
         global _IDENTITIES
         _IDENTITIES = json.loads(open(_IDENTITY_FILE).read())
+        print("PARSING IDENTITIES:", _IDENTITIES, _IDENTITY_FILE)
     else:
         initialize_identity_file()
 
