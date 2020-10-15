@@ -13,11 +13,13 @@ from pathlib import Path
 import pansat.download.providers as providers
 from pansat.products.product import Product
 
+
 class NoAvailableProviderError(Exception):
     """
     Exception indicating that no suitable provider could be found for
     a product.
     """
+
 
 class CloudSatProduct(Product):
     """
@@ -28,12 +30,13 @@ class CloudSatProduct(Product):
         variables(``list``): List of variable names provided by this
             product.
     """
+
     def __init__(self, name, variables):
         self.name = name
         self._variables = variables
-        self.filename_regexp = re.compile(r"([\d]*)_([\d]*)_CS_"
-                                          + name +
-                                          r"_GRANULE_P_R([\d]*)_E([\d]*)\.*")
+        self.filename_regexp = re.compile(
+            r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P_R([\d]*)_E([\d]*)\.*"
+        )
 
     def variables(self):
         return self._variables
@@ -68,11 +71,15 @@ class CloudSatProduct(Product):
 
     def _get_provider(self):
         """ Find a provider that provides the product. """
-        available_providers = [p for p in providers.all_providers
-                               if str(self) in p.get_available_products()]
+        available_providers = [
+            p
+            for p in providers.all_providers
+            if str(self) in p.get_available_products()
+        ]
         if not available_providers:
-            raise NoAvailableProviderError(f"Could not find provider for the"
-                                           f"the product {self.name}.")
+            raise NoAvailableProviderError(
+                f"Could not find provider for the" f"the product {self.name}."
+            )
         return available_providers[0]
 
     @property
@@ -87,11 +94,7 @@ class CloudSatProduct(Product):
         """ The full product name. """
         return "CloudSat_" + self.name
 
-    def download(self,
-                 t0,
-                 t1,
-                 destination = None,
-                 provider = None):
+    def download(self, t0, t1, destination=None, provider=None):
         """
         Download data product for given time range.
 
@@ -115,8 +118,13 @@ class CloudSatProduct(Product):
         provider = provider(self)
 
         files = provider.get_files_in_range(t0, t1)
-        print(files)
+        downloaded = []
         for f in files:
-            provider.download(f, destination / f)
+            path = destination / f
+            provider.download(f, path)
+            downloaded.append(path)
+        return downloaded
+
 
 l1b_cpr = CloudSatProduct("1B-CPR", [])
+l2b_geoprof = CloudSatProduct("2B-GEOPROF", [])
