@@ -17,7 +17,9 @@ def setup_cds_identity(monkeypatch):
     os.environ["CDSAPI_URL"] = url
     os.environ["CDSAPI_KEY"] = key
 
+
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")

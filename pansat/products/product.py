@@ -12,6 +12,7 @@ class Product(ABC):
     """
     The abstract interface for satellite and reanalysis data products.
     """
+
     @abstractproperty
     def variables(self):
         """

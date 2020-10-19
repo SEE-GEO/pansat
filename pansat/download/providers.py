@@ -398,7 +398,7 @@ icare_products = {
     "CloudSat_2C-ICE": ["SPACEBORNE", "CLOUDSAT", "2B-ICE"],
     "CloudSat_2C-PRECIP-COLUMN": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
     "CloudSat_2C-RAIN-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
-    "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"]
+    "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
 }
 
 
@@ -513,5 +513,6 @@ class Icare(DataProvider):
             ftp.cwd(path)
             with open(dest, "wb") as file:
                 ftp.retrbinary("RETR " + filename, file.write)
+
 
 all_providers = [Icare]
