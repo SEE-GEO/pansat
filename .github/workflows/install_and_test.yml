@@ -17,4 +17,4 @@ jobs:
       - run: pip install appdirs
       - run: pytest test/
         env:
-          PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
+          PANSAT_PASSWORD:${{ secrets.PANSAT_PASSWORD }}
