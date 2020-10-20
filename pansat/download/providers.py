@@ -220,32 +220,25 @@ class CopernicusProvider(DataProvider):
     Base class for reanalysis products available from Copernicus.
     """
 
-    def __init__(self, product, variables, domain=None):
+    def __init__(self, product):
         """
         Create a new product instance.
 
         Args:
 
-        product(str): prodct name, available products are land, single-level, pressure-level for hourly and monthly resolution
-        variables(list): list of strings with ERA5 variable(s) to be extracted
-        domain(list): list of strings to select region  [lat2, lon1, lat1, lon2], if None: global data will be downloaded
+        product(str): product name, available products are land, single-level, pressure-level for hourly and monthly resolution
         """
         super().__init__()
+        self.product = product
 
-        if not product in copernicus_products:
-            available_products = list(copernicus_products.keys())
+        if not product.name in copernicus_products:
+            available_products = copernicus_products
             raise ValueError(
-                f"{product.__name__}  not a available from the Copernicus data"
+                f"{product.name} not a available from the Copernicus data"
                 " provider. Currently available products are: "
                 f" {available_products}."
             )
 
-        self.product = product
-        self.variables = variables
-        if domain == None:
-            self.domain = ""
-        else:
-            self.domain = domain
 
     @classmethod
     def get_available_products(cls):
@@ -254,7 +247,8 @@ class CopernicusProvider(DataProvider):
         """
         return copernicus_products
 
-    def download(self, start, end, dest=None):
+
+    def download(self, start, end, destination):
         """Downloads files for given time range and stores at specified location.
         Hourly data products are saved per hour and monthly data products are saved per month.
         Note that you have to install the CDS API key before download is possible: https://cds.climate.copernicus.eu/api-how-to
@@ -263,7 +257,7 @@ class CopernicusProvider(DataProvider):
 
         start(datetime.datetime) : start date and time (year, month, day, hour), if hour is not specified for hourly dataproduct, all hours are downloaded for each date
         end(datetime.datetime) : end date and time (year, month, day, hour), if hour is not specified for hourly dataproduct, all hours are downloaded for each date
-        dest(str) : output path
+        destination(str) : output path
         """
 
         # open new client instance
@@ -272,12 +266,13 @@ class CopernicusProvider(DataProvider):
         c = cdsapi.Client()
 
         # subset region, if requested
-        area = "/".join(self.domain)
-        if self.domain == None:
+        if self.product.domain== None:
             area = ""
-
+        else:
+            area = "/".join(self.product.domain)
+    
         ################### create time range for monthly data products ##############################
-        if "monthly" in self.product:
+        if "monthly" in self.product.name:
             # handling data ranges over multiple years:
             if start.year != end.year:
                 # get years with complete nr. of months
@@ -320,9 +315,12 @@ class CopernicusProvider(DataProvider):
                 h = start + timedelta(hours=i)
                 dates.append(h)
 
+        # container to save list of downloaded files 
+        files= []
+
         # send API request for each specific month or hour
         for idx, date in enumerate(dates):
-            if "monthly" in self.product:
+            if "monthly" in self.product.name:
                 # define download parameters for monthly download
                 month = date
                 year = years[idx]
@@ -336,40 +334,49 @@ class CopernicusProvider(DataProvider):
                 month = str(dates[idx].month)
                 day = str(dates[idx].day)
                 hour = str(dates[idx].hour)
+
+                # get download key
                 download_key = "reanalysis"
-                if "land" in self.product:
+                if "land" in self.product.name:
                     download_key = ""
 
-            out = (
-                "era5_"
-                + download_key
+                # zero padding for day
+                if int(day) < 10:
+                    day = '0' + str(day)
+
+            # zero padding for month
+            if int(month) < 10:
+                month = '0'+ str(month)
+
+            filename = (
+                "era5-"
+                + self.product.name
                 + "_"
                 + year
                 + month
                 + day
                 + hour
                 + "_"
-                + "".join(self.variables)
-                + "_"
-                + ",".join(self.domain)
+                + "-".join(self.product.variables)
+                + "-".join(area)
                 + ".nc"
-            )
+                )
 
-            if dest != None:
-                out = dest + "/" + out
+            # set output path and file name
+            out = str(destination) + "/" + str(filename)
 
             # only download if file not already already exists
-            if os.path.exists(dest) == True:
-                print(dest, " already exists.")
+            if os.path.exists(out) == True:
+                print(destination, " already exists.")
 
             else:
                 c.retrieve(
-                    self.product,
+                    self.product.name,
                     {
                         "product_type": download_key,
                         "format": "netcdf",
                         "area": area,
-                        "variable": self.variables,
+                        "variable": self.product.variables,
                         "year": year,
                         "month": month,
                         "day": day,
@@ -378,6 +385,11 @@ class CopernicusProvider(DataProvider):
                     out,
                 )
                 print("file downloaded and saved as", out)
+
+                files.append(out)
+
+            return files
+
 
 
 ################################################################################
@@ -400,6 +412,7 @@ icare_products = {
     "CloudSat_2C-RAIN-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
     "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
 }
+
 
 
 class Icare(DataProvider):
@@ -493,13 +506,13 @@ class Icare(DataProvider):
         files = [name for name in listing if name[-3:] == "hdf"]
         return files
 
-    def download(self, filename, dest):
+    def download(self, filename, destination):
         """
         Download file with given name and store to location.
 
         Args:
             filename(``str``): The name of the file
-            dest(``dest``): The path to which to store the file.
+            destination(``destination``): The path to which to store the file.
 
         """
         date = self.product.filename_to_date(filename)
@@ -509,8 +522,8 @@ class Icare(DataProvider):
         with FTP(self.base_url) as ftp:
             ftp.login(user=user, passwd=password)
             ftp.cwd(path)
-            with open(dest, "wb") as file:
+            with open(destination, "wb") as file:
                 ftp.retrbinary("RETR " + filename, file.write)
 
 
-all_providers = [Icare]
+all_providers = [Icare, CopernicusProvider]
