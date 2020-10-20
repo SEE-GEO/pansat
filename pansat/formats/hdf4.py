@@ -1,0 +1,164 @@
+"""
+pansat.formats.hdf4
+===================
+
+This module provides a wrapper for the pyhdf package to simplify reading
+of HDF4 files.
+"""
+import weakref
+from pyhdf.HDF import HDF
+from pyhdf.SD import SD
+from pyhdf.VS import VS
+
+class VData:
+    """
+    Class representing VData objects, i.e. numeric data that is stored in table
+    format in an HDF file and accessed through the VS interface.
+
+    Attributes:
+        file(``weakref``): Weak reference to file object required for data
+            access.
+        name(``str``): The name of the attribute
+        cls(``str``): The attribute class
+        reference(``int``): Reference number identifying the vdata object.
+        n_records(``int``): The number of records, i.e. rows, of the data table.
+        n_fields(``int``): The number of fields, i.e. columns, of the
+            data table.
+        n_attributes(``int``): The number of attributes.
+        size(``int``): Size of a single record (row) in bytes.
+        tag(``int``): The vdata tag number.
+        interlace(``int``): The vdata interlace mode.
+    """
+    def __init__(self,
+                 file,
+                 name,
+                 cls,
+                 reference,
+                 n_records,
+                 n_fields,
+                 n_attributes,
+                 size,
+                 tag,
+                 interlace):
+        self.file = weakref.ref(file)
+        self.name = name
+        self.cls = cls
+        self.reference = reference
+        self.n_records = n_records
+        self.n_fields = n_fields
+        self.n_attributes = n_attributes
+        self.size = size
+        self.tag = tag
+        self.interlace = interlace
+
+    def __repr__(self):
+        return f"VData({self.name})"
+
+    def __str__(self):
+        return f"HDF4 VData object: {self.name}, shape={self.shape}"
+
+    def __getitem__(self, *args):
+        """
+        Selects datasets from file and forwards call to the returned vdata
+        object.
+        """
+        return self.file().vs.attach(self.name).__getitem__(*args)
+
+
+class Dataset:
+    """
+    Class representing HDF4 Datasets, i.e. numeric data that is stored as
+    multi-dimensional array and accessed through the SD interface.
+
+    Attributes:
+        file(``weakref``): Weak reference to file object required for data
+            access.
+        name(``str``): The name of the dataset.
+        dimensions(``tuple``): Tuple containing the variable names of the dimensions
+            holding the dimensions of the dataset.
+        shape(``tuple``): Tuple containing the shape of the dataset.
+        hdf_type(``int``): Integer representing the HDF-internal type of the dataset
+        index(``int``): Integer representing the HDF-internal index of the dataset.
+    """
+    def __init__(self,
+                 file,
+                 name,
+                 dimensions,
+                 shape,
+                 hdf_type,
+                 index):
+        self.file = weakref.ref(file)
+        self.name = name
+        self.dimensions = dimensions
+        self.shape = shape
+        self.hdf_type = hdf_type
+        self.index = index
+
+    def __repr__(self):
+        return f"Dataset({self.name}, shape={self.shape})"
+
+    def __str__(self):
+        return f"HDF4 Dataset object: {self.name}"
+
+    def __getitem__(self, *args):
+        """
+        Selects datasets from file and forwards call to the returned dataset
+        object.
+        """
+        return self.file().sd.select(self.name).__getitem__(*args)
+
+class HDF4File:
+    """
+    Simplified interface for HDF4 file, which combines the SD and VS low-level
+    interfaces.
+
+    Provides dynamic access to all SD and VS variables through pseudo attributes.
+    This means a variable named ``data`` could be accessed like this::
+
+         hdf4_file.data
+
+    Attributes:
+        attributes(``list``): List of strings of variable names contained in
+            this file.
+    """
+    def __init__(self, path):
+        self.path = path
+        self.file_handle = HDF(str(path))
+
+        self.sd = SD(str(path))
+        datasets = self.sd.datasets()
+        dataset_dict = {key: Dataset(self, key, *info)
+                        for key, info in datasets.items()}
+        self.datasets = dataset_dict
+
+        self.vs = VS(self.file_handle)
+        vdata_dict = {info[0]: VData(self, *info)
+                      for info in self.vs.vdatainfo()}
+        self.vdata = vdata_dict
+
+    def __del__(self):
+        if self.file_handle:
+            self.file_handle.close()
+            self.file_handle = None
+
+    @property
+    def variables(self):
+        """
+        Names of the variables available in this file.
+        """
+        return list(self.datasets.keys()) + list(self.vdata.keys())
+
+    def __getattribute__(self, name):
+        try:
+            return object.__getattribute__(self, name)
+        except AttributeError as error:
+            datasets = object.__getattribute__(self, "datasets")
+            if name in datasets:
+                return datasets[name]
+            vdata = object.__getattribute__(self, "vdata")
+            if name in vdata:
+                return vdata[name]
+            raise error
+
+    def __repr__(self):
+        return f"HDF4File({self.path})"
