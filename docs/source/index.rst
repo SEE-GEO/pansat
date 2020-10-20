@@ -6,12 +6,18 @@
 Welcome to Pansat's documentation!
 ==================================
 
+
+.. toctree::
+   :caption: Examples
+
+   examples
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: API Reference
 
-   download
-   examples
+   api_reference
+
 
 
 Indices and tables

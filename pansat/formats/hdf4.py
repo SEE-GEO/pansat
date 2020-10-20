@@ -2,8 +2,23 @@
 pansat.formats.hdf4
 ===================
 
-This module provides a wrapper for the pyhdf package to simplify reading
-of HDF4 files.
+This module provides a wrapper for the ``pyhdf`` package to simplify reading
+of HDF4 files. The main interface to read a HDF4 file is implemented by the
+``HDF4File`` class. The ``Dataset`` and ``VData`` classes represent the types
+of variables that a HDF4 file contains.
+
+Example
+-------
+
+With the ``HDF4File`` class reading HDF4 files and accessing their variables is
+as simple as shown below:
+
+.. code-block::
+
+    file = HDF4File("file.hdf")
+    print(file.variables)      # Print all variables in file.
+    data = file.variable_1[:]  # Read data from variable named `variable_1`
+
 """
 import weakref
 from pyhdf.HDF import HDF
@@ -109,16 +124,11 @@ class Dataset:
 
 class HDF4File:
     """
-    Simplified interface for HDF4 file, which combines the SD and VS low-level
+    Simplified interface for reading HDF4 files. It combines the SD and VS low-level
     interfaces.
 
-    Provides dynamic access to all SD and VS variables through pseudo attributes.
-    This means a variable named ``data`` could be accessed like this::
-
-         hdf4_file.data
-
     Attributes:
-        attributes(``list``): List of strings of variable names contained in
+        variables(``list``): List of strings of variable names contained in
             this file.
     """
     def __init__(self, path):
