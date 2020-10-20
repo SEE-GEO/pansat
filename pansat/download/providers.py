@@ -7,7 +7,7 @@ for data providers from which a specific product can be downloaded. The generic
 interface defines functions to list and download files for given days or time
 ranges.
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractclassmethod
 from datetime import datetime, timedelta
 from ftplib import FTP
 import os
@@ -24,6 +24,10 @@ class DataProvider(metaclass=ABCMeta):
     """
 
     def __init__(self):
+        pass
+
+    @abstractclassmethod
+    def get_available_products(self):
         pass
 
     @abstractmethod
@@ -133,12 +137,12 @@ class DataProvider(metaclass=ABCMeta):
 
             fs = self.get_files(year, day)
 
-            ts = [self.product.name_to_date(f) for f in fs]
+            ts = [self.product.filename_to_date(f) for f in fs]
 
-            dts0 = [self.product.name_to_date(f) - t0 for f in fs]
+            dts0 = [self.product.filename_to_date(f) - t0 for f in fs]
             pos0 = [dt.total_seconds() >= 0.0 for dt in dts0]
 
-            dts1 = [self.product.name_to_date(f) - t1 for f in fs]
+            dts1 = [self.product.filename_to_date(f) - t1 for f in fs]
             pos1 = [dt.total_seconds() > 0.0 for dt in dts1]
 
             inds = [i for i, (p0, p1) in enumerate(zip(pos0, pos1)) if p0 and not p1]
@@ -183,7 +187,7 @@ class DataProvider(metaclass=ABCMeta):
         day = int(t.strftime("%j"))
         files += self.get_files(year, day)
 
-        ts = [self.product.name_to_date(f) for f in files]
+        ts = [self.product.filename_to_date(f) for f in files]
         dts = [tf - t for tf in ts]
         dts = np.array([dt.total_seconds() for dt in dts])
         inds = np.argsort(dts)
@@ -242,6 +246,13 @@ class CopernicusProvider(DataProvider):
             self.domain = ""
         else:
             self.domain = domain
+
+    @classmethod
+    def get_available_products(cls):
+        """
+        The products available from this dataprovider.
+        """
+        return copernicus_products
 
     def download(self, start, end, dest=None):
         """Downloads files for given time range and stores at specified location.
@@ -374,14 +385,24 @@ class CopernicusProvider(DataProvider):
 ################################################################################
 
 icare_products = {
-    "CloudSat_2b_GeoProf": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF"],
-    "CloudSat_1b_CPR": ["SPACEBORNE", "CLOUDSAT", "1B-CPR"],
-    "CloudSat_MODIS_Aux": ["SPACEBORNE", "CLOUDSAT", "MODIS-AUX"],
-    "CloudSat_ECMWF_Aux": ["SPACEBORNE", "CLOUDSAT", "ECMWF-AUX"],
+    "CloudSat_1B-CPR": ["SPACEBORNE", "CLOUDSAT", "1B-CPR"],
+    "CloudSat_2B-CLDCLASS": ["SPACEBORNE", "CLOUDSAT", "2B-CLDCLASS"],
+    "CloudSat_2B-CLDCLASS-LIDAR": ["SPACEBORNE", "CLOUDSAT", "2B-CLDCLASS-LIDAR"],
+    "CloudSat_2B-CWC-RO": ["SPACEBORNE", "CLOUDSAT", "2B-CWC-RO"],
+    "CloudSat_2B-CWC-RVOD": ["SPACEBORNE", "CLOUDSAT", "2B-CWC-RVOD"],
+    "CloudSat_2B-FLXHR": ["SPACEBORNE", "CLOUDSAT", "2B-FLXHR"],
+    "CloudSat_2B-FLXHR-LIDAR": ["SPACEBORNE", "CLOUDSAT", "2B-FLXHR-LIDAR"],
+    "CloudSat_2B-GEOPROF": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF"],
+    "CloudSat_2B-GEOPROF-LIDAR": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
+    "CloudSat_2B-TAU": ["SPACEBORNE", "CLOUDSAT", "2B-TAU"],
+    "CloudSat_2C-ICE": ["SPACEBORNE", "CLOUDSAT", "2B-ICE"],
+    "CloudSat_2C-PRECIP-COLUMN": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
+    "CloudSat_2C-RAIN-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
+    "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
 }
 
 
-class IcareProvider(DataProvider):
+class Icare(DataProvider):
     """
     Base class for data products available from the ICARE ftp server.
     """
@@ -399,15 +420,15 @@ class IcareProvider(DataProvider):
         tree which contains the data files sorted by date.
 
         """
-        if not product.__name__ in icare_products:
+        if not str(product) in icare_products:
             available_products = list(icare_products.keys())
             raise ValueError(
-                f"{product.__name__}  not a available from the ICARE data"
-                " provider. Currently available products are: "
-                " {available_products}."
+                f"The product {product} is  not a available from the ICARE data"
+                f" provider. Currently available products are: "
+                f"{available_products}."
             )
         self.product = product
-        self.product_path = os.path.join(*icare_products[product.__name__])
+        self.product_path = os.path.join(*icare_products[str(product)])
         self.cache = {}
 
     def __ftp_listing_to_list__(self, path, t=int):
@@ -427,22 +448,26 @@ class IcareProvider(DataProvider):
 
         """
         if not path in self.cache:
-            with FTP(IcareProvider.base_url) as ftp:
-                identity = get_identity("Icare")
-                ftp.login(user=identity["user"], passwd=identity["password"])
+            with FTP(Icare.base_url) as ftp:
+                user, password = get_identity("Icare")
+                ftp.login(user=user, passwd=password)
                 try:
                     ftp.cwd(path)
                 except:
                     raise Exception(
                         "Can't find product folder "
                         + path
-                        + "on the ICARE ftp server.. Are you sure this is"
-                        "a  ICARE multi sensor product?"
+                        + "on the ICARE ftp server. Are you sure this is"
+                        "a ICARE multi sensor product?"
                     )
                 listing = ftp.nlst()
             listing = [t(l) for l in listing]
             self.cache[path] = listing
         return self.cache[path]
+
+    @classmethod
+    def get_available_products(cls):
+        return icare_products.keys()
 
     def get_files(self, year, day):
         """
@@ -477,14 +502,17 @@ class IcareProvider(DataProvider):
             dest(``dest``): The path to which to store the file.
 
         """
-        date = self.product.name_to_date(filename)
+        date = self.product.filename_to_date(filename)
         path = os.path.join(
             self.product_path, str(date.year), date.strftime("%Y_%m_%d")
         )
 
-        identity = get_identity("Icare")
+        user, password = get_identity("Icare")
         with FTP(self.base_url) as ftp:
-            ftp.login(user=identity["user"], passwd=identity["password"])
+            ftp.login(user=user, passwd=password)
             ftp.cwd(path)
             with open(dest, "wb") as file:
                 ftp.retrbinary("RETR " + filename, file.write)
+
+
+all_providers = [Icare]

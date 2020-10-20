@@ -11,6 +11,7 @@ Welcome to Pansat's documentation!
    :caption: Contents:
 
    download
+   examples
 
 
 Indices and tables

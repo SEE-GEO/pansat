@@ -14,8 +14,8 @@ import os
 @pytest.fixture(autouse=True)
 def setup_cds_identity(monkeypatch):
     url, key = accs.get_identity("Copernicus")
-    read_config = lambda x: {"url": url, "key": key}
-    monkeypatch.setattr("cdsapi.api.read_config", read_config)
+    os.environ["CDSAPI_URL"] = url
+    os.environ["CDSAPI_KEY"] = key
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
