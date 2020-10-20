@@ -428,7 +428,7 @@ class Icare(DataProvider):
                 f"{available_products}."
             )
         self.product = product
-        self.product_path = os.path.join(*icare_products[str(product)])
+        self.product_path = "/".join(icare_products[str(product)])
         self.cache = {}
 
     def __ftp_listing_to_list__(self, path, t=int):
@@ -488,7 +488,7 @@ class Icare(DataProvider):
         day_str = str(day)
         day_str = "0" * (3 - len(day_str)) + day_str
         date = datetime.strptime(str(year) + str(day_str), "%Y%j")
-        path = os.path.join(self.product_path, str(year), date.strftime("%Y_%m_%d"))
+        path = "/".join([self.product_path, str(year), date.strftime("%Y_%m_%d")])
         listing = self.__ftp_listing_to_list__(path, str)
         files = [name for name in listing if name[-3:] == "hdf"]
         return files
@@ -503,9 +503,7 @@ class Icare(DataProvider):
 
         """
         date = self.product.filename_to_date(filename)
-        path = os.path.join(
-            self.product_path, str(date.year), date.strftime("%Y_%m_%d")
-        )
+        path = "/".join([self.product_path, str(date.year), date.strftime("%Y_%m_%d")])
 
         user, password = get_identity("Icare")
         with FTP(self.base_url) as ftp:
