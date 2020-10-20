@@ -6,6 +6,7 @@ from pansat.formats.hdf4 import HDF4File
 
 TEST_FILE = PurePath(__file__).parent / "test_data" / "test_file.hdf"
 
+
 def test_dataset():
     """
     Reads the test file and ensures that  the dataset (DS API)
@@ -17,6 +18,7 @@ def test_dataset():
     dataset = file.dataset_1
     assert dataset.name == "dataset_1"
     assert dataset.shape == (1, 10)
+
 
 def test_vdata():
     """

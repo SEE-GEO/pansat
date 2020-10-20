@@ -25,6 +25,7 @@ from pyhdf.HDF import HDF
 from pyhdf.SD import SD
 from pyhdf.VS import VS
 
+
 class VData:
     """
     Class representing VData objects, i.e. numeric data that is stored in table
@@ -44,17 +45,20 @@ class VData:
         tag(``int``): The vdata tag number.
         interlace(``int``): The vdata interlace mode.
     """
-    def __init__(self,
-                 file,
-                 name,
-                 cls,
-                 reference,
-                 n_records,
-                 n_fields,
-                 n_attributes,
-                 size,
-                 tag,
-                 interlace):
+
+    def __init__(
+        self,
+        file,
+        name,
+        cls,
+        reference,
+        n_records,
+        n_fields,
+        n_attributes,
+        size,
+        tag,
+        interlace,
+    ):
         self.file = weakref.ref(file)
         self.name = name
         self.cls = cls
@@ -95,13 +99,8 @@ class Dataset:
         hdf_type(``int``): Integer representing the HDF-internal type of the dataset
         index(``int``): Integer representing the HDF-internal index of the dataset.
     """
-    def __init__(self,
-                 file,
-                 name,
-                 dimensions,
-                 shape,
-                 hdf_type,
-                 index):
+
+    def __init__(self, file, name, dimensions, shape, hdf_type, index):
         self.file = weakref.ref(file)
         self.name = name
         self.dimensions = dimensions
@@ -122,6 +121,7 @@ class Dataset:
         """
         return self.file().sd.select(self.name).__getitem__(*args)
 
+
 class HDF4File:
     """
     Simplified interface for reading HDF4 files. It combines the SD and VS low-level
@@ -131,19 +131,20 @@ class HDF4File:
         variables(``list``): List of strings of variable names contained in
             this file.
     """
+
     def __init__(self, path):
         self.path = path
         self.file_handle = HDF(str(path))
 
         self.sd = SD(str(path))
         datasets = self.sd.datasets()
-        dataset_dict = {key: Dataset(self, key, *info)
-                        for key, info in datasets.items()}
+        dataset_dict = {
+            key: Dataset(self, key, *info) for key, info in datasets.items()
+        }
         self.datasets = dataset_dict
 
         self.vs = VS(self.file_handle)
-        vdata_dict = {info[0]: VData(self, *info)
-                      for info in self.vs.vdatainfo()}
+        vdata_dict = {info[0]: VData(self, *info) for info in self.vs.vdatainfo()}
         self.vdata = vdata_dict
 
     def __del__(self):
