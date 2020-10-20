@@ -1,1 +1,2 @@
 nbsphinx
+sphinx>=3.2.1
