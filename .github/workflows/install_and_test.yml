@@ -1,10 +1,10 @@
 name: install_and_test
-on: [pull_request_target]
+on: [push]
 jobs:
   install_and_test_job:
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [windows-latest]
         # os: [ubuntu-latest, windows-latest, macos-latest]
         python: [3.6, 3.8]
     runs-on: ${{ matrix.os }}
@@ -16,7 +16,8 @@ jobs:
       - run: pip install .
       - run: pip install pytest
       - run: pip install appdirs
-      - run: sudo apt-get install libhdf4-dev
+      # - run: sudo apt-get install libhdf4-dev # ubuntu
+      - run: choco install libhdf4-dev # windows
       - run: pip install pyhdf
       - run: pytest test/
         env:
