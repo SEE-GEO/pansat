@@ -239,14 +239,12 @@ class CopernicusProvider(DataProvider):
                 f" {available_products}."
             )
 
-
     @classmethod
     def get_available_products(cls):
         """
         The products available from this dataprovider.
         """
         return copernicus_products
-
 
     def download(self, start, end, destination):
         """Downloads files for given time range and stores at specified location.
@@ -266,11 +264,11 @@ class CopernicusProvider(DataProvider):
         c = cdsapi.Client()
 
         # subset region, if requested
-        if self.product.domain== None:
+        if self.product.domain == None:
             area = ""
         else:
             area = "/".join(self.product.domain)
-    
+
         ################### create time range for monthly data products ##############################
         if "monthly" in self.product.name:
             # handling data ranges over multiple years:
@@ -315,8 +313,8 @@ class CopernicusProvider(DataProvider):
                 h = start + timedelta(hours=i)
                 dates.append(h)
 
-        # container to save list of downloaded files 
-        files= []
+        # container to save list of downloaded files
+        files = []
 
         # send API request for each specific month or hour
         for idx, date in enumerate(dates):
@@ -342,11 +340,11 @@ class CopernicusProvider(DataProvider):
 
                 # zero padding for day
                 if int(day) < 10:
-                    day = '0' + str(day)
+                    day = "0" + str(day)
 
             # zero padding for month
             if int(month) < 10:
-                month = '0'+ str(month)
+                month = "0" + str(month)
 
             filename = (
                 self.product.name
@@ -359,7 +357,7 @@ class CopernicusProvider(DataProvider):
                 + "-".join(self.product.variables)
                 + "-".join(area)
                 + ".nc"
-                )
+            )
 
             # set output path and file name
             out = str(destination) + "/" + str(filename)
@@ -390,7 +388,6 @@ class CopernicusProvider(DataProvider):
             return files
 
 
-
 ################################################################################
 # icare.univ-lille.fr
 ################################################################################
@@ -411,7 +408,6 @@ icare_products = {
     "CloudSat_2C-RAIN-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
     "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
 }
-
 
 
 class Icare(DataProvider):
