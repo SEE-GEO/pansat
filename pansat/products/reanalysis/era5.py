@@ -23,7 +23,6 @@ class NoAvailableProviderError(Exception):
     """
 
 
-
 class ERA5Product(Product):
     """
     The ERA5 class defines a generic interface for ERA5 products.
@@ -34,18 +33,17 @@ class ERA5Product(Product):
         domain(``list``): list of strings to select region  [lat2, lon1, lat1, lon2], if None: global data will be downloaded
     """
 
-    def __init__(self, name, variables, domain= None):
+    def __init__(self, name, variables, domain=None):
         self.name = name
         self.variables = variables
-        self.domain = domain 
+        self.domain = domain
 
         self.filename_regexp = re.compile(
-            r"era5-" + name + r"_/d/d/d/d*:/d/d_/D*|.nc"
+            r"era5-" + name + r"_[\d]*:\d\d.*" + self.variables[0] + r".*.nc"
         )
 
     def variables(self):
         return self._variables
-
 
     def matches(self, filename):
         """
@@ -57,7 +55,6 @@ class ERA5Product(Product):
             True if the filename matches the product, False otherwise.
         """
         return self.filename_regexp.match(filename)
-
 
     def filename_to_date(self, filename):
         """
@@ -76,7 +73,6 @@ class ERA5Product(Product):
             "%Y%m%d%H:%M"
         return datetime.strptime(filename, pattern)
 
-
     def _get_provider(self):
         """ Find a provider that provides the product. """
         available_providers = [
@@ -90,7 +86,6 @@ class ERA5Product(Product):
             )
         return available_providers[0]
 
-
     @property
     def default_destination(self):
         """
@@ -99,11 +94,9 @@ class ERA5Product(Product):
         """
         return Path("ERA5") / Path(self.name)
 
-
     def __str__(self):
         """ The full product name. """
         return self.name
-
 
     def download(self, t0, t1, destination=None, provider=None):
         """
@@ -127,17 +120,6 @@ class ERA5Product(Product):
         destination.mkdir(parents=True, exist_ok=True)
         provider = provider(self)
 
-        # get list with all downloaded files 
+        # get list with all downloaded files
         downloaded = provider.download(t0, t1, destination)
         return downloaded
-
-
-
-
-
-
-
-
-
-
-

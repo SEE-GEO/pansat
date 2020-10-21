@@ -9,12 +9,18 @@ import pytest
 import pansat.products.reanalysis.era5 as era5
 
 
-PRODUCTS = [era5.ERA5Product('reanalysis-era5-single-levels-monthly-means', ['2m_temperature'])]
+PRODUCTS = [
+    era5.ERA5Product("reanalysis-era5-single-levels-monthly-means", ["2m_temperature"])
+]
 
-TEST_NAMES = {'reanalysis-era5-single-levels-monthly-means': 'era5-reanalysis-era5-single-levels-monthly-means_20161000:00_2m_temperature.nc'}
+TEST_NAMES = {
+    "reanalysis-era5-single-levels-monthly-means": "era5-reanalysis-era5-single-levels-monthly-means_20161000:00_2m_temperature.nc"
+}
 
-TEST_TIMES = {'reanalysis-era5-single-levels-monthly-means': datetime(2018, 5, 23, 00, 41, 15)}
 
+TEST_TIMES = {
+    "reanalysis-era5-single-levels-monthly-means": datetime(2016, 10, 1, 0, 0)
+}
 
 
 @pytest.mark.parametrize("product", PRODUCTS)
@@ -27,6 +33,15 @@ def test_filename_to_date(product):
     assert time == TEST_TIMES[product.name]
 
 
+@pytest.mark.parametrize("product", PRODUCTS)
+def test_matches(product):
+    """
+    Assert that matches method returns true on the filename.
+    """
+    filename = TEST_NAMES[product.name]
+    assert product.matches(filename)
+
+
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
@@ -37,8 +52,3 @@ def test_download():
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 7, 1, 12)
     product.download(t_0, t_1)
-
-
-
-
-

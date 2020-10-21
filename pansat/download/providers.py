@@ -349,8 +349,7 @@ class CopernicusProvider(DataProvider):
                 month = '0'+ str(month)
 
             filename = (
-                "era5-"
-                + self.product.name
+                self.product.name
                 + "_"
                 + year
                 + month
