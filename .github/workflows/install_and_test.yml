@@ -15,6 +15,7 @@ jobs:
       - run: pip install .
       - run: pip install pytest
       - run: pip install appdirs
+      - run: sudo apt-get install libhdf4-dev
       - run: pip install pyhdf
       - run: pytest test/
         env:
