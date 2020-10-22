@@ -4,20 +4,36 @@ jobs:
   install_and_test_job:
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [macos-latest]
         # os: [ubuntu-latest, windows-latest, macos-latest]
         python: [3.6, 3.8]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v1
+      # - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python }}
+          # could also specify an environment.yml file here instead of installing everything from pip
       - run: pip install .
       - run: pip install pytest
       - run: pip install appdirs
+      - run: conda install basemap # might contain hdf4
+      # - name: install HDF4 library for OS
+      #   run:  |
+      #         if [ "$RUNNER_OS" == "Linux" ]; then
+      #             echo --------++++++++ $RUNNER_OS --------++++++++
+      #             sudo apt-get install libhdf4-dev
+      #         elif [ "$RUNNER_OS" == "macOS" ]; then
+      #             echo --------++++++++ $RUNNER_OS --------++++++++
+      #             brew install hdf4
+      #         else
+      #             echo "$RUNNER_OS not supported"
+      #             exit 1
+      #         fi
+      #   shell: bash
       # - run: sudo apt-get install libhdf4-dev # ubuntu
-      - run: choco install libhdf4-dev # windows
+      # - run: choco install libhdf4-dev # windows - unfortunately not available
       - run: pip install pyhdf
       - run: pytest test/
         env:
