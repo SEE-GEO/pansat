@@ -4,7 +4,7 @@ jobs:
   install_and_test_job:
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [windows-latest]
         # os: [ubuntu-latest, windows-latest, macos-latest]
         python: [3.6, 3.8]
     runs-on: ${{ matrix.os }}
@@ -18,7 +18,9 @@ jobs:
       - run: pip install .
       - run: pip install pytest
       - run: pip install appdirs
-      - run: conda install basemap # might contain hdf4
+      - run: conda install basemap
+      # - run: conda install basemap-data-hires # hopefully contains hdf4
+      - run: conda install pillow
       # - name: install HDF4 library for OS
       #   run:  |
       #         if [ "$RUNNER_OS" == "Linux" ]; then
