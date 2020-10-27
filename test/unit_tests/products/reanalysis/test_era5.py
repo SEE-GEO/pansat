@@ -51,9 +51,13 @@ def test_download():
     product = PRODUCTS[0]
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 7, 1, 12)
+    product.download(t_0, t_1)
+
+
+@pytest.mark.parametrize("product", PRODUCTS)
+def test_download_and_open(product):
+    t_0 = datetime(2000, 6, 1, 1)
+    t_1 = datetime(2000, 7, 1, 1)
     downloaded = product.download(t_0, t_1)
-    return downloaded
-
-
-def test_open(downloaded):
     product.open(downloaded[0])
+    os.remove(downloaded[0])
