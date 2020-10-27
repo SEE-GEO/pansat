@@ -2,7 +2,6 @@
 Tests for the pansat.products.reanalysis.era5 module.
 """
 
-
 from datetime import datetime
 import os
 import pytest
@@ -13,6 +12,7 @@ PRODUCTS = [
     era5.ERA5Product("reanalysis-era5-single-levels-monthly-means", ["2m_temperature"])
 ]
 
+
 TEST_NAMES = {
     "reanalysis-era5-single-levels-monthly-means": "era5-reanalysis-era5-single-levels-monthly-means_20161000:00_2m_temperature.nc"
 }
@@ -21,6 +21,7 @@ TEST_NAMES = {
 TEST_TIMES = {
     "reanalysis-era5-single-levels-monthly-means": datetime(2016, 10, 1, 0, 0)
 }
+
 
 
 @pytest.mark.parametrize("product", PRODUCTS)
@@ -45,10 +46,29 @@ def test_matches(product):
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
+
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
     product = PRODUCTS[0]
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 7, 1, 12)
-    product.download(t_0, t_1)
+    downloaded = product.download(t_0, t_1)
+    return downloaded
+
+
+
+def test_open(downloaded):
+    product.open(downloaded[0])
+
+
+
+
+
+
+
+
+
+
+
+

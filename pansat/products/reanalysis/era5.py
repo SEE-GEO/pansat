@@ -7,7 +7,7 @@ supported ERA5 products.
 
 """
 
-import xarray 
+import xarray
 import re
 import os
 from datetime import datetime
@@ -112,7 +112,7 @@ class ERA5Product(Product):
 
         Returns:
 
-        downloaded(``list``): ``list`` with names of all downloaded files for respective data product 
+        downloaded(``list``): ``list`` with names of all downloaded files for respective data product
 
         """
 
@@ -130,10 +130,8 @@ class ERA5Product(Product):
         downloaded = provider.download(t0, t1, destination)
         return downloaded
 
-
-
     def open(self, filename):
-        """ Opens a given file of ERA5 product class as xarray.
+        """Opens a given file of ERA5 product class as xarray.
 
         Args:
         filename(``str``): name of the file to be opened
@@ -144,21 +142,3 @@ class ERA5Product(Product):
         xr = xarray.open_dataset(filename)
 
         return xr
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
