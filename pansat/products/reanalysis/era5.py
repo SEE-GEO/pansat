@@ -141,7 +141,7 @@ class ERA5Product(Product):
         Returns:
 
         xr(``xarray.Dataset``): xarray dataset object"""
-        xr = xr.open_dataset(filename)
+        xr = xarray.open_dataset(filename)
 
         return xr
 
