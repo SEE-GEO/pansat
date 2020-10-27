@@ -1,0 +1,2 @@
+Python packages that are required to build the documentation need to be listed in
+requirements.txt in this folder (ROOT/doc/requirements.txt).
