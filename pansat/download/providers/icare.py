@@ -3,8 +3,8 @@ pansat.download.providers.icare
 ===============================
 
 This module providers the ``IcareProvider`` class, which implementes a data provider
-class for downloading data from the `Icare datacenter
- <https://www.icare.univ-lille.fr/>`.
+class for downloading data from the
+`Icare datacenter <https://www.icare.univ-lille.fr/>`_.
 """
 from datetime import datetime
 from ftplib import FTP
