@@ -17,7 +17,7 @@ setuptools.setup(
         "License :: GNU Affero",
         "Operating System :: OS Independent",
     ],
-    install_requires=["cryptography>=3.1", "numpy", "cdsapi"],
+    install_requires=["cryptography>=3.1", "numpy", "cdsapi", "xarray"],
     test_requires=["sphinx_rtd_theme"],
     python_requires=">=3.6",
 )
