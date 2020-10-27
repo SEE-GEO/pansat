@@ -44,7 +44,7 @@ def test_matches(product):
 
 @pytest.fixture(scope="session")
 def tmpdir(tmpdir_factory):
-    tmp_dir = tmpdir_factory.mktemp('data')
+    tmp_dir = tmpdir_factory.mktemp("data")
     return tmp_dir
 
 
@@ -57,19 +57,5 @@ def test_download(tmpdir):
 
 def test_open(tmpdir):
     product = PRODUCTS[0]
-    fn = str(tmpdir) + ('/') + TEST_NAMES[product.name]
+    fn = str(tmpdir) + ("/") + TEST_NAMES[product.name]
     product.open(fn)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
