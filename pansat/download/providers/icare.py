@@ -28,6 +28,7 @@ ICARE_PRODUCTS = {
     "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
 }
 
+
 class IcareProvider(DiscreteProvider):
     """
     Base class for data products available from the ICARE ftp server.
@@ -114,7 +115,6 @@ class IcareProvider(DiscreteProvider):
         listing = self._ftp_listing_to_list(path, str)
         files = [name for name in listing if name[-3:] == "hdf"]
         return files
-
 
     def download_file(self, filename, destination):
         """

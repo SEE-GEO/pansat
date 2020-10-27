@@ -15,6 +15,7 @@ class DataProvider(metaclass=ABCMeta):
     """
     Abstract base class for data provider classes.
     """
+
     @abstractclassmethod
     def get_available_products(cls):
         """

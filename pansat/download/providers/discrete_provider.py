@@ -11,6 +11,7 @@ from datetime import timedelta
 from pathlib import Path
 from pansat.download.providers.data_provider import DataProvider
 
+
 class DiscreteProvider(DataProvider):
     """
     The DiscreteProvider class acts as a template class for discrete data
@@ -19,6 +20,7 @@ class DiscreteProvider(DataProvider):
     and the extends the functionality to match the general DataProvider
     interface.
     """
+
     def __init__(self, product):
         super().__init__()
         self.product = product
@@ -72,7 +74,6 @@ class DiscreteProvider(DataProvider):
             self.download_file(f, path)
             downloaded.append(path)
         return downloaded
-
 
     def get_preceeding_file(self, filename):
         """
@@ -129,10 +130,7 @@ class DiscreteProvider(DataProvider):
 
         return files[i + 1]
 
-    def get_files_in_range(self,
-                           start_time,
-                           end_time,
-                           start_inclusive=False):
+    def get_files_in_range(self, start_time, end_time, start_inclusive=False):
         """
         Get all files within time range.
 
@@ -204,11 +202,13 @@ class DiscreteProvider(DataProvider):
         def time_difference(filename):
             delta = self.product.filename_to_date(filename) - time
             return delta.total_seconds()
+
         files_sorted = sorted(files, key=time_difference)
 
         def negative_only(filename):
             delta = self.product.filename_to_date(filename) - time
             return delta <= 0
+
         files_negative = filter(negative_only, files_sorted)
 
         if files_negative:

@@ -24,6 +24,7 @@ COPERNICUS_PRODUCTS = [
     "reanalysis-era5-single-levels-monthly-means",
 ]
 
+
 @contextmanager
 def _create_cds_api_rc():
     """
@@ -45,6 +46,7 @@ def _create_cds_api_rc():
     finally:
         os.environ.pop("CDSAPI_RC")
         Path(path).unlink()
+
 
 class CopernicusProvider(DataProvider):
     """
@@ -121,7 +123,9 @@ class CopernicusProvider(DataProvider):
                     all_months = np.arange(1, 13).astype(str)
 
                     # get months of incomplete years
-                    months_first_year = list(np.arange((start.month + 1), 13).astype(str))
+                    months_first_year = list(
+                        np.arange((start.month + 1), 13).astype(str)
+                    )
                     months_last_year = list(np.arange(1, (end.month + 1)).astype(str))
 
                     # create lists for years with months

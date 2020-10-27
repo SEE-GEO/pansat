@@ -96,11 +96,7 @@ class CloudSatProduct(Product):
         """ The full product name. """
         return "CloudSat_" + self.name
 
-    def download(self,
-                 start_time,
-                 end_time,
-                 destination=None,
-                 provider=None):
+    def download(self, start_time, end_time, destination=None, provider=None):
         """
         Download data product for given time range.
 
@@ -117,6 +113,7 @@ class CloudSatProduct(Product):
             provider = self._get_provider()
         provider = provider(self)
         return provider.download(start_time, end_time, destination)
+
 
 l1b_cpr = CloudSatProduct("1B-CPR", [])
 l2b_geoprof = CloudSatProduct("2B-GEOPROF", [])
