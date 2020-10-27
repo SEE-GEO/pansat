@@ -18,9 +18,11 @@ jobs:
       - run: pip install .
       - run: pip install pytest
       - run: pip install appdirs
-      - run: conda install basemap
+      # - run: conda install basemap # not compatible with python >= 3.6
       # - run: conda install basemap-data-hires # hopefully contains hdf4
       - run: conda install pillow
+      # trying something else
+      - run: conda install -c conda-forge pyhdf
       # - name: install HDF4 library for OS
       #   run:  |
       #         if [ "$RUNNER_OS" == "Linux" ]; then
