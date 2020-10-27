@@ -19,7 +19,7 @@ class Product(ABC):
         List of variables provided by the product.
         """
 
-    @abstractmethod
+    @abstractproperty
     def default_destination(self):
         """Default folder structure used to store results."""
 

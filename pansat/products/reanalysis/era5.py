@@ -77,7 +77,7 @@ class ERA5Product(Product):
         """ Find a provider that provides the product. """
         available_providers = [
             p
-            for p in providers.all_providers
+            for p in providers.ALL_PROVIDERS
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
