@@ -23,7 +23,6 @@ TEST_TIMES = {
 }
 
 
-
 @pytest.mark.parametrize("product", PRODUCTS)
 def test_filename_to_date(product):
     """
@@ -46,7 +45,6 @@ def test_matches(product):
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
-
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
@@ -57,18 +55,5 @@ def test_download():
     return downloaded
 
 
-
 def test_open(downloaded):
     product.open(downloaded[0])
-
-
-
-
-
-
-
-
-
-
-
-
