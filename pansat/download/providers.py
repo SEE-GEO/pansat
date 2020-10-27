@@ -239,6 +239,7 @@ class CopernicusProvider(DataProvider):
                 f" {available_products}."
             )
 
+
     @classmethod
     def get_available_products(cls):
         """
