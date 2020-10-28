@@ -42,4 +42,4 @@ def test_vdata():
     print(file.datasets)
     vdata = file.vdata_1
     assert vdata.name == "vdata_1"
-    assert vdata.n_fields == 10
+    assert vdata.n_fields == 1

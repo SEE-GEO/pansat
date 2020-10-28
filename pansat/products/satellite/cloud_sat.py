@@ -32,12 +32,14 @@ class CloudSatProduct(Product):
     """
 
     def __init__(self, name, variables):
+        super().__init__()
         self.name = name
         self._variables = variables
         self.filename_regexp = re.compile(
             r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P_R([\d]*)_E([\d]*)\.*"
         )
 
+    @property
     def variables(self):
         return self._variables
 
@@ -73,7 +75,7 @@ class CloudSatProduct(Product):
         """ Find a provider that provides the product. """
         available_providers = [
             p
-            for p in providers.all_providers
+            for p in providers.ALL_PROVIDERS
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
@@ -94,7 +96,7 @@ class CloudSatProduct(Product):
         """ The full product name. """
         return "CloudSat_" + self.name
 
-    def download(self, t0, t1, destination=None, provider=None):
+    def download(self, start_time, end_time, destination=None, provider=None):
         """
         Download data product for given time range.
 
@@ -109,21 +111,8 @@ class CloudSatProduct(Product):
 
         if not provider:
             provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
         provider = provider(self)
-
-        files = provider.get_files_in_range(t0, t1)
-        downloaded = []
-        for f in files:
-            path = destination / f
-            provider.download(f, path)
-            downloaded.append(path)
-        return downloaded
+        return provider.download(start_time, end_time, destination)
 
 
 l1b_cpr = CloudSatProduct("1B-CPR", [])
