@@ -39,7 +39,7 @@ class ERA5Product(Product):
         self.domain = domain
 
         self.filename_regexp = re.compile(
-            r"era5-" + name + r"_[\d]*:\d\d.*" + self.variables[0] + r".*.nc"
+            name + r"_[\d]*:\d\d.*" + self.variables[0] + r".*.nc"
         )
 
     def variables(self):

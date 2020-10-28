@@ -14,7 +14,7 @@ PRODUCTS = [
 
 
 TEST_NAMES = {
-    "reanalysis-era5-single-levels-monthly-means": "era5-reanalysis-era5-single-levels-monthly-means_20161000:00_2m_temperature.nc"
+    "reanalysis-era5-single-levels-monthly-means": "reanalysis-era5-single-levels-monthly-means_20161000:00_2m_temperature.nc"
 }
 
 
@@ -42,22 +42,20 @@ def test_matches(product):
     assert product.matches(filename)
 
 
-HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+@pytest.fixture(scope="session")
+def tmpdir(tmpdir_factory):
+    tmp_dir = tmpdir_factory.mktemp("data")
+    return tmp_dir
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.usefixtures("test_identities")
-def test_download():
+def test_download(tmpdir):
     product = PRODUCTS[0]
-    t_0 = datetime(2018, 6, 1, 10)
-    t_1 = datetime(2018, 7, 1, 12)
-    product.download(t_0, t_1)
+    t_0 = datetime(2016, 10, 1, 1)
+    t_1 = datetime(2016, 11, 1, 1)
+    product.download(t_0, t_1, str(tmpdir))
 
 
-@pytest.mark.parametrize("product", PRODUCTS)
-def test_download_and_open(product):
-    t_0 = datetime(2000, 6, 1, 1)
-    t_1 = datetime(2000, 7, 1, 1)
-    downloaded = product.download(t_0, t_1)
-    product.open(downloaded[0])
-    os.remove(downloaded[0])
+def test_open(tmpdir):
+    product = PRODUCTS[0]
+    fn = str(tmpdir) + ("/") + TEST_NAMES[product.name]
+    product.open(fn)
