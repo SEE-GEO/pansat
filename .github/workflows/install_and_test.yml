@@ -15,6 +15,7 @@ jobs:
       - run: pip install .
       - run: pip install pytest
       - run: pip install appdirs
+      - run: pip install scipy
       - run: pytest test/
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
