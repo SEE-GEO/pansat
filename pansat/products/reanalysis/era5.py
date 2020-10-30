@@ -60,7 +60,7 @@ class ERA5Product(Product):
         """
         Extract timestamp from filename.
         Args:
-            filename(``str``): Filename of a CloudSat product.
+            filename(``str``): Filename of a ERA5 product.
         Returns:
             ``datetime`` object representing the timestamp of the
             filename.
@@ -89,8 +89,8 @@ class ERA5Product(Product):
     @property
     def default_destination(self):
         """
-        The default destination for CloudSat product is
-        ``CloudSat/<product_name>``>
+        The default destination for ERA5 product is
+        ``ERA5/<product_name>``>
         """
         return Path("ERA5") / Path(self.name)
 
@@ -101,6 +101,7 @@ class ERA5Product(Product):
     def download(self, t0, t1, destination=None, provider=None):
         """
         Download data product for given time range.
+
         Args:
             start_time(``datetime``): ``datetime`` object defining the start date
                  of the time range.
