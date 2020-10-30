@@ -7,10 +7,11 @@ supported ERA5 products.
 
 """
 
+
 import xarray
 import re
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import pansat.download.providers as providers
 from pansat.products.product import Product
@@ -26,20 +27,61 @@ class NoAvailableProviderError(Exception):
 class ERA5Product(Product):
     """
     The ERA5 class defines a generic interface for ERA5 products.
+
+
     Attributes:
-        name(``str``): The name of the product
+        tsteps(``str``): "monthly" or "hourly" to choose resolution of output timesteps
+        levels(``str``): "surface", "pressure" or "land". <surface> contains surface data
+                          and column-integrated values, pressure levels contains data throughout
+                          the atmosphere column and <land> contains data from surface to soil depth
+        name(``str``): The full name of the product according to Copernicus webpage
         variables(``list``): List of variable names provided by this
             product.
-        domain(``list``): list of strings to select region  [lat2, lon1, lat1, lon2], if None: global data will be downloaded
+        domain(``list``): list of strings to select region  [lat1, lat2, lon1, lon2]
+                          if None: global data will be downloaded
     """
 
-    def __init__(self, name, variables, domain=None):
-        self.name = name
+    def __init__(self, tsteps, levels, variables, domain=None, name=None):
         self.variables = variables
-        self.domain = domain
+
+        if not domain:
+            self.domain = 'global'
+        else:
+            if domain[0] < -90 or domain[0] > 90 or domain[1] > 90 or domain[1] < -90:
+                raise Exception("Latitude values have to be between -180 and 180.")
+
+            if domain[2] < -180 or domain[2] > 180 or domain[3] > 180 or domain[3] < -180:
+                raise Exception("Longitude values have to be between -90 and 90.")
+
+            self.domain = [domain[1], domain[2], domain[0], domain[3]]
+
+        if not name:
+            if levels == "surface":
+                self.levels = "single-levels"
+            elif levels == "pressure":
+                self.levels = "pressure-levels"
+            elif levels == "land":
+                self.levels = levels
+            else:
+                raise Exception(
+                    "Supported data products are: surface, pressure and land."
+                )
+
+            if tsteps == "monthly":
+                self.tsteps = "monthly-means"
+                self.name = self.name = "reanalysis-era5-" + self.levels + '-'+self.tsteps
+            elif tsteps == "hourly":
+                self.tsteps = tsteps
+                self.name = "reanalysis-era5-" + self.levels
+
+            else:
+                raise Exception("tsteps has to be monthly or hourly.")
+        else:
+            self.name = name
+
 
         self.filename_regexp = re.compile(
-            name + r"_[\d]*:\d\d.*" + self.variables[0] + r".*.nc"
+            self.name + r"_[\d]*.*_" + self.variables[0] + r".*.nc"
         )
 
     def variables(self):
@@ -68,9 +110,9 @@ class ERA5Product(Product):
         filename = os.path.basename(filename)
         filename = filename.split("_")[1]
         if "monthly" in self.name:
-            pattern = "%Y%m%H:%M"
+            pattern = "%Y%m"
         else:
-            "%Y%m%d%H:%M"
+            pattern = "%Y%m%d%H"
         return datetime.strptime(filename, pattern)
 
     def _get_provider(self):
@@ -109,7 +151,6 @@ class ERA5Product(Product):
             destination(``str`` or ``pathlib.Path``): The destination where to store
                  the output data.
 
-
         Returns:
 
         downloaded(``list``): ``list`` with names of all downloaded files for respective data product
@@ -126,8 +167,8 @@ class ERA5Product(Product):
         destination.mkdir(parents=True, exist_ok=True)
         provider = provider(self)
 
-        # get list with all downloaded files
         downloaded = provider.download(t0, t1, destination)
+
         return downloaded
 
     def open(self, filename):
