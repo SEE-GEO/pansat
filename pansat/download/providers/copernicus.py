@@ -290,9 +290,9 @@ class CopernicusProvider(DataProvider):
                 if int(day) < 10:
                     day = "0" + str(day)
 
-                # zero padding for hour
+                # zero padding for hour string in filename 
                 if int(hour) < 10:
-                    hour = "0" + str(hour)
+                    hourstr = "0" + str(hour)
 
                 # zero padding for month
                 if int(month) < 10:
@@ -304,7 +304,7 @@ class CopernicusProvider(DataProvider):
                     + year
                     + month
                     + day
-                    + hour
+                    + hourstr
                     + "_"
                     + "-".join(self.product.variables)
                     + area
@@ -316,8 +316,7 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    print(destination, " already exists.")
-
+                    print(out, " already exists.")
                 else:
                     c.retrieve(
                         self.product.name,
@@ -336,7 +335,7 @@ class CopernicusProvider(DataProvider):
                     print("file downloaded and saved as", out)
                     files.append(out)
 
-                return files
+            return files
 
 
 
