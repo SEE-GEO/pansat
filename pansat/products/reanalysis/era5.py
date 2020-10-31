@@ -58,7 +58,7 @@ class ERA5Product(Product):
             ):
                 raise Exception("Longitude values have to be between -90 and 90.")
 
-            self.domain = [domain[1], domain[2], domain[0], domain[3]]
+            self.domain = domain
 
         if not name:
             if levels == "surface":
