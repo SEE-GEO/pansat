@@ -290,7 +290,8 @@ class CopernicusProvider(DataProvider):
                 if int(day) < 10:
                     day = "0" + str(day)
 
-                # zero padding for hour string in filename 
+                # zero padding for hour string in filename
+                hourstr = str(hour)
                 if int(hour) < 10:
                     hourstr = "0" + str(hour)
 
