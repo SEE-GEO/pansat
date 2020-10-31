@@ -8,21 +8,20 @@ import pytest
 import pansat.products.reanalysis.era5 as era5
 
 
-
 PRODUCTS = [
     era5.ERA5Product("hourly", "surface", ["2m_temperature"]),
-    era5.ERA5Product("monthly", "land", ["asn"], domain = [25,50,70,120]),
+    era5.ERA5Product("monthly", "land", ["asn"], domain=[25, 50, 70, 120]),
 ]
 
 TEST_NAMES = {
     "reanalysis-era5-single-levels": "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
-    "reanalysis-era5-land-monthly-means": "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc"}
-
-TEST_TIMES = {
-    "reanalysis-era5-single-levels": datetime(2016,10,1,15),
-    "reanalysis-era5-land-monthly-means": datetime(2016, 10, 1, 0)
+    "reanalysis-era5-land-monthly-means": "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
 }
 
+TEST_TIMES = {
+    "reanalysis-era5-single-levels": datetime(2016, 10, 1, 15),
+    "reanalysis-era5-land-monthly-means": datetime(2016, 10, 1, 0),
+}
 
 
 @pytest.mark.parametrize("product", PRODUCTS)

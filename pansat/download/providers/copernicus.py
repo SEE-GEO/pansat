@@ -14,7 +14,7 @@ import cdsapi
 import numpy as np
 from pansat.download.accounts import get_identity
 from pansat.download.providers.data_provider import DataProvider
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
 
 COPERNICUS_PRODUCTS = [
     "reanalysis-era5-land",
@@ -74,16 +74,12 @@ class CopernicusProvider(DataProvider):
                 f" {available_products}."
             )
 
-
-
     @classmethod
     def get_available_products(cls):
         """
         The products available from this dataprovider.
         """
         return COPERNICUS_PRODUCTS
-
-
 
     def get_timesteps_monthly(self, start, end):
         """
@@ -133,9 +129,6 @@ class CopernicusProvider(DataProvider):
 
         return dates, years
 
-
-
-
     def get_timesteps_hourly(self, start, end):
         """
         Create a time range with all dates between the start and end date.
@@ -183,12 +176,19 @@ class CopernicusProvider(DataProvider):
             c = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == 'global':
+            if self.product.domain == "global":
                 area = ""
                 domain = ""
             else:
-                # change to requested order of coordinate values  
-                dom= np.array([self.product.domain[1], self.product.domain[2], self.product.domain[0], self.product.domain[3]]).astype(str)
+                # change to requested order of coordinate values
+                dom = np.array(
+                    [
+                        self.product.domain[1],
+                        self.product.domain[2],
+                        self.product.domain[0],
+                        self.product.domain[3],
+                    ]
+                ).astype(str)
                 area = "/".join(dom)
                 domain = "-".join(dom)
 
@@ -196,7 +196,7 @@ class CopernicusProvider(DataProvider):
             # container to save list of downloaded files
             files = []
 
-            # send API request for each specific month in time range 
+            # send API request for each specific month in time range
             for idx, date in enumerate(dates):
                 # define download parameters for monthly download
                 month = date
@@ -245,7 +245,7 @@ class CopernicusProvider(DataProvider):
 
                 return files
 
-    def download_hourly(self,start, end, destination):
+    def download_hourly(self, start, end, destination):
         """Downloads hourly files for given time range and stores at specified location.
         Hourly data products are saved per hour and monthly data products are
         saved per month. Note that you have to install the CDS API key before
@@ -269,12 +269,19 @@ class CopernicusProvider(DataProvider):
             c = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == 'global':
+            if self.product.domain == "global":
                 area = ""
                 domain = ""
             else:
-                 # change to requested order of coordinate values  
-                dom= np.array([self.product.domain[1], self.product.domain[2], self.product.domain[0], self.product.domain[3]]).astype(str)
+                # change to requested order of coordinate values
+                dom = np.array(
+                    [
+                        self.product.domain[1],
+                        self.product.domain[2],
+                        self.product.domain[0],
+                        self.product.domain[3],
+                    ]
+                ).astype(str)
                 area = "/".join(dom)
                 domain = "-".join(dom)
 
@@ -283,7 +290,7 @@ class CopernicusProvider(DataProvider):
             # container to save list of downloaded files
             files = []
 
-            # send API request for each specific hour in time range 
+            # send API request for each specific hour in time range
             for idx, date in enumerate(dates):
                 # define download parameters for hourly download
                 year = str(dates[idx].year)
@@ -348,30 +355,25 @@ class CopernicusProvider(DataProvider):
 
             return files
 
-
-
     def download(self, start, end, destination):
         """Downloads files dependent on desired temporal resolution of data product.
 
-         Args:
+        Args:
 
-            start(datetime.datetime): start date and time (year, month, day,
-                hour), if hour is not specified for hourly dataproduct, all
-                hours are downloaded for each date.
-            end(datetime.datetime): end date and time (year, month, day, hour),
-                if hour is not specified for hourly dataproduct, all hours are
-                downloaded for each date.
-            destination(``str`` or ``pathlib.Path``): path to directory where
-                the downloaded files should be stored.
+           start(datetime.datetime): start date and time (year, month, day,
+               hour), if hour is not specified for hourly dataproduct, all
+               hours are downloaded for each date.
+           end(datetime.datetime): end date and time (year, month, day, hour),
+               if hour is not specified for hourly dataproduct, all hours are
+               downloaded for each date.
+           destination(``str`` or ``pathlib.Path``): path to directory where
+               the downloaded files should be stored.
 
         """
 
         if "monthly" in self.product.name:
-            downloaded = self.download_monthly(start,end, destination)
+            downloaded = self.download_monthly(start, end, destination)
         else:
-            downloaded = self.download_hourly(start,end, destination)
+            downloaded = self.download_hourly(start, end, destination)
 
         return downloaded
-
-
-

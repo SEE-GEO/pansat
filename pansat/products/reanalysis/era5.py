@@ -45,12 +45,17 @@ class ERA5Product(Product):
         self.variables = variables
 
         if not domain:
-            self.domain = 'global'
+            self.domain = "global"
         else:
             if domain[0] < -90 or domain[0] > 90 or domain[1] > 90 or domain[1] < -90:
                 raise Exception("Latitude values have to be between -180 and 180.")
 
-            if domain[2] < -180 or domain[2] > 180 or domain[3] > 180 or domain[3] < -180:
+            if (
+                domain[2] < -180
+                or domain[2] > 180
+                or domain[3] > 180
+                or domain[3] < -180
+            ):
                 raise Exception("Longitude values have to be between -90 and 90.")
 
             self.domain = [domain[1], domain[2], domain[0], domain[3]]
@@ -69,7 +74,9 @@ class ERA5Product(Product):
 
             if tsteps == "monthly":
                 self.tsteps = "monthly-means"
-                self.name = self.name = "reanalysis-era5-" + self.levels + '-'+self.tsteps
+                self.name = self.name = (
+                    "reanalysis-era5-" + self.levels + "-" + self.tsteps
+                )
             elif tsteps == "hourly":
                 self.tsteps = tsteps
                 self.name = "reanalysis-era5-" + self.levels
@@ -78,7 +85,6 @@ class ERA5Product(Product):
                 raise Exception("tsteps has to be monthly or hourly.")
         else:
             self.name = name
-
 
         self.filename_regexp = re.compile(
             self.name + r"_[\d]*.*_" + self.variables[0] + r".*.nc"
