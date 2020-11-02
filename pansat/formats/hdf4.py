@@ -178,3 +178,9 @@ class HDF4File:
 
     def __repr__(self):
         return f"HDF4File({self.path})"
+
+    def get_coordinates(self):
+        coordinate_names = set()
+        for _, dataset in self.datasets.items():
+            coordinate_names |= set(dataset.dimensions)
+        return {name: self.vdata[name][:] for name in coordinate_names}
