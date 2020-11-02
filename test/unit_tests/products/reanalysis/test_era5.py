@@ -9,17 +9,18 @@ import pansat.products.reanalysis.era5 as era5
 
 
 PRODUCTS = [
-    era5.ERA5Product("reanalysis-era5-single-levels-monthly-means", ["2m_temperature"])
+    era5.ERA5Product("hourly", "surface", ["2m_temperature"]),
+    era5.ERA5Product("monthly", "land", ["asn"], domain=[25, 50, 70, 120]),
 ]
 
-
 TEST_NAMES = {
-    "reanalysis-era5-single-levels-monthly-means": "reanalysis-era5-single-levels-monthly-means_20161000:00_2m_temperature.nc"
+    "reanalysis-era5-single-levels": "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
+    "reanalysis-era5-land-monthly-means": "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
 }
 
-
 TEST_TIMES = {
-    "reanalysis-era5-single-levels-monthly-means": datetime(2016, 10, 1, 0, 0)
+    "reanalysis-era5-single-levels": datetime(2016, 10, 1, 15),
+    "reanalysis-era5-land-monthly-means": datetime(2016, 10, 1, 0),
 }
 
 
@@ -48,10 +49,17 @@ def tmpdir(tmpdir_factory):
     return tmp_dir
 
 
-def test_download(tmpdir):
+def test_download_hourly(tmpdir):
     product = PRODUCTS[0]
-    t_0 = datetime(2016, 10, 1, 1)
-    t_1 = datetime(2016, 11, 1, 1)
+    t_0 = datetime(2016, 10, 1, 15)
+    t_1 = datetime(2016, 10, 1, 17)
+    product.download(t_0, t_1, str(tmpdir))
+
+
+def test_download_monthly(tmpdir):
+    product = PRODUCTS[1]
+    t_0 = datetime(2016, 10, 1, 0)
+    t_1 = datetime(2016, 11, 1, 0)
     product.download(t_0, t_1, str(tmpdir))
 
 

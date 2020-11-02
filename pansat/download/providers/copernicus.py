@@ -14,6 +14,7 @@ import cdsapi
 import numpy as np
 from pansat.download.accounts import get_identity
 from pansat.download.providers.data_provider import DataProvider
+from datetime import datetime, timedelta
 
 COPERNICUS_PRODUCTS = [
     "reanalysis-era5-land",
@@ -80,8 +81,79 @@ class CopernicusProvider(DataProvider):
         """
         return COPERNICUS_PRODUCTS
 
-    def download(self, start, end, destination=None):
-        """Downloads files for given time range and stores at specified location.
+    def get_timesteps_monthly(self, start, end):
+        """
+        Create a time range with all dates between the start and end date.
+
+        Args:
+
+        start(datetime.datetime): datetime.datetime object for start time
+        end(datetime.datetime): datetime.datetime object for end time
+
+        Returns:
+        dates(``list``): list with months for each year
+        years(``list``): list with all years
+
+        """
+        # handling data ranges over multiple years:
+        if start.year != end.year:
+            # get years with complete nr. of months
+            full_years_range = range(start.year + 1, end.year)
+            full_years = list(
+                itertools.chain.from_iterable(
+                    itertools.repeat(x, 12) for x in full_years_range
+                )
+            )
+            all_months = np.arange(1, 13).astype(str)
+
+            # get months of incomplete years
+            months_first_year = list(np.arange((start.month + 1), 13).astype(str))
+            months_last_year = list(np.arange(1, (end.month + 1)).astype(str))
+
+            # create lists for years with months
+            years = (
+                [str(start.year)] * len(months_first_year)
+                + [str(f) for f in full_years]
+                + [str(end.year)] * len(months_last_year)
+            )
+            dates = (
+                months_first_year
+                + [str(m) for m in all_months] * len(full_years_range)
+                + months_last_year
+            )
+        else:
+            # getting all month for the specified year
+            dates = np.arange(start.month, end.month + 1).astype(str)
+            nr_of_months = np.shape(dates)[0]
+            years = [str(start.year)] * nr_of_months
+
+        return dates, years
+
+    def get_timesteps_hourly(self, start, end):
+        """
+        Create a time range with all dates between the start and end date.
+
+        Args:
+
+        start(datetime.datetime): datetime.datetime object for start time
+        end(datetime.datetime): datetime.datetime object for end time
+
+        Returns:
+        dates(``list``): list with all hours, days, months and years between two dates
+        """
+
+        # get list with all years, months, days, hours between the two dates
+        delta = end - start
+        hour = delta / 3600
+        dates = []
+        for i in range(hour.seconds + 1):
+            h = start + timedelta(hours=i)
+            dates.append(h)
+
+        return dates
+
+    def download_monthly(self, start, end, destination):
+        """Downloads monthly files for given time range and stores at specified location.
         Hourly data products are saved per hour and monthly data products are
         saved per month. Note that you have to install the CDS API key before
         download is possible: https://cds.climate.copernicus.eu/api-how-to
@@ -104,85 +176,141 @@ class CopernicusProvider(DataProvider):
             c = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == None:
+            if self.product.domain == "global":
                 area = ""
+                domain = ""
             else:
-                area = "/".join(self.product.domain)
+                # change to requested order of coordinate values
+                dom = np.array(
+                    [
+                        self.product.domain[1],
+                        self.product.domain[2],
+                        self.product.domain[0],
+                        self.product.domain[3],
+                    ]
+                ).astype(str)
+                area = "/".join(dom)
+                domain = "-".join(dom)
 
-            ################### create time range for monthly data products ########
-            if "monthly" in self.product.name:
-                # handling data ranges over multiple years:
-                if start.year != end.year:
-                    # get years with complete nr. of months
-                    full_years_range = range(start.year + 1, end.year)
-                    full_years = list(
-                        itertools.chain.from_iterable(
-                            itertools.repeat(x, 12) for x in full_years_range
-                        )
-                    )
-                    all_months = np.arange(1, 13).astype(str)
+            dates, years = self.get_timesteps_monthly(start, end)
+            # container to save list of downloaded files
+            files = []
 
-                    # get months of incomplete years
-                    months_first_year = list(
-                        np.arange((start.month + 1), 13).astype(str)
-                    )
-                    months_last_year = list(np.arange(1, (end.month + 1)).astype(str))
+            # send API request for each specific month in time range
+            for idx, date in enumerate(dates):
+                # define download parameters for monthly download
+                month = date
+                year = years[idx]
+                hour = "00:00"
 
-                    # create lists for years with months
-                    years = (
-                        [str(start.year)] * len(months_first_year)
-                        + [str(f) for f in full_years]
-                        + [str(end.year)] * len(months_last_year)
-                    )
-                    dates = (
-                        months_first_year
-                        + [str(m) for m in all_months] * len(full_years_range)
-                        + months_last_year
-                    )
+                # zero padding for month
+                if int(month) < 10:
+                    month = "0" + str(month)
+
+                filename = (
+                    self.product.name
+                    + "_"
+                    + year
+                    + month
+                    + "_"
+                    + "-".join(self.product.variables)
+                    + domain
+                    + ".nc"
+                )
+
+                # set output path and file name
+                out = Path(str(destination) + "/" + str(filename))
+
+                # only download if file not already already exists
+                if os.path.exists(out):
+                    print(destination, " already exists.")
+
                 else:
-                    # getting all month for the specified year
-                    dates = np.arange(start.month, end.month + 1).astype(str)
-                    nr_of_months = np.shape(dates)[0]
-                    years = [str(start.year)] * nr_of_months
-            else:
-                ############### create time range for hourly data products #########
+                    c.retrieve(
+                        self.product.name,
+                        {
+                            "product_type": "monthly_averaged_reanalysis",
+                            "format": "netcdf",
+                            "area": area,
+                            "variable": self.product.variables,
+                            "year": year,
+                            "month": month,
+                            "time": hour,
+                        },
+                        out,
+                    )
+                    print("file downloaded and saved as", out)
 
-                # get list with all years, months, days, hours between the two dates
-                delta = end - start
-                hour = delta / 3600
-                dates = []
-                for i in range(hour.seconds + 1):
-                    h = start + timedelta(hours=i)
-                    dates.append(h)
+                    files.append(out)
+
+                return files
+
+    def download_hourly(self, start, end, destination):
+        """Downloads hourly files for given time range and stores at specified location.
+        Hourly data products are saved per hour and monthly data products are
+        saved per month. Note that you have to install the CDS API key before
+        download is possible: https://cds.climate.copernicus.eu/api-how-to
+
+        Args:
+
+            start(datetime.datetime): start date and time (year, month, day,
+                hour), if hour is not specified for hourly dataproduct, all
+                hours are downloaded for each date.
+            end(datetime.datetime): end date and time (year, month, day, hour),
+                if hour is not specified for hourly dataproduct, all hours are
+                downloaded for each date.
+            destination(``str`` or ``pathlib.Path``): path to directory where
+                the downloaded files should be stored.
+        """
+
+        # open new client instance
+
+        with _create_cds_api_rc():
+            c = cdsapi.Client()
+
+            # subset region, if requested
+            if self.product.domain == "global":
+                area = ""
+                domain = ""
+            else:
+                # change to requested order of coordinate values
+                dom = np.array(
+                    [
+                        self.product.domain[1],
+                        self.product.domain[2],
+                        self.product.domain[0],
+                        self.product.domain[3],
+                    ]
+                ).astype(str)
+                area = "/".join(dom)
+                domain = "-".join(dom)
+
+            dates = self.get_timesteps_hourly(start, end)
 
             # container to save list of downloaded files
             files = []
 
-            # send API request for each specific month or hour
+            # send API request for each specific hour in time range
             for idx, date in enumerate(dates):
-                if "monthly" in self.product.name:
-                    # define download parameters for monthly download
-                    month = date
-                    year = years[idx]
-                    day = ""
-                    hour = "00:00"
-                    download_key = "monthly_averaged_reanalysis"
+                # define download parameters for hourly download
+                year = str(dates[idx].year)
+                month = str(dates[idx].month)
+                day = str(dates[idx].day)
+                hour = str(dates[idx].hour)
 
-                else:
-                    # define download parameters for hourly download
-                    year = str(dates[idx].year)
-                    month = str(dates[idx].month)
-                    day = str(dates[idx].day)
-                    hour = str(dates[idx].hour)
+                # get download key
+                download_key = "reanalysis"
+                if "land" in self.product.name:
+                    download_key = ""
 
-                    # get download key
-                    download_key = "reanalysis"
-                    if "land" in self.product.name:
-                        download_key = ""
+                # zero padding for day
+                if int(day) < 10:
+                    day = "0" + str(day)
 
-                    # zero padding for day
-                    if int(day) < 10:
-                        day = "0" + str(day)
+                # zero padding for hour string in filename
+                hourstr = str(hour)
+                if int(hour) < 10:
+                    hourstr = "0" + str(hour)
 
                 # zero padding for month
                 if int(month) < 10:
@@ -194,20 +322,19 @@ class CopernicusProvider(DataProvider):
                     + year
                     + month
                     + day
-                    + hour
+                    + hourstr
                     + "_"
                     + "-".join(self.product.variables)
-                    + "-".join(area)
+                    + domain
                     + ".nc"
                 )
 
                 # set output path and file name
-                out = str(destination) + "/" + str(filename)
+                out = Path(str(destination) + "/" + str(filename))
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    print(destination, " already exists.")
-
+                    print(out, " already exists.")
                 else:
                     c.retrieve(
                         self.product.name,
@@ -224,7 +351,29 @@ class CopernicusProvider(DataProvider):
                         out,
                     )
                     print("file downloaded and saved as", out)
-
                     files.append(out)
 
-                return files
+            return files
+
+    def download(self, start, end, destination):
+        """Downloads files dependent on desired temporal resolution of data product.
+
+        Args:
+
+           start(datetime.datetime): start date and time (year, month, day,
+               hour), if hour is not specified for hourly dataproduct, all
+               hours are downloaded for each date.
+           end(datetime.datetime): end date and time (year, month, day, hour),
+               if hour is not specified for hourly dataproduct, all hours are
+               downloaded for each date.
+           destination(``str`` or ``pathlib.Path``): path to directory where
+               the downloaded files should be stored.
+
+        """
+
+        if "monthly" in self.product.name:
+            downloaded = self.download_monthly(start, end, destination)
+        else:
+            downloaded = self.download_hourly(start, end, destination)
+
+        return downloaded
