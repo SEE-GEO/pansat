@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import pytest
 import pansat.products.reanalysis.era5 as era5
+from pathlib import Path
 
 
 PRODUCTS = [
