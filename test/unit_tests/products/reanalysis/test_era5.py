@@ -72,6 +72,3 @@ def test_download_monthly(tmpdir):
     t_0 = datetime(2016, 10, 1, 0)
     t_1 = datetime(2016, 11, 1, 0)
     product.download(t_0, t_1, str(tmpdir))
-    fn = tmpdir / TEST_NAMES[product.name]
-    f = product.open(str(fn))
-    f.close
