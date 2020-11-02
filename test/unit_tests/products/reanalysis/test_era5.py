@@ -66,5 +66,5 @@ def test_download_monthly(tmpdir):
 def test_open(tmpdir):
     product = PRODUCTS[0]
     fn = tmpdir / TEST_NAMES[product.name]
-    f = product.open(str(fn))
+    f = product.open(fn)
     f.close()
