@@ -190,7 +190,7 @@ class CopernicusProvider(DataProvider):
                     ]
                 ).astype(str)
                 area = "/".join(dom)
-                domain = "-".join(self.product.domain)
+                domain = "-".join(self.product.domain.astype(str))
 
             dates, years = self.get_timesteps_monthly(start, end)
             # container to save list of downloaded files
@@ -283,7 +283,7 @@ class CopernicusProvider(DataProvider):
                     ]
                 ).astype(str)
                 area = "/".join(dom)
-                domain = "-".join(self.product.domain)
+                domain = "-".join(self.product.domain.astype(str))
 
             dates = self.get_timesteps_hourly(start, end)
 
