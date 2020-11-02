@@ -55,20 +55,18 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
-def test_download_hourly(tmpdir):
+def test_download(tmpdir):
+    # hourly
     product = PRODUCTS[0]
     t_0 = datetime(2016, 10, 1, 15)
     t_1 = datetime(2016, 10, 1, 17)
     product.download(t_0, t_1, str(tmpdir))
-    fn = tmpdir / TEST_NAMES[product.name]
-    f = product.open(str(fn))
-    f.close()
-
-
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.usefixtures("test_identities")
-def test_download_monthly(tmpdir):
+    # monthly
     product = PRODUCTS[1]
     t_0 = datetime(2016, 10, 1, 0)
     t_1 = datetime(2016, 11, 1, 0)
     product.download(t_0, t_1, str(tmpdir))
+    # open file
+    fn = tmpdir / TEST_NAMES[product.name]
+    f = product.open(str(fn))
+    f.close()
