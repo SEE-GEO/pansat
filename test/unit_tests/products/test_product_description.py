@@ -1,7 +1,9 @@
 from pathlib import Path
 from pansat.products.product_description import ProductDescription
+from pansat.formats.hdf4 import HDF4File
 
 TEST_DATA = Path(__file__).parent / "data" / "test_description.ini"
+TEST_FILE_HDF = Path(__file__).parent / "data" / "test_file.hdf"
 
 def test_read_product_description():
     """
@@ -23,5 +25,11 @@ def test_read_product_description():
     assert len(description.attributes) == 1
     assert description.attributes[0].name == "attribute_1"
 
-
+def test_convert_to_xarray():
+    """
+    Converts test file to xarray dataset.
+    """
+    description = ProductDescription(TEST_DATA)
+    file_handle = HDF4File(TEST_FILE_HDF)
+    dataset = description.to_xarray_dataset(file_handle)
 
