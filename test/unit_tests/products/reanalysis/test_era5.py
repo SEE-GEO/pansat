@@ -50,22 +50,28 @@ def tmpdir(tmpdir_factory):
     return tmp_dir
 
 
+HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+
+
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
 def test_download_hourly(tmpdir):
     product = PRODUCTS[0]
     t_0 = datetime(2016, 10, 1, 15)
     t_1 = datetime(2016, 10, 1, 17)
     product.download(t_0, t_1, str(tmpdir))
+    fn = tmpdir / TEST_NAMES[product.name]
+    f = product.open(str(fn))
+    f.close()
 
 
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
 def test_download_monthly(tmpdir):
     product = PRODUCTS[1]
     t_0 = datetime(2016, 10, 1, 0)
     t_1 = datetime(2016, 11, 1, 0)
     product.download(t_0, t_1, str(tmpdir))
-
-
-def test_open(tmpdir):
-    product = PRODUCTS[0]
-    fn =tmpdir/ TEST_NAMES[product.name]
+    fn = tmpdir / TEST_NAMES[product.name]
     f = product.open(str(fn))
-    f.close()
+    f.close
