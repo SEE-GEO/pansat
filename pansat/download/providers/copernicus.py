@@ -330,7 +330,7 @@ class CopernicusProvider(DataProvider):
                 )
 
                 # set output path and file name
-                out = Path(str(destination)) /  str(filename)
+                out = Path(str(destination)) / str(filename)
 
                 # only download if file not already already exists
                 if os.path.exists(out):
