@@ -18,6 +18,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=["cryptography>=3.1", "numpy", "cdsapi", "xarray"],
-    test_requires=["sphinx_rtd_theme"],
+    setup_requires=["pytest-runner"],
+    tests_require=["sphinx_rtd_theme", "pytest", "appdirs", "scipy"],
     python_requires=">=3.6",
 )
