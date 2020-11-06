@@ -6,7 +6,9 @@ from datetime import datetime
 import os
 import pytest
 import pansat.products.reanalysis.era5 as era5
-from pathlib import Path
+
+import random
+
 
 
 PRODUCTS = [
@@ -46,7 +48,7 @@ def test_matches(product):
 
 @pytest.fixture(scope="session")
 def tmpdir(tmpdir_factory):
-    tmp_dir = tmpdir_factory.mktemp("data")
+    tmp_dir = tmpdir_factory.mktemp(f"data{random.randint(1,300)}")
     return tmp_dir
 
 
