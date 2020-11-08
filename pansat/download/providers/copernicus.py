@@ -395,7 +395,7 @@ class CopernicusProvider(DataProvider):
                         c.retrieve(
                             self.product.name,
                             {
-                                "product_type": "monthly_averaged_reanalysis",
+                                "product_type": download_key,
                                 "format": "netcdf",
                                 "area": area,
                                 "variable": self.product.variables,
@@ -440,6 +440,7 @@ class CopernicusProvider(DataProvider):
                                 ],
                                 "year": year,
                                 "month": month,
+                                "day": day,
                                 "time": hour,
                             },
                             out,
