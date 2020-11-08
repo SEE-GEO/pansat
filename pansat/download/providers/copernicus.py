@@ -338,7 +338,7 @@ class CopernicusProvider(DataProvider):
                     ]
                 ).astype(str)
                 area = "/".join(dom)
-                domain = "-".join(np.array(self.product.domain.astype(str)))
+                domain = "-".join(np.array(self.product.domain).astype(str))
 
             dates = self.get_timesteps_hourly(start, end)
 
