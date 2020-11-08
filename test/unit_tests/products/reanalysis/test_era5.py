@@ -10,7 +10,6 @@ import pansat.products.reanalysis.era5 as era5
 import random
 
 
-
 PRODUCTS = [
     era5.ERA5Product("hourly", "surface", ["2m_temperature"]),
     era5.ERA5Product("monthly", "land", ["asn"], domain=[25, 50, 70, 120]),
