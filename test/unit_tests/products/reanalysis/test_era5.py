@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import pytest
 import pansat.products.reanalysis.era5 as era5
+
 import random
 
 
@@ -50,21 +51,23 @@ def tmpdir(tmpdir_factory):
     return tmp_dir
 
 
-def test_download_hourly(tmpdir):
+HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+
+
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
+def test_download(tmpdir):
+    # hourly
     product = PRODUCTS[0]
     t_0 = datetime(2016, 10, 1, 15)
     t_1 = datetime(2016, 10, 1, 17)
     product.download(t_0, t_1, str(tmpdir))
-
-
-def test_download_monthly(tmpdir):
+    # monthly
     product = PRODUCTS[1]
     t_0 = datetime(2016, 10, 1, 0)
     t_1 = datetime(2016, 11, 1, 0)
     product.download(t_0, t_1, str(tmpdir))
-
-
-def test_open(tmpdir):
-    product = PRODUCTS[0]
-    fn = str(tmpdir) + ("/") + TEST_NAMES[product.name]
-    product.open(fn)
+    # open file
+    fn = tmpdir / TEST_NAMES[product.name]
+    f = product.open(str(fn))
+    f.close()
