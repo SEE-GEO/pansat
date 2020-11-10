@@ -18,7 +18,7 @@ import re
 GESDISC_PRODUCTS = {
     "GPM_2A_DPR": ("GPM_L2", "GPM_2ADPR.06"),
     "GPM_2B_DPRGMI": ("GPM_L2", "GPM_2BCMB.06"),
-    "GPM_2A_GMI": ("GPM_L2", "GPM_2AGPROFGPMGMI.05")
+    "GPM_2A_GMI": ("GPM_L2", "GPM_2AGPROFGPMGMI.05"),
 }
 
 
@@ -27,6 +27,7 @@ class GesdiscProvider(DiscreteProvider):
     Dataprovider class for for products available from the
     gpm1.gesdisc.eosdis.nasa.gov domain.
     """
+
     base_url = "gpm1.gesdisc.eosdis.nasa.gov"
     file_pattern = re.compile('"[^"]*.HDF5"')
 
@@ -54,10 +55,8 @@ class GesdiscProvider(DiscreteProvider):
     @property
     def _request_string(self):
         """The URL containing the data files for the given product."""
-        base_url = ("https://gpm1.gesdisc.eosdis.nasa.gov/data/{level}"
-                    "/{product}")
-        base_url = base_url.format(level=self.level,
-                                   product=self.product_name)
+        base_url = "https://gpm1.gesdisc.eosdis.nasa.gov/data/{level}" "/{product}"
+        base_url = base_url.format(level=self.level, product=self.product_name)
         return base_url + "/{year}/{day}/{filename}"
 
     def get_files_by_day(self, year, day):
@@ -74,9 +73,7 @@ class GesdiscProvider(DiscreteProvider):
         """
         day = str(day)
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(year=year,
-                                                     day=day,
-                                                     filename="")
+        request_string = self._request_string.format(year=year, day=day, filename="")
         response = requests.get(request_string)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
@@ -99,11 +96,11 @@ class GesdiscProvider(DiscreteProvider):
         year = t.year
         day = t.strftime("%j")
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(year=year,
-                                                     day=day,
-                                                     filename=filename)
+        request_string = self._request_string.format(
+            year=year, day=day, filename=filename
+        )
         auth = accounts.get_identity("GES DISC")
         r = requests.get(request_string, auth=auth)
-        with open(destination, 'wb') as f:
+        with open(destination, "wb") as f:
             for chunk in r:
                 f.write(chunk)

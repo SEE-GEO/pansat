@@ -5,11 +5,13 @@ import os
 import pytest
 from pansat.download.providers.ges_disc import GesdiscProvider
 
+
 class MockProduct:
     """
     Mock of the product class providing the product name that is required
     to determine the request URL for the product.
     """
+
     def __init__(self):
         self.name = "GPM_2A_DPR"
 
