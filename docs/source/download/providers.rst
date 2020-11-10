@@ -9,3 +9,4 @@
    providers/discrete_provider
    providers/icare
    providers/copernicus
+   providers/ges_disc
