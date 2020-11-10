@@ -81,7 +81,7 @@ class NOAAProvider(DataProvider):
         """
         if not path in self.cache:
             with FTP(NOAAProvider.base_url) as ftp:
-                user, password = get_identity("NOAA")
+                user, password = get_identity("NOAAProvider")
                 ftp.login(user=user, passwd=password)
                 try:
                     ftp.cwd(path)
@@ -133,7 +133,7 @@ class NOAAProvider(DataProvider):
         path = "/".join([self.base_url, self.product_path])
 
         ftp = ftplib.FTP(path)
-        user, password = get_identity("NOAA")
+        user, password = get_identity("NOAAProvider")
         ftp.login(user = user, passwd= password)
         ftp.cwd(path)
 
