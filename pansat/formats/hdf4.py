@@ -53,6 +53,7 @@ class VData:
         tag(``int``): The vdata tag number.
         interlace(``int``): The vdata interlace mode.
     """
+
     file: weakref
     name: str
     cls: str
@@ -92,6 +93,7 @@ class Dataset:
         hdf_type(``int``): Integer representing the HDF-internal type of the dataset
         index(``int``): Integer representing the HDF-internal index of the dataset.
     """
+
     file: weakref
     name: str
     dimensions: tuple
@@ -127,12 +129,16 @@ class HDF4File:
         self.scientific_dataset = SD(str(path))
         datasets = self.scientific_dataset.datasets()
         dataset_dict = {
-            key: Dataset(weakref.ref(self), key, *info) for key, info in datasets.items()
+            key: Dataset(weakref.ref(self), key, *info)
+            for key, info in datasets.items()
         }
         self.datasets = dataset_dict
 
         self.vdata_table = VS(self.file_handle)
-        vdata_dict = {info[0]: VData(weakref.ref(self), *info) for info in self.vdata_table.vdatainfo()}
+        vdata_dict = {
+            info[0]: VData(weakref.ref(self), *info)
+            for info in self.vdata_table.vdatainfo()
+        }
         self.vdata = vdata_dict
 
     def __del__(self):
@@ -165,7 +171,6 @@ class HDF4File:
     def to_xarray(self, product_description):
 
         dimensions = {dimension.name for dimension in product_description.dimensions}
-        dims_with_coords = {dim.name for dim in coord.dimensions for coord in
-                            product_description.coords}
-
-
+        dims_with_coords = {
+            dim.name for dim in coord.dimensions for coord in product_description.coords
+        }
