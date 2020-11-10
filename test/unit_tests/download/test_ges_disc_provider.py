@@ -9,6 +9,7 @@ from pansat.products.satellite.gpm import l2a_dpr
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
+
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_ges_disc_provider():
@@ -28,9 +29,3 @@ def test_ges_disc_provider():
 
     date = l2a_dpr.filename_to_date(file)
     date_file = data_provider.get_file_by_date(date)
-
-
-
-
-
-
