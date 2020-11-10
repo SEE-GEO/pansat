@@ -60,20 +60,63 @@ class NOAAProvider(DataProvider):
             be downloaded from this data provider.
         """
 
+        return NOAA_PRODUCTS
 
-    def get_files_by_year(self, year, day):
+
+    def _ftp_listing_to_list(self, path, item_type=int):
+        """
+        Retrieve directory content from ftp listing as list.
+
+        Args:
+
+           path(str): The path from which to retrieve the ftp listing.
+
+           t(type): Type constructor to apply to the elements of the
+           listing. To retrieve a list of strings use t = str.
+
+        Return:
+
+            A list containing the content of the ftp directory.
+
+        """
+        if not path in self.cache:
+            with FTP(NOAAProvider.base_url) as ftp:
+                user= "anonymous"
+                password= "juliakuklies@freenet.de"
+                ftp.login(user=user, passwd=password)
+                try:
+                    ftp.cwd(path)
+                except:
+                    raise Exception(
+                        "Can't find product folder "
+                        + path
+                        + "on the NOAA server. Are you sure this is the right path?"
+                    )
+                listing = ftp.nlst()
+            listing = [item_type(l) for l in listing]
+            self.cache[path] = listing
+        return self.cache[path]
+
+
+    def get_files_names(self,var,year):
         """
         Return all files from given year and julian day.
 
         Args:
-            year(``int``): The year from which to retrieve the filenames.
-   
+            var(``str``): Variable to extract
+            start(``int``): start year for desired time range 
+            end(``int``): end year for desired timerange 
         Return:
-            List of the filenames of this product on the given day. """
+            List of the filenames of this product for given variable and time range by year. """
 
+        files = []
+        for y in np.arange(start,end + 1):
+            year_str = str(y)
+            fn= var+ "_" + y + ."nc"
+            path = "/".join([self.product_path, fn])
+            files.append(path)
 
         return files
-
 
 
     @abstractmethod
@@ -92,7 +135,7 @@ class NOAAProvider(DataProvider):
         path = "/".join([self.base_url, self.product_path])
 
         ftp = ftplib.FTP(path)
-        ftp.login(user = "anonymous", passwd= mailpw)
+        ftp.login(user = "anonymous", passwd= "juliakukulies@freenet.de")
         ftp.cwd(path)
 
         with open(destination, 'wb') as fp:
