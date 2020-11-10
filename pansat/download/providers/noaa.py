@@ -81,8 +81,7 @@ class NOAAProvider(DataProvider):
         """
         if not path in self.cache:
             with FTP(NOAAProvider.base_url) as ftp:
-                user= "anonymous"
-                password= "juliakuklies@freenet.de"
+                user, password = get_identity("NOAA")
                 ftp.login(user=user, passwd=password)
                 try:
                     ftp.cwd(path)
@@ -115,7 +114,6 @@ class NOAAProvider(DataProvider):
             fn= var+ "_" + y + ."nc"
             path = "/".join([self.product_path, fn])
             files.append(path)
-
         return files
 
 
@@ -135,7 +133,8 @@ class NOAAProvider(DataProvider):
         path = "/".join([self.base_url, self.product_path])
 
         ftp = ftplib.FTP(path)
-        ftp.login(user = "anonymous", passwd= "juliakukulies@freenet.de")
+        user, password = get_identity("NOAA")
+        ftp.login(user = user, passwd= password)
         ftp.cwd(path)
 
         with open(destination, 'wb') as fp:

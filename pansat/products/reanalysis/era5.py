@@ -48,7 +48,7 @@ class ERA5Product(Product):
             self.domain = "global"
         else:
             if domain[0] < -90 or domain[0] > 90 or domain[1] > 90 or domain[1] < -90:
-                raise Exception("Latitude values have to be between -180 and 180.")
+                raise Exception("Longitude values have to be between -90 and 90.")
 
             if (
                 domain[2] < -180
@@ -56,7 +56,7 @@ class ERA5Product(Product):
                 or domain[3] > 180
                 or domain[3] < -180
             ):
-                raise Exception("Longitude values have to be between -90 and 90.")
+                raise Exception("Latitude values have to be between -180 and 180.")
 
             self.domain = domain
 
