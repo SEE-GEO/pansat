@@ -78,11 +78,6 @@ class GesdiscProvider(DiscreteProvider):
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
 
-    def name_to_date(self, filename):
-        s = filename.split(".")[4]
-        t = datetime.datetime.strptime(s[:16], "%Y%m%d-S%H%M%S")
-        return t
-
     def download_file(self, filename, destination):
         """
         Download file from data provider.
@@ -92,7 +87,7 @@ class GesdiscProvider(DiscreteProvider):
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
-        t = self.name_to_date(filename)
+        t = self.product.filename_to_date(filename)
         year = t.year
         day = t.strftime("%j")
         day = "0" * (3 - len(day)) + day

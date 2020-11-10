@@ -75,7 +75,7 @@ class DiscreteProvider(DataProvider):
             downloaded.append(path)
         return downloaded
 
-    def get_preceeding_file(self, filename):
+    def get_preceding_file(self, filename):
         """
         Return filename of the file that preceeds the given filename in time.
 
@@ -87,7 +87,7 @@ class DiscreteProvider(DataProvider):
             The filename of the file preceeding the file with the given filename
             as ``str``.
         """
-        time = self.product.name_to_date(filename)
+        time = self.product.filename_to_date(filename)
 
         year = time.year
         day = int((time.strftime("%j")))
@@ -113,7 +113,7 @@ class DiscreteProvider(DataProvider):
         Returns:
             The filename of the file following the file with the given filename.
         """
-        time = self.product.name_to_date(filename)
+        time = self.product.filename_to_date(filename)
 
         year = time.year
         day = int((time.strftime("%j")))
@@ -207,7 +207,7 @@ class DiscreteProvider(DataProvider):
 
         def negative_only(filename):
             delta = self.product.filename_to_date(filename) - time
-            return delta <= 0
+            return delta.total_seconds() <= 0
 
         files_negative = filter(negative_only, files_sorted)
 
