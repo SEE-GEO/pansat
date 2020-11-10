@@ -21,4 +21,10 @@ setuptools.setup(
     setup_requires=["pytest-runner"],
     tests_require=["sphinx_rtd_theme", "pytest", "appdirs", "scipy"],
     python_requires=">=3.6",
+    entry_points={
+        "console_scripts": [
+            "pansat=pansat.download.commandline:download"
+        ]
+       
+        }
 )

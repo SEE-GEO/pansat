@@ -6,11 +6,11 @@ The ``commandline´´ submodule allows to download data products from commandlin
 The following flags can be used:
     --type
     --pm
-    --product
+    --product/-prod
     --starttime/-t0
     --endtime/-t1
-    --variable
-    --domain
+    --variable/-var
+    --domain/-d
 
 
 """
@@ -35,9 +35,9 @@ def download():
     helpstring_product = "product to download"
     helpstring_variable = "variable(s) for reanalysis"
     helpstring_domain = (
-        "data domain in latitude and longitude, if not specified"
+        "data domain of model data in latitude and longitude, if not specified"
         + " a global grid is used, if specified four arguments (lat1, lat2, lon1, lon2)"
-        + "are required, with lat1<lat2, lon1<lon2"
+        + " are required, with lat1<lat2, lon1<lon2"
     )
 
     parser = argparse.ArgumentParser()
@@ -64,9 +64,9 @@ def download():
         "--type", choices=["satellite", "reanalysis"], help=helpstring_type
     )
     parser.add_argument("--pm", help=helpstring_pm)
-    parser.add_argument("--product", nargs="+", help=helpstring_product)
-    parser.add_argument("--variable", nargs="+", help=helpstring_variable)
-    parser.add_argument("--domain", nargs=4, type=float, help=helpstring_domain)
+    parser.add_argument("-prod", "--product", nargs="+", help=helpstring_product)
+    parser.add_argument("-var", "--variable", nargs="+", help=helpstring_variable)
+    parser.add_argument("-d", "--domain", nargs=4, type=float, help=helpstring_domain)
     args = parser.parse_args()
 
     #################################################################################
@@ -98,7 +98,6 @@ def download():
     ##############################################################################################
     # loading download functions and starting download
     ##############################################################################################
-
     modnames = []
     package = pansat.products
     for importer, modname, ispkg in pkgutil.walk_packages(
@@ -114,9 +113,14 @@ def download():
             productfunc = getattr(module, "l" + str(args.product[0]))
         elif "ERA5Product" in dir(module):
             era_product = getattr(module, "ERA5Product")
-            productfunc = era_product(
-                str(args.product[0]), str(args.product[1]), args.variable
-            )
+            if not args.domain:#without given spatial domain (global)
+                productfunc = era_product(
+                    str(args.product[0]), str(args.product[1]), args.variable
+                )
+            else:
+                productfunc = era_product(
+                    str(args.product[0]), str(args.product[1]), args.variable, args.domain
+                )
         else:
             parser.error("product " + str(args.product) + " not implemented")
 
@@ -130,6 +134,3 @@ def download():
         )
 
     files = productfunc.download(args.starttime, args.endtime)
-
-
-download()
