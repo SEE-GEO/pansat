@@ -3,6 +3,7 @@ Tests for the pansat.products.satellite.cloudsat module.
 """
 from datetime import datetime
 import os
+import numpy as np
 import pytest
 import pansat.products.satellite.cloud_sat as cloud_sat
 
@@ -38,7 +39,25 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
+    """
+    Download CloudSat L1B file.
+    """
     product = cloud_sat.l1b_cpr
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 6, 1, 12)
     product.download(t_0, t_1)
+
+
+def test_cloud_class_masks():
+    """
+    Ensure that extraction of cloud properties from cloud scenario data works
+    as expected.
+    """
+    data = np.array([2081])
+    assert cloud_sat._cloud_scenario_to_cloud_scenario_flag(data) == 1
+    assert cloud_sat._cloud_scenario_to_cloud_class(data) == 0
+    assert cloud_sat._cloud_scenario_to_land_sea_flag(data) == 1
+    assert cloud_sat._cloud_scenario_to_latitude_flag(data) == 0
+    assert cloud_sat._cloud_scenario_to_algorithm_flag(data) == 0
+    assert cloud_sat._cloud_scenario_to_quality_flag(data) == 1
+    assert cloud_sat._cloud_scenario_to_precipitation_flag(data) == 0

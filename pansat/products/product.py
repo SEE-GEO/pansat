@@ -14,12 +14,6 @@ class Product(ABC):
     """
 
     @abstractproperty
-    def variables(self):
-        """
-        List of variables provided by the product.
-        """
-
-    @abstractproperty
     def default_destination(self):
         """Default folder structure used to store results."""
 

@@ -7,4 +7,5 @@ API Reference
    download
    products
    examples
+   download
    formats

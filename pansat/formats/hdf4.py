@@ -20,7 +20,9 @@ as simple as shown below:
     data = file.variable_1[:]  # Read data from variable named `variable_1`
 
 """
+from dataclasses import dataclass
 import weakref
+import numpy as np
 
 try:
     from pyhdf.HDF import HDF
@@ -31,6 +33,7 @@ except ImportError as error:
     raise error
 
 
+@dataclass
 class VData:
     """
     Class representing VData objects, i.e. numeric data that is stored in table
@@ -51,44 +54,30 @@ class VData:
         interlace(``int``): The vdata interlace mode.
     """
 
-    def __init__(
-        self,
-        file,
-        name,
-        cls,
-        reference,
-        n_records,
-        n_fields,
-        n_attributes,
-        size,
-        tag,
-        interlace,
-    ):
-        self.file = weakref.ref(file)
-        self.name = name
-        self.cls = cls
-        self.reference = reference
-        self.n_records = n_records
-        self.n_fields = n_fields
-        self.n_attributes = n_attributes
-        self.size = size
-        self.tag = tag
-        self.interlace = interlace
-
-    def __repr__(self):
-        return f"VData({self.name})"
+    file: weakref
+    name: str
+    cls: str
+    reference: int
+    n_records: int
+    n_fields: int
+    n_attributes: int
+    size: int
+    tag: int
+    interlace: int
 
     def __str__(self):
-        return f"HDF4 VData object: {self.name}, shape={self.shape}"
+        return f"HDF4 VData object: {self.name}, records={self.n_records}"
 
     def __getitem__(self, *args):
         """
         Selects datasets from file and forwards call to the returned vdata
         object.
         """
-        return self.file().vs.attach(self.name).__getitem__(*args)
+        data = self.file().vdata_table.attach(self.name).__getitem__(*args)
+        return np.array(data)
 
 
+@dataclass
 class Dataset:
     """
     Class representing HDF4 Datasets, i.e. numeric data that is stored as
@@ -105,16 +94,12 @@ class Dataset:
         index(``int``): Integer representing the HDF-internal index of the dataset.
     """
 
-    def __init__(self, file, name, dimensions, shape, hdf_type, index):
-        self.file = weakref.ref(file)
-        self.name = name
-        self.dimensions = dimensions
-        self.shape = shape
-        self.hdf_type = hdf_type
-        self.index = index
-
-    def __repr__(self):
-        return f"Dataset({self.name}, shape={self.shape})"
+    file: weakref
+    name: str
+    dimensions: tuple
+    shape: tuple
+    hdf_type: int
+    index: int
 
     def __str__(self):
         return f"HDF4 Dataset object: {self.name}"
@@ -124,7 +109,7 @@ class Dataset:
         Selects datasets from file and forwards call to the returned dataset
         object.
         """
-        return self.file().sd.select(self.name).__getitem__(*args)
+        return self.file().scientific_dataset.select(self.name).__getitem__(*args)
 
 
 class HDF4File:
@@ -141,15 +126,19 @@ class HDF4File:
         self.path = path
         self.file_handle = HDF(str(path))
 
-        self.sd = SD(str(path))
-        datasets = self.sd.datasets()
+        self.scientific_dataset = SD(str(path))
+        datasets = self.scientific_dataset.datasets()
         dataset_dict = {
-            key: Dataset(self, key, *info) for key, info in datasets.items()
+            key: Dataset(weakref.ref(self), key, *info)
+            for key, info in datasets.items()
         }
         self.datasets = dataset_dict
 
-        self.vs = VS(self.file_handle)
-        vdata_dict = {info[0]: VData(self, *info) for info in self.vs.vdatainfo()}
+        self.vdata_table = VS(self.file_handle)
+        vdata_dict = {
+            info[0]: VData(weakref.ref(self), *info)
+            for info in self.vdata_table.vdatainfo()
+        }
         self.vdata = vdata_dict
 
     def __del__(self):
@@ -178,3 +167,10 @@ class HDF4File:
 
     def __repr__(self):
         return f"HDF4File({self.path})"
+
+    def to_xarray(self, product_description):
+
+        dimensions = {dimension.name for dimension in product_description.dimensions}
+        dims_with_coords = {
+            dim.name for dim in coord.dimensions for coord in product_description.coords
+        }
