@@ -8,10 +8,9 @@ import pytest
 import pansat.products.satellite.cloud_sat as cloud_sat
 
 TEST_NAMES = {"1B-CPR": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf"}
-
 TEST_TIMES = {"1B-CPR": datetime(2018, 5, 23, 00, 41, 15)}
-
 PRODUCTS = [cloud_sat.l1b_cpr]
+HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
 @pytest.mark.parametrize("product", PRODUCTS)
@@ -31,10 +30,6 @@ def test_matches(product):
     """
     filename = TEST_NAMES[product.name]
     assert product.matches(filename)
-
-
-HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
-
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
