@@ -51,7 +51,9 @@ def test_download():
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 6, 1, 12)
     files = product.download(t_0, t_1)
-    product.open(files[0])
+
+    if HAS_HDF:
+        product.open(files[0])
 
 
 def test_cloud_class_masks():
