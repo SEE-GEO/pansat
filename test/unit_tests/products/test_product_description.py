@@ -1,5 +1,6 @@
 from pathlib import Path
 from pansat.products.product_description import ProductDescription
+import pytest
 
 TEST_DATA = Path(__file__).parent / "data" / "test_description.ini"
 TEST_FILE_HDF = Path(__file__).parent / "data" / "test_file.hdf"
