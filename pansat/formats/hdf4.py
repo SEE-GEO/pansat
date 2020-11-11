@@ -52,17 +52,20 @@ class VData:
         tag(``int``): The vdata tag number.
         interlace(``int``): The vdata interlace mode.
     """
-    def __init__(self,
-                 file,
-                 name,
-                 cls,
-                 reference,
-                 n_records,
-                 n_fields,
-                 n_attributes,
-                 size,
-                 tag,
-                 interlace):
+
+    def __init__(
+        self,
+        file,
+        name,
+        cls,
+        reference,
+        n_records,
+        n_fields,
+        n_attributes,
+        size,
+        tag,
+        interlace,
+    ):
         self.file = file
         self.name = name
         self.cls = cls
@@ -106,13 +109,8 @@ class Dataset:
         index(``int``): Integer representing the HDF-internal index of the
             dataset.
     """
-    def __init__(self,
-                 file,
-                 name,
-                 dimensions,
-                 shape,
-                 hdf_type,
-                 index):
+
+    def __init__(self, file, name, dimensions, shape, hdf_type, index):
         self.file = file
         self.name = name
         self.dimensions = dimensions
