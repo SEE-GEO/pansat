@@ -5,6 +5,15 @@ from pansat.formats.hdf4 import HDF4File
 TEST_DATA = Path(__file__).parent / "data" / "test_description.ini"
 TEST_FILE_HDF = Path(__file__).parent / "data" / "test_file.hdf"
 
+HAS_HDF = False
+try:
+    import pyhdf
+    from pansat.formats.hdf4 import HDF4File
+
+    HAS_HDF = True
+except Exception:
+    pass
+
 
 def test_read_product_description():
     """
@@ -27,6 +36,7 @@ def test_read_product_description():
     assert description.attributes[0].name == "attribute_1"
 
 
+@pytest.mark.skipif(not HAS_HDF, reason="pyhdf not available.")
 def test_convert_to_xarray():
     """
     Converts test file to xarray dataset.
