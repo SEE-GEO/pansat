@@ -20,7 +20,6 @@ as simple as shown below:
     data = file.variable_1[:]  # Read data from variable named `variable_1`
 
 """
-from dataclasses import dataclass
 import weakref
 import numpy as np
 
@@ -33,7 +32,6 @@ except ImportError as error:
     raise error
 
 
-@dataclass
 class VData:
     """
     Class representing VData objects, i.e. numeric data that is stored in table
@@ -45,7 +43,8 @@ class VData:
         name(``str``): The name of the attribute
         cls(``str``): The attribute class
         reference(``int``): Reference number identifying the vdata object.
-        n_records(``int``): The number of records, i.e. rows, of the data table.
+        n_records(``int``): The number of records, i.e. rows, of the data
+            table.
         n_fields(``int``): The number of fields, i.e. columns, of the
             data table.
         n_attributes(``int``): The number of attributes.
@@ -53,17 +52,30 @@ class VData:
         tag(``int``): The vdata tag number.
         interlace(``int``): The vdata interlace mode.
     """
+    def __init__(self,
+                 file,
+                 name,
+                 cls,
+                 reference,
+                 n_records,
+                 n_fields,
+                 n_attributes,
+                 size,
+                 tag,
+                 interlace):
+        self.file = file
+        self.name = name
+        self.cls = cls
+        self.reference = reference
+        self.n_records = n_records
+        self.n_fields = n_fields
+        self.n_attributes = n_attributes
+        self.size = size
+        self.tag = tag
+        self.interlace = interlace
 
-    file: weakref
-    name: str
-    cls: str
-    reference: int
-    n_records: int
-    n_fields: int
-    n_attributes: int
-    size: int
-    tag: int
-    interlace: int
+    def __repr__(self):
+        return f"VData({self.name}, [{self.n_records}, {self.n_fields}])"
 
     def __str__(self):
         return f"HDF4 VData object: {self.name}, records={self.n_records}"
@@ -77,7 +89,6 @@ class VData:
         return np.array(data)
 
 
-@dataclass
 class Dataset:
     """
     Class representing HDF4 Datasets, i.e. numeric data that is stored as
@@ -87,19 +98,30 @@ class Dataset:
         file(``weakref``): Weak reference to file object required for data
             access.
         name(``str``): The name of the dataset.
-        dimensions(``tuple``): Tuple containing the variable names of the dimensions
-            holding the dimensions of the dataset.
+        dimensions(``tuple``): Tuple containing the variable names of the
+            dimensions holding the dimensions of the dataset.
         shape(``tuple``): Tuple containing the shape of the dataset.
-        hdf_type(``int``): Integer representing the HDF-internal type of the dataset
-        index(``int``): Integer representing the HDF-internal index of the dataset.
+        hdf_type(``int``): Integer representing the HDF-internal type of the
+            dataset
+        index(``int``): Integer representing the HDF-internal index of the
+            dataset.
     """
+    def __init__(self,
+                 file,
+                 name,
+                 dimensions,
+                 shape,
+                 hdf_type,
+                 index):
+        self.file = file
+        self.name = name
+        self.dimensions = dimensions
+        self.shape = shape
+        self.hdf_type = hdf_type
+        self.index = index
 
-    file: weakref
-    name: str
-    dimensions: tuple
-    shape: tuple
-    hdf_type: int
-    index: int
+    def __repr__(self):
+        return f"Dataset({self.name}, {self.dimensions}, {self.shape})"
 
     def __str__(self):
         return f"HDF4 Dataset object: {self.name}"
@@ -109,13 +131,14 @@ class Dataset:
         Selects datasets from file and forwards call to the returned dataset
         object.
         """
-        return self.file().scientific_dataset.select(self.name).__getitem__(*args)
+        file = self.file()
+        return file.scientific_dataset.select(self.name).__getitem__(*args)
 
 
 class HDF4File:
     """
-    Simplified interface for reading HDF4 files. It combines the SD and VS low-level
-    interfaces.
+    Simplified interface for reading HDF4 files. It combines the SD and VS
+    low-level interfaces.
 
     Attributes:
         variables(``list``): List of strings of variable names contained in
@@ -167,10 +190,3 @@ class HDF4File:
 
     def __repr__(self):
         return f"HDF4File({self.path})"
-
-    def to_xarray(self, product_description):
-
-        dimensions = {dimension.name for dimension in product_description.dimensions}
-        dims_with_coords = {
-            dim.name for dim in coord.dimensions for coord in product_description.coords
-        }
