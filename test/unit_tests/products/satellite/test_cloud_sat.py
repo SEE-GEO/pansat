@@ -12,6 +12,15 @@ TEST_TIMES = {"1B-CPR": datetime(2018, 5, 23, 00, 41, 15)}
 PRODUCTS = [cloud_sat.l1b_cpr]
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
+HAS_HDF = False
+try:
+    import pyhdf
+    from pansat.formats.hdf4 import HDF4File
+
+    HAS_HDF = True
+except Exception:
+    pass
+
 
 @pytest.mark.parametrize("product", PRODUCTS)
 def test_filename_to_date(product):
@@ -41,7 +50,8 @@ def test_download():
     product = cloud_sat.l1b_cpr
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 6, 1, 12)
-    product.download(t_0, t_1)
+    files = product.download(t_0, t_1)
+    product.open(files[0])
 
 
 def test_cloud_class_masks():
