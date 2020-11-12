@@ -5,12 +5,14 @@ pansat.products.satellite.gpm
 This module defines the GPM product class, which is used to represent all
 GPM products.
 """
+__file__ = "." 
 import re
 from datetime import datetime
 from pathlib import Path
 
 import pansat.download.providers as providers
 from pansat.products.product import Product
+from pansat.products.product_description import ProductDescription
 
 
 class NoAvailableProviderError(Exception):
@@ -21,19 +23,36 @@ class NoAvailableProviderError(Exception):
 
 
 class GPMProduct(Product):
-    """"""
-
-    def __init__(self, name):
+    """
+    Base class for products from the GPM mission.
+    """
+    def __init__(self,
+                 level,
+                 platform,
+                 sensor,
+                 name,
+                 version,
+                 variant,
+                 description):
+        self.level = level
+        self.platform = platform
+        self.sensor = sensor
         self.name = name
-        self.level, self.product_name = name.split("_")
+        self.version = version
+        self.variant = variant
+        self._description = description
         self.filename_regexp = re.compile(
-            rf"{self.level}\.GPM\.{self.product_name}\.([\w-]*)\.(\d{{8}})-"
+            rf"{self.level}\.{self.platform}\.{self.sensor}\.{self.name}(\w*).(\d{{8}})-"
             r"S(\d{6})-E(\d{6})\.(\w*)\.(\w*).HDF5"
         )
 
     @property
     def variables(self):
         return []
+
+    @property
+    def description(self):
+        return self._description
 
     def matches(self, filename):
         """
@@ -53,7 +72,7 @@ class GPMProduct(Product):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a CloudSat product.
+            filename(``str``): Filename of a GPM product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
@@ -81,14 +100,19 @@ class GPMProduct(Product):
     @property
     def default_destination(self):
         """
-        The default destination for CloudSat product is
-        ``CloudSat/<product_name>``>
+        The default destination for GPM product is
+        ``GPM/<product_name>``>
         """
         return Path("GPM") / Path(self.name)
 
     def __str__(self):
-        """ The full product name. """
-        return "GPM_" + self.name
+        if self.variant:
+            variant = f"_{self.variant}"
+        else:
+            variant = ""
+        s = (f"GPM_2A{self.name}{self.platform}{self.sensor}"
+             f"{variant}.{self.version:02}")
+        return s
 
     def download(self, start_time, end_time, destination=None, provider=None):
         """
@@ -120,11 +144,38 @@ class GPMProduct(Product):
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The CloudSat file to open.
+            filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
-        pass
+        from pansat.formats.hdf5 import HDF5File
+        file_handle = HDF5File(filename)
+        return self.description.to_xarray_dataset(file_handle, globals())
+
+class GPROFProduct(GPMProduct):
+    """
+    Specialization of GPM product for GPROF products, which all have the same
+    data format.
+    """
+    def __init__(self, platform, sensor, version, variant=""):
+        module_path = Path(__file__).parent
+        description = ProductDescription(module_path / "gprof.ini")
+        super().__init__("2A", platform, sensor, "GPROF", version, variant, description)
+
+l2a_gprof_gpm_gmi = GPROFProduct("GPM", "GMI", 5)
+l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)
+
+def _parse_products():
+    module_path = Path(__file__).parent
+    for filename in module_path.iterdir():
+        if filename.match("*.ini") and filename.name != "gprof.ini":
+            description = ProductDescription(filename)
+            python_name = filename.name.split(".")[0]
+            product_name = description.name
+            globals()[python_name] = GPMProduct(product_name, description)
 
 
-l2a_dpr = GPMProduct("2A_DPR")
-l2b_dpr_gmi = GPMProduct("2B_DPRGMI")
-l2a_gprof_gmi = GPMProduct("2A_GMI")
+_parse_products()
+
+
+t0 = datetime(2014, 9, 1)
+t1 = datetime(2014, 9, 1, 2)
+files= l2a_gprof_metopb_mhs.download(t0, t1)
