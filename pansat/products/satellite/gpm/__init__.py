@@ -174,8 +174,3 @@ def _parse_products():
 
 
 _parse_products()
-
-
-t0 = datetime(2014, 9, 1)
-t1 = datetime(2014, 9, 1, 2)
-files= l2a_gprof_metopb_mhs.download(t0, t1)
