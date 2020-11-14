@@ -7,7 +7,13 @@ supported NCEP reanalysis products.
 
 """
 
-
+import xarray
+import re
+import os
+from datetime import datetime, timedelta
+from pathlib import Path
+import pansat.download.providers as providers
+from pansat.products.product import Product
 
 
 class NoAvailableProviderError(Exception):
@@ -17,20 +23,23 @@ class NoAvailableProviderError(Exception):
     """
 
 
-
 class NCEPSurface(Product):
     """
-    The NCEP reanalysis class defines a generic interface for ERA5 products.
+    The NCEP reanalysis class defines a generic interface for NCEP products.
 
     Attributes:
-        variable(``str``): Variable to extract 
+        variable(``str``): Variable to extract
+        name(``str``): Full name of the product.
     """
 
     def __init__(self, variable):
         self.variable = variable
+        self.name = "ncep.reanalysis-surface"
 
-    def variables(self):
-        return self._variables
+        self.filename_regexp = re.compile(self.variable + "[/d]*" + r".nc")
+
+    def variable(self):
+        return self._variable
 
     def matches(self, filename):
         """
@@ -58,9 +67,6 @@ class NCEPSurface(Product):
 
         return datetime.strptime(filename, pattern)
 
-
-
-
     def _get_provider(self):
         """ Find a provider that provides the product. """
         available_providers = [
@@ -73,7 +79,6 @@ class NCEPSurface(Product):
                 f"Could not find provider for the" f" product {self.name}."
             )
         return available_providers[0]
-
 
     @property
     def default_destination(self):
@@ -105,7 +110,6 @@ class NCEPSurface(Product):
 
         """
 
-
         if not provider:
             provider = self._get_provider()
 
@@ -120,7 +124,6 @@ class NCEPSurface(Product):
 
         return downloaded
 
-
     def open(self, filename):
         """Opens a given file of ERA5 product class as xarray.
 
@@ -133,13 +136,3 @@ class NCEPSurface(Product):
         xr = xarray.open_dataset(filename)
 
         return xr
-
-
-
-
-
-
-
-
-
-

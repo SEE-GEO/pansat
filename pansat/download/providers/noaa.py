@@ -20,13 +20,14 @@ from datetime import datetime, timedelta
 import ftplib
 
 
-NOAA_PRODUCTS = ['ncep-reanalysis-surface, ncep-reanalysis-pressure']
+NOAA_PRODUCTS = ["ncep.reanalysis-surface", "ncep.reanalysis-pressure"]
 
 
 class NOAAProvider(DataProvider):
     """
     Abstract base class for gridded products available from NOAA Physical Science Laboratory.
     """
+
     base_url = "ftp://ftp2.psl.noaa.gov/Datasets"
 
     def __init__(self, product):
@@ -35,22 +36,22 @@ class NOAAProvider(DataProvider):
 
         Args:
 
-        product_path(str): The path of the product. This should point to
-        the folder that holds yearly .nc files for different variables. 
+        product: Product class object with specific product for NOAA
         """
         super().__init__()
-        self.product_path = str(product_path)
+        self.product = product
+        self.product_path = ("/").join(self.product.name.split("-"))
+        self.cache = {}
 
         if not product.name in NOAA_PRODUCTS:
             available_products = NOAA_PRODUCTS
             raise ValueError(
-                f"{product.name} not a available from the Copernicus data"
+                f"{product.name} not a available from the NOAA data"
                 " provider. Currently available products are: "
                 f" {available_products}."
             )
 
-
-    @abstractclassmethod
+    @classmethod
     def get_available_products(cls):
         """
         Return the names of products available from this data provider.
@@ -59,9 +60,7 @@ class NOAAProvider(DataProvider):
             A list of strings containing the names of the products that can
             be downloaded from this data provider.
         """
-
         return NOAA_PRODUCTS
-
 
     def _ftp_listing_to_list(self, path, item_type=int):
         """
@@ -96,35 +95,33 @@ class NOAAProvider(DataProvider):
             self.cache[path] = listing
         return self.cache[path]
 
-
-    def get_files_names(self,var,year):
+    def get_file_names(self, var, start, end):
         """
         Return all files from given year and julian day.
 
         Args:
             var(``str``): Variable to extract
-            start(``int``): start year for desired time range 
-            end(``int``): end year for desired timerange 
+            start(``int``): start year for desired time range
+            end(``int``): end year for desired timerange
         Return:
-            List of the filenames of this product for given variable and time range by year. """
+            List of the filenames of this product for given variable and time range by year."""
 
         files = []
-        for y in np.arange(start,end + 1):
+        for y in np.arange(start, end + 1):
             year_str = str(y)
-            fn= var+ "_" + y + ."nc"
+            fn = var + "." + y + ".nc"
             path = "/".join([self.product_path, fn])
             files.append(path)
         return files
 
-
-    @abstractmethod
-    def download(self, filename, destination=None):
+    def download(self, start, end, destination):
         """
         This method downloads data for a given time range from respective the
         data provider.
 
         Args:
-            filename(``str``): The name of the file to download.
+            start(``int``): start year
+            end(``int``): end year
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
@@ -132,27 +129,15 @@ class NOAAProvider(DataProvider):
         # target directory
         path = "/".join([self.base_url, self.product_path])
 
+        # get file list
+        files = self.get_file_names(self.product.variable, start, end)
+
         ftp = ftplib.FTP(path)
         user, password = get_identity("NOAAProvider")
-        ftp.login(user = user, passwd= password)
+        ftp.login(user=user, passwd=password)
         ftp.cwd(path)
 
-        with open(destination, 'wb') as fp:
-            ftp.retrbinary('RETR ' + filename, fp.write)
-            ft.quit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        for filename in files:
+            with open(destination, "wb") as fp:
+                ftp.retrbinary("RETR " + filename, fp.write)
+                ft.quit()
