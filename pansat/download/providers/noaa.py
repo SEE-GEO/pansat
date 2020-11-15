@@ -20,8 +20,13 @@ from datetime import datetime, timedelta
 import ftplib
 
 
-
-NOAA_PRODUCTS = ["ncep.reanalysis-surface", "ncep.reanalysis-pressure", "ncep.reanalysis-surface_gauss", "ncep.reanalysis-spectral", "ncep.reanalysis-tropopause"]
+NOAA_PRODUCTS = [
+    "ncep.reanalysis-surface",
+    "ncep.reanalysis-pressure",
+    "ncep.reanalysis-surface_gauss",
+    "ncep.reanalysis-spectral",
+    "ncep.reanalysis-tropopause",
+]
 
 
 class NOAAProvider(DataProvider):
@@ -114,7 +119,6 @@ class NOAAProvider(DataProvider):
             files.append(fn)
         return files
 
-
     def download(self, start, end, destination):
         """
         This method downloads data for a given time range from respective the
@@ -135,10 +139,13 @@ class NOAAProvider(DataProvider):
         ftp.login(user=user, passwd=password)
         ftp.cwd(self.product_path)
 
+        output_files = []
         for filename in files:
             output = Path(str(destination)) / str(filename)
+            output_files.append(str(output))
             with open(str(output), "wb") as fp:
                 ftp.retrbinary("RETR " + filename, fp.write)
 
         ftp.quit()
-        return files 
+
+        return output_files

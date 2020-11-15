@@ -35,11 +35,10 @@ class NCEPReanalysis(Product):
 
     def __init__(self, variable, grid):
         self.variable = variable
-        if grid== 'tropopause':
-            self.variable = variable + '.tropp'
+        if grid == "tropopause":
+            self.variable = variable + ".tropp"
         self.name = "ncep.reanalysis-" + str(grid)
         self.filename_regexp = re.compile(self.variable + ".*" + r".nc")
-
 
     def variable(self):
         return self._variable
