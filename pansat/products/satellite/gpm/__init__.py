@@ -5,10 +5,11 @@ pansat.products.satellite.gpm
 This module defines the GPM product class, which is used to represent all
 GPM products.
 """
-__file__ = "." 
 import re
 from datetime import datetime
 from pathlib import Path
+
+import numpy as np
 
 import pansat.download.providers as providers
 from pansat.products.product import Product
@@ -41,8 +42,13 @@ class GPMProduct(Product):
         self.version = version
         self.variant = variant
         self._description = description
+
+        if self.variant:
+            variant = "-" + self.variant
+        else:
+            variant = ""
         self.filename_regexp = re.compile(
-            rf"{self.level}\.{self.platform}\.{self.sensor}\.{self.name}(\w*).(\d{{8}})-"
+            rf"{self.level}{variant}\.{self.platform}\.{self.sensor}\.{self.name}([\w-]*).(\d{{8}})-"
             r"S(\d{6})-E(\d{6})\.(\w*)\.(\w*).HDF5"
         )
 
@@ -93,7 +99,7 @@ class GPMProduct(Product):
         ]
         if not available_providers:
             raise NoAvailableProviderError(
-                f"Could not find a provider for the" f" product {self.name}."
+                f"Could not find a provider for the" f" product {str(self)}."
             )
         return available_providers[0]
 
@@ -110,7 +116,7 @@ class GPMProduct(Product):
             variant = f"_{self.variant}"
         else:
             variant = ""
-        s = (f"GPM_2A{self.name}{self.platform}{self.sensor}"
+        s = (f"GPM_{self.level}{self.name}{self.platform}{self.sensor}"
              f"{variant}.{self.version:02}")
         return s
 
@@ -147,7 +153,7 @@ class GPMProduct(Product):
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
         from pansat.formats.hdf5 import HDF5File
-        file_handle = HDF5File(filename)
+        file_handle = HDF5File(filename, "r")
         return self.description.to_xarray_dataset(file_handle, globals())
 
 class GPROFProduct(GPMProduct):
@@ -163,14 +169,48 @@ class GPROFProduct(GPMProduct):
 l2a_gprof_gpm_gmi = GPROFProduct("GPM", "GMI", 5)
 l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)
 
+def _extract_scantime(scantime_group):
+    years = scantime_group["Year"][:]
+    months = scantime_group["Month"][:]
+    days = scantime_group["DayOfMonth"][:]
+    hours = scantime_group["Hour"][:]
+    minutes = scantime_group["Minute"][:]
+    seconds = scantime_group["Second"][:]
+    milli_seconds = scantime_group["MilliSecond"][:]
+    n_dates = years.shape[0]
+    dates = np.zeros(n_dates, dtype='datetime64[ms]')
+    for i in range(n_dates):
+        year = years[i]
+        month = months[i]
+        day = days[i]
+        hour = hours[i]
+        minute = minutes[i]
+        second = seconds[i]
+        milli_second = milli_seconds[i]
+        dates[i] = np.datetime64(f"{year:04}-{month:02}-{day:02}"
+                                 f"T{hour:02}:{minute:02}:{second:02}"
+                                 f".{milli_second:03}")
+    return dates
+
+
 def _parse_products():
     module_path = Path(__file__).parent
     for filename in module_path.iterdir():
         if filename.match("*.ini") and filename.name != "gprof.ini":
             description = ProductDescription(filename)
             python_name = filename.name.split(".")[0]
-            product_name = description.name
-            globals()[python_name] = GPMProduct(product_name, description)
-
+            level = description.properties["level"]
+            platform = description.properties["platform"]
+            sensor = description.properties["sensor"]
+            name = description.properties["name"]
+            version = int(description.properties["version"])
+            variant = description.properties["variant"]
+            globals()[python_name] = GPMProduct(level,
+                                                platform,
+                                                sensor,
+                                                name,
+                                                version,
+                                                variant,
+                                                description)
 
 _parse_products()

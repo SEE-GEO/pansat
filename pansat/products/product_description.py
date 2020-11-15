@@ -285,6 +285,7 @@ class ProductDescription(ConfigParser):
                 "No field 'name' in section for dimensions" f" {section_name}"
             )
         self._name = section["name"]
+        self.properties = section
 
     @property
     def name(self):
@@ -316,7 +317,7 @@ class ProductDescription(ConfigParser):
                 attrs = variable.get_attributes()
             variables[variable.name] = (variable.dimensions, data, attrs)
         for coordinate in self.coordinates:
-            data = getattr(file_handle, coordinate.field_name)[:]
+            data = coordinate.get_data(file_handle, context)
             if len(coordinate.dimensions) < len(data.shape):
                 data = np.squeeze(data)
             attrs = coordinate.get_attributes()
