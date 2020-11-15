@@ -42,6 +42,7 @@ def test_convert_to_xarray():
     Converts test file to xarray dataset.
     """
     from pansat.formats.hdf4 import HDF4File
+
     description = ProductDescription(TEST_DATA)
     file_handle = HDF4File(TEST_FILE_HDF)
     dataset = description.to_xarray_dataset(file_handle)
