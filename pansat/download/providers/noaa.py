@@ -20,7 +20,8 @@ from datetime import datetime, timedelta
 import ftplib
 
 
-NOAA_PRODUCTS = ["ncep.reanalysis-surface", "ncep.reanalysis-pressure"]
+
+NOAA_PRODUCTS = ["ncep.reanalysis-surface", "ncep.reanalysis-pressure", "ncep.reanalysis-surface_gauss", "ncep.reanalysis-spectral", "ncep.reanalysis-tropopause"]
 
 
 class NOAAProvider(DataProvider):
@@ -28,7 +29,7 @@ class NOAAProvider(DataProvider):
     Abstract base class for gridded products available from NOAA Physical Science Laboratory.
     """
 
-    base_url = "ftp://ftp2.psl.noaa.gov/Datasets"
+    base_url = "ftp2.psl.noaa.gov"
 
     def __init__(self, product):
         """
@@ -40,7 +41,7 @@ class NOAAProvider(DataProvider):
         """
         super().__init__()
         self.product = product
-        self.product_path = ("/").join(self.product.name.split("-"))
+        self.product_path = "/Datasets/" + ("/").join(self.product.name.split("-"))
         self.cache = {}
 
         if not product.name in NOAA_PRODUCTS:
@@ -109,10 +110,10 @@ class NOAAProvider(DataProvider):
         files = []
         for y in np.arange(start, end + 1):
             year_str = str(y)
-            fn = var + "." + y + ".nc"
-            path = "/".join([self.product_path, fn])
-            files.append(path)
+            fn = var + "." + year_str + ".nc"
+            files.append(fn)
         return files
+
 
     def download(self, start, end, destination):
         """
@@ -126,18 +127,18 @@ class NOAAProvider(DataProvider):
                 the downloaded files should be stored.
         """
 
-        # target directory
-        path = "/".join([self.base_url, self.product_path])
-
         # get file list
         files = self.get_file_names(self.product.variable, start, end)
 
-        ftp = ftplib.FTP(path)
+        ftp = ftplib.FTP(self.base_url)
         user, password = get_identity("NOAAProvider")
         ftp.login(user=user, passwd=password)
-        ftp.cwd(path)
+        ftp.cwd(self.product_path)
 
         for filename in files:
-            with open(destination, "wb") as fp:
+            output = Path(str(destination)) / str(filename)
+            with open(str(output), "wb") as fp:
                 ftp.retrbinary("RETR " + filename, fp.write)
-                ft.quit()
+
+        ftp.quit()
+        return files 

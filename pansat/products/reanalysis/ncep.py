@@ -23,20 +23,23 @@ class NoAvailableProviderError(Exception):
     """
 
 
-class NCEPSurface(Product):
+class NCEPReanalysis(Product):
     """
     The NCEP reanalysis class defines a generic interface for NCEP products.
 
     Attributes:
         variable(``str``): Variable to extract
+        grid(``str``): pressure, surface, spectral, surface_gauss or tropopause
         name(``str``): Full name of the product.
     """
 
-    def __init__(self, variable):
+    def __init__(self, variable, grid):
         self.variable = variable
-        self.name = "ncep.reanalysis-surface"
+        if grid== 'tropopause':
+            self.variable = variable + '.tropp'
+        self.name = "ncep.reanalysis-" + str(grid)
+        self.filename_regexp = re.compile(self.variable + ".*" + r".nc")
 
-        self.filename_regexp = re.compile(self.variable + "[/d]*" + r".nc")
 
     def variable(self):
         return self._variable
