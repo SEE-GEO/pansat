@@ -4,3 +4,5 @@
 .eggs/
 # From autodoc
 *__pycache__*
+# HI VSCode
+.vscode*
