@@ -45,6 +45,8 @@ def download():
     ##############################################################################################
     # definition of flags
     ##############################################################################################
+    parser.add_argument('--list', action="store_true", help = "list available providers/products")
+
 
     if sys.version_info >= (3, 7):
         parser.add_argument(
@@ -68,7 +70,30 @@ def download():
     parser.add_argument("-var", "--variable", nargs="+", help=helpstring_variable)
     parser.add_argument("-d", "--domain", nargs=4, type=float, help=helpstring_domain)
     args = parser.parse_args()
+    
+    if args.list:
+        modnames = []
+        package = pansat.download
+        modlen=len("pansat.download.providers.")
+        for importer, modname, ispkg in pkgutil.walk_packages(
+           path=package.__path__, prefix=package.__name__ + ".", onerror=lambda x: None
+           ):
+            if "providers." in modname and "_provider" not in modname:
+                modnames.append(modname)
+                print('Provider: '+str(modname[modlen:]))
+                module = importlib.import_module(modname)
+                products=getattr(module, str(modname[modlen:]).upper()+"_PRODUCTS")
 
+                print('available products:')
+                if isinstance(products,dict):
+                    for k, v in products.items():
+                        print(k, v)
+                else:    
+                    for i in range(0,len(products)):
+                        print(products[i])
+        return
+    
+    
     #################################################################################
     # consistency checks and conversion of times into datetime-format
     #################################################################################
