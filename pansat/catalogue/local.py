@@ -7,11 +7,11 @@ This module defines the a catalogue class to look at and list information about 
 
 
 import datetime
-from pansat.products.reanalysis import era5, ncep
-from pansat.products.satellite import cloud_sat, era5
 import glob
 import os
-
+from pansat.products import ALL_PRODUCTS 
+from pansat.products.reanalysis import era5, ncep
+from pansat.products.satellite import cloud_sat, era5
 
 
 def ProductCatalogue():
@@ -21,8 +21,13 @@ def ProductCatalogue():
     downloaded files.
     """
 
-
     def __init__():
+
+
+    def check_products(path):
+
+
+
 
 
     def get_files(product):
@@ -30,6 +35,7 @@ def ProductCatalogue():
 
         for f in fnames:
             product.filename_regex.match(f)
+
 
     def list_products(dir):
 
