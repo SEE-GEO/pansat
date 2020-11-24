@@ -134,6 +134,7 @@ class CloudSatProduct(Product):
             filename(``pathlib.Path`` or ``str``): The CloudSat file to open.
         """
         from pansat.formats.hdf4 import HDF4File
+
         file_handle = HDF4File(filename)
         return self.description.to_xarray_dataset(file_handle, globals())
 
