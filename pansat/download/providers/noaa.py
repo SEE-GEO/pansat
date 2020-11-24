@@ -52,7 +52,7 @@ class NOAAProvider(DataProvider):
         if not product.name in NOAA_PRODUCTS:
             available_products = NOAA_PRODUCTS
             raise ValueError(
-                f"{product.name} not a available from the NOAA data"
+                f"{product.name} not available from the NOAA data"
                 " provider. Currently available products are: "
                 f" {available_products}."
             )
@@ -103,7 +103,7 @@ class NOAAProvider(DataProvider):
 
     def get_file_names(self, var, start, end):
         """
-        Return all files from given year and julian day.
+        Return all files from given year.
 
         Args:
             var(``str``): Variable to extract
@@ -121,7 +121,7 @@ class NOAAProvider(DataProvider):
 
     def download(self, start, end, destination):
         """
-        This method downloads data for a given time range from respective the
+        This method downloads data for a given time range from the respective
         data provider.
 
         Args:

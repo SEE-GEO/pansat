@@ -34,6 +34,13 @@ class NCEPReanalysis(Product):
     """
 
     def __init__(self, variable, grid):
+        """
+        Args:
+
+        variable(``str``): Variable to extract
+        grid(``str``): pressure, surface, spectral, surface_gauss or tropopause
+        """
+
         self.variable = variable
         if grid == "tropopause":
             self.variable = variable + ".tropp"
@@ -58,7 +65,7 @@ class NCEPReanalysis(Product):
         """
         Extract timestamp from filename.
         Args:
-            filename(``str``): Filename of a ERA5 product.
+            filename(``str``): Filename of a NCEP product.
         Returns:
             ``datetime`` object representing the timestamp of the
             filename.
@@ -78,15 +85,15 @@ class NCEPReanalysis(Product):
         ]
         if not available_providers:
             raise NoAvailableProviderError(
-                f"Could not find provider for the" f" product {self.name}."
+                f"Could not find provider for the product {self.name}."
             )
         return available_providers[0]
 
     @property
     def default_destination(self):
         """
-        The default destination for ERA5 product is
-        ``ERA5/<product_name>``>
+        The default destination for NCEP product is
+        ``NCEP/<product_name>``>
         """
         return Path("NCEP") / Path(self.name)
 
@@ -100,9 +107,7 @@ class NCEPReanalysis(Product):
 
         Args:
             start_time(``datetime``): ``datetime`` object defining the start date
-                 of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date of the
-                 of the time range.
+            end_time(``datetime``): ``datetime`` object defining the end date
             destination(``str`` or ``pathlib.Path``): The destination where to store
                  the output data.
 
@@ -127,7 +132,7 @@ class NCEPReanalysis(Product):
         return downloaded
 
     def open(self, filename):
-        """Opens a given file of ERA5 product class as xarray.
+        """Opens a given file of NCEP product class as xarray.
 
         Args:
         filename(``str``): name of the file to be opened
