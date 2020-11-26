@@ -14,6 +14,7 @@ Upon first usage the ``identities.json`` file is setup with a custom user
 import base64
 import getpass
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -34,6 +35,8 @@ _IDENTITY_FILE = Path(_APP_DIR)
 _IDENTITY_FILE /= Path("identities.json")
 
 _PANSAT_SECRET = None
+
+LOGGER = logging.getLogger(__name__)
 
 ###############################################################################
 # Handling identities
@@ -75,7 +78,7 @@ def get_password(check=False):
             print("Please repeat the password:")
             password_re = getpass.getpass()
             if password != password_re:
-                print("The two passwords don't match!")
+                LOGGER.warning("The two passwords don't match!")
                 get_password(check=check)
 
     return password

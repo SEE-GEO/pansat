@@ -22,13 +22,16 @@ as simple as shown below:
 """
 import weakref
 import numpy as np
+import logging
+
+LOGGER = logging.getLogger(__name__)
 
 try:
     from pyhdf.HDF import HDF
     from pyhdf.SD import SD
     from pyhdf.VS import VS
 except ImportError as error:
-    print("The pyhdf package is required to read HDF4 file. Pleas install it.")
+    LOGGER.error("The pyhdf package is required to read HDF4 file. Please install it.")
     raise error
 
 
