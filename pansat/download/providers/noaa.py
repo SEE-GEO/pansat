@@ -68,7 +68,7 @@ class NOAAProvider(DataProvider):
         """
         return NOAA_PRODUCTS
 
-    def _ftp_listing_to_list(self, path, item_type=int):
+    def _ftp_listing_to_list(self, path, item_type=int, url=None):
         """
         Retrieve directory content from ftp listing as list.
 
@@ -78,14 +78,19 @@ class NOAAProvider(DataProvider):
 
            t(type): Type constructor to apply to the elements of the
            listing. To retrieve a list of strings use t = str.
+           url(``str``): base url
 
         Return:
 
             A list containing the content of the ftp directory.
 
         """
+
+        if base_url == None:
+            base_url = NOAAProvider.base_url
+
         if not path in self.cache:
-            with FTP(NOAAProvider.base_url) as ftp:
+            with FTP(base_url) as ftp:
                 user, password = get_identity("NOAAProvider")
                 ftp.login(user=user, passwd=password)
                 try:
@@ -119,7 +124,9 @@ class NOAAProvider(DataProvider):
             files.append(fn)
         return files
 
-    def download(self, start, end, destination):
+    def download(
+        self, start, end, destination, url=None, product_path=None, files=None
+    ):
         """
         This method downloads data for a given time range from the respective
         data provider.
@@ -129,15 +136,23 @@ class NOAAProvider(DataProvider):
             end(``int``): end year
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
+            url(``str``): base url
+            files(`list``): list of files if files are not sorted by year
         """
 
-        # get file list
-        files = self.get_file_names(self.product.variable, start, end)
+        if base_url == None:
+            base_url = self.base_url
+        if product_path == None:
+            product_path = self.product_path
 
-        ftp = ftplib.FTP(self.base_url)
+        # get file list
+        if files == None:
+            files = self.get_file_names(self.product.variable, start, end)
+
+        ftp = ftplib.FTP(base_url)
         user, password = get_identity("NOAAProvider")
         ftp.login(user=user, passwd=password)
-        ftp.cwd(self.product_path)
+        ftp.cwd(product_path)
 
         output_files = []
         for filename in files:
