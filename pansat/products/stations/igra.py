@@ -1,4 +1,3 @@
-
 """
 pansat.products.soundings.igra
 =======================================
@@ -24,6 +23,7 @@ class NoAvailableProviderError(Exception):
     a product.
     """
 
+
 class IGRASoundings(Product):
     """
     The IGRA reanalysis class defines a generic interface for IGRA products.
@@ -33,62 +33,73 @@ class IGRASoundings(Product):
         locs(pd.DataFrame): pandas dataframe with metadata on stations
                             (contains location ID, coordinates, and time period)
         locations(``dict``): metadata on stations as dictionary with names as keys
-        station(``pd.DataFrame``): pandas dataframe with metadata for chosen station  
+        station(``pd.DataFrame``): pandas dataframe with metadata for chosen station
     """
+
     def __init__(self, location):
         """
         Args:
 
         location(``str`` or tuple): station name or tuple closest coordinates (lat,lon)
-       """
+        """
 
         # download meta data of all locations
-        self.name = 'igra-soundings'
+        self.name = "igra-soundings"
 
-        if not provider:
-            provider = self._get_provider()
-        downloaded = provider.download(t0= None,t1=None ,destination, url = 'ftp.ncdc.noaa.gov', files = list('igra2-station-lsit.txt'))
+        provider = self._get_provider()
+        destination = self.default_destination
+        destination.mkdir(parents=True, exist_ok=True)
+
+        downloaded = provider.download(
+            t0="0",
+            t1="0",
+            destination=destination,
+            url="ftp.ncdc.noaa.gov",
+            files=list("igra2-station-lsit.txt"),
+        )
 
         # dictionary with all locations and meta information
         self.locs = self.get_metadata(locations)
 
-        if isinstance(location,str):
-            self.station = locs[locs['name'] == location]
+        if isinstance(location, str):
+            self.station = locs[locs["name"] == location]
         else:
             self.station = locs[locs.name == find_nearest(location[0], location[1])]
 
-
     def get_metadata(self):
         """Extracts data from meta data station inventory."""
-        columns = ['ID', 'lat', 'lon', 'n', 'name', 'start', 'end', 'nr']
-        locs= pd.read_fwf('igra2-station-lsit.txt', sep='/s', engine = 'python', header = None, columns =columns)
+        columns = ["ID", "lat", "lon", "n", "name", "start", "end", "nr"]
+        locs = pd.read_fwf(
+            "igra2-station-lsit.txt",
+            sep="/s",
+            engine="python",
+            header=None,
+            columns=columns,
+        )
         return locs
 
-
-    def dist(self,lat1, lon1, lat2,lon2):
+    def dist(self, lat1, lon1, lat2, lon2):
         """
-        Calculate the great circle distance between two points 
+        Calculate the great circle distance between two points
         on the earth (specified in decimal degrees)
         """
-        # convert decimal degrees to radians 
+        # convert decimal degrees to radians
         lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-        # haversine formula 
-        dlon = lon2 - lon1 
-        dlat = lat2 - lat1 
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        c = 2 * asin(sqrt(a)) 
+        # haversine formula
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * asin(sqrt(a))
         # Radius of earth in kilometers is 6371
-        km = 6371* c
+        km = 6371 * c
         return km
 
-
-    def find_nearest(self,lat,lon):
+    def find_nearest(self, lat, lon):
         """Find location of closest station to a given set of coordinates.  """
         distances = locs.apply(
-            lambda row: self.dist(lat, lon, row['lat'], row['lon']), 
-            axis=1)
-        return locs.loc[distances.idxmin(), 'name']
-
+            lambda row: self.dist(lat, lon, row["lat"], row["lon"]), axis=1
+        )
+        return locs.loc[distances.idxmin(), "name"]
 
     def matches(self, filename):
         """
@@ -100,7 +111,6 @@ class IGRASoundings(Product):
             True if the filename matches the product, False otherwise.
         """
         return self.filename_regexp.match(filename)
-
 
     def _get_provider(self):
         """ Find a provider that provides the product. """
@@ -115,8 +125,6 @@ class IGRASoundings(Product):
             )
         return available_providers[0]
 
-
-
     @property
     def default_destination(self):
         """
@@ -125,34 +133,27 @@ class IGRASoundings(Product):
         """
         return Path("IGRA") / Path(self.name)
 
-
     def __str__(self):
         """ The full product name. """
         return self.name
-
-
 
     def get_filename(self, product_path):
         """Get filename for specific station
 
         Returns:
-        filename(str): filename for download 
+        filename(str): filename for download
         """
-        fname = str(self.station['ID']) + '-data.txt.zip'
-        if '2yd' in product_path:
-            str(self.station['ID']) + '-data-beg2018.txt.zip'
+        fname = str(self.station["ID"]) + "-data.txt.zip"
+        if "2yd" in product_path:
+            str(self.station["ID"]) + "-data-beg2018.txt.zip"
         return fname
 
-
-
-
-
-    def download(self, resolution, period, destination=None, provider= None ):
+    def download(self, resolution, period, destination=None, provider=None):
         """
         Download IGRA sounding data for a given station.
 
         Args:
-        resolution(``str``): 'monthly' for monthly averages or 'original' for original timesteps  
+        resolution(``str``): 'monthly' for monthly averages or 'original' for original timesteps
         period(``str``): 'recent' to download only past 1-2 years or 'full' for full period will be downloaded
         destination(``str`` or ``pathlib.Path``): The destination where to store
                  the output data.
@@ -161,16 +162,15 @@ class IGRASoundings(Product):
         downloaded(``list``): ``list`` with names of all downloaded files for respective data product
 
         """
-        if resolution == 'monthly':
-            path = 'igra-data-'
+        if resolution == "monthly":
+            path = "igra-data-"
         else:
-            path = 'igra-monthly-'
+            path = "igra-monthly-"
 
-        if period == 'recent':
-            self.product_path = path + 'data-y2d'
+        if period == "recent":
+            product_path = path + "data-y2d"
         else:
-            self.product_path = path+ 'data-por'
-
+            product_path = path + "data-por"
 
         if not provider:
             provider = self._get_provider()
@@ -181,10 +181,15 @@ class IGRASoundings(Product):
         destination.mkdir(parents=True, exist_ok=True)
 
         provider = provider(self)
-        filename= self.get_filename(product_path)
+        filename = self.get_filename(product_path)
 
-        downloaded = provider.download(t0= None, t1= None, destination, url = 'ftp.ncdc.noaa.gov', product_path, files = list(filename))
+        downloaded = provider.download(
+            t0="0",
+            t1="0",
+            destination=destination,
+            url="ftp.ncdc.noaa.gov",
+            product_path=product_path,
+            files=list(filename),
+        )
 
         return downloaded
-
-
