@@ -4,9 +4,7 @@ pansat.download.providers.noaa
 
 This module provides the NoaaProvider class to download data stored at the NOAA data server.
 
-
 """
-
 
 from contextlib import contextmanager
 import itertools
@@ -19,15 +17,13 @@ from pansat.download.providers.data_provider import DataProvider
 from datetime import datetime, timedelta
 import ftplib
 
-
 NOAA_PRODUCTS = [
     "ncep.reanalysis-surface",
     "ncep.reanalysis-pressure",
     "ncep.reanalysis-surface_gauss",
     "ncep.reanalysis-spectral",
     "ncep.reanalysis-tropopause",
-]
-
+    "igra-soundings"]
 
 class NOAAProvider(DataProvider):
     """
