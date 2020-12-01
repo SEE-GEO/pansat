@@ -42,9 +42,7 @@ class IcareProvider(DiscreteProvider):
 
         Args:
 
-        product_path(str): The path of the product. This should point to
-        the folder that bears the product name and contains the directory
-        tree which contains the data files sorted by date.
+        product: Product class object with specific product for ICARE
 
         """
         if str(product) not in ICARE_PRODUCTS:

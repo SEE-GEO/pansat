@@ -21,6 +21,7 @@ as simple as shown below:
 
 """
 import weakref
+import numpy as np
 
 try:
     from pyhdf.HDF import HDF
@@ -42,7 +43,8 @@ class VData:
         name(``str``): The name of the attribute
         cls(``str``): The attribute class
         reference(``int``): Reference number identifying the vdata object.
-        n_records(``int``): The number of records, i.e. rows, of the data table.
+        n_records(``int``): The number of records, i.e. rows, of the data
+            table.
         n_fields(``int``): The number of fields, i.e. columns, of the
             data table.
         n_attributes(``int``): The number of attributes.
@@ -64,7 +66,7 @@ class VData:
         tag,
         interlace,
     ):
-        self.file = weakref.ref(file)
+        self.file = file
         self.name = name
         self.cls = cls
         self.reference = reference
@@ -76,17 +78,18 @@ class VData:
         self.interlace = interlace
 
     def __repr__(self):
-        return f"VData({self.name})"
+        return f"VData({self.name}, [{self.n_records}, {self.n_fields}])"
 
     def __str__(self):
-        return f"HDF4 VData object: {self.name}, shape={self.shape}"
+        return f"HDF4 VData object: {self.name}, records={self.n_records}"
 
     def __getitem__(self, *args):
         """
         Selects datasets from file and forwards call to the returned vdata
         object.
         """
-        return self.file().vs.attach(self.name).__getitem__(*args)
+        data = self.file().vdata_table.attach(self.name).__getitem__(*args)
+        return np.array(data)
 
 
 class Dataset:
@@ -98,15 +101,17 @@ class Dataset:
         file(``weakref``): Weak reference to file object required for data
             access.
         name(``str``): The name of the dataset.
-        dimensions(``tuple``): Tuple containing the variable names of the dimensions
-            holding the dimensions of the dataset.
+        dimensions(``tuple``): Tuple containing the variable names of the
+            dimensions holding the dimensions of the dataset.
         shape(``tuple``): Tuple containing the shape of the dataset.
-        hdf_type(``int``): Integer representing the HDF-internal type of the dataset
-        index(``int``): Integer representing the HDF-internal index of the dataset.
+        hdf_type(``int``): Integer representing the HDF-internal type of the
+            dataset
+        index(``int``): Integer representing the HDF-internal index of the
+            dataset.
     """
 
     def __init__(self, file, name, dimensions, shape, hdf_type, index):
-        self.file = weakref.ref(file)
+        self.file = file
         self.name = name
         self.dimensions = dimensions
         self.shape = shape
@@ -114,7 +119,7 @@ class Dataset:
         self.index = index
 
     def __repr__(self):
-        return f"Dataset({self.name}, shape={self.shape})"
+        return f"Dataset({self.name}, {self.dimensions}, {self.shape})"
 
     def __str__(self):
         return f"HDF4 Dataset object: {self.name}"
@@ -124,13 +129,14 @@ class Dataset:
         Selects datasets from file and forwards call to the returned dataset
         object.
         """
-        return self.file().sd.select(self.name).__getitem__(*args)
+        file = self.file()
+        return file.scientific_dataset.select(self.name).__getitem__(*args)
 
 
 class HDF4File:
     """
-    Simplified interface for reading HDF4 files. It combines the SD and VS low-level
-    interfaces.
+    Simplified interface for reading HDF4 files. It combines the SD and VS
+    low-level interfaces.
 
     Attributes:
         variables(``list``): List of strings of variable names contained in
@@ -141,15 +147,19 @@ class HDF4File:
         self.path = path
         self.file_handle = HDF(str(path))
 
-        self.sd = SD(str(path))
-        datasets = self.sd.datasets()
+        self.scientific_dataset = SD(str(path))
+        datasets = self.scientific_dataset.datasets()
         dataset_dict = {
-            key: Dataset(self, key, *info) for key, info in datasets.items()
+            key: Dataset(weakref.ref(self), key, *info)
+            for key, info in datasets.items()
         }
         self.datasets = dataset_dict
 
-        self.vs = VS(self.file_handle)
-        vdata_dict = {info[0]: VData(self, *info) for info in self.vs.vdatainfo()}
+        self.vdata_table = VS(self.file_handle)
+        vdata_dict = {
+            info[0]: VData(weakref.ref(self), *info)
+            for info in self.vdata_table.vdatainfo()
+        }
         self.vdata = vdata_dict
 
     def __del__(self):
