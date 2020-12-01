@@ -21,8 +21,7 @@ class NoAvailableProviderError(Exception):
 
 
 class GPMProduct(Product):
-    """
-    """
+    """"""
 
     def __init__(self, name):
         self.name = name
