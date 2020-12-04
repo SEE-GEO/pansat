@@ -24,10 +24,10 @@ import pansat.products
 
 
 def download():
-"""
-The function download() passes the commandline input to the respective download functions
-of the corresponding pansat.download submodules.
-"""
+    """
+    The function download() passes the commandline input to the respective download functions
+    of the corresponding pansat.download submodules.
+    """
     ################################################################
     # define helpstrings, i.e. what is shown for the --help/-h flag
     ################################################################
