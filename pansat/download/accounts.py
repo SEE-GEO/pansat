@@ -222,6 +222,8 @@ def add_identity(provider, user_name):
         name is valid.
         user(``str``): User name for the data provider.
     """
+    if not _PANSAT_SECRET:
+        authenticate()
     print(
         f"Please enter password for provider '{provider}' and username"
         f" '{user_name}':"

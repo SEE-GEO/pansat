@@ -3,6 +3,7 @@ Tests for management of user accounts.
 """
 import os
 from pathlib import Path, PurePath
+import shutil
 import pytest
 import pansat.download.accounts as accs
 
@@ -13,10 +14,32 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     adds an identity to it, re-reads it from disk and extracts user and
     entered password.
     """
-    identities_file = Path(tmpdir / "identities.json")
+    identity_file = Path(tmpdir / "identities.json")
 
     monkeypatch.setattr("getpass.getpass", lambda: "abcd")
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", identities_file)
+    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", identity_file)
+    monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
+    accs.parse_identity_file()
+
+    assert (tmpdir / "identities.json").exists()
+
+    accs.add_identity("provider", "user_name")
+    user_name, password = accs.get_identity("provider")
+
+    assert user_name == "user_name"
+    assert password == "abcd"
+
+
+def test_add_identity_file(monkeypatch, tmpdir):
+    """
+    This file tests adding a new account to an existing identities file to ensure
+    that the identities file is decrypted before an account is added to it.
+    """
+    identity_file = Path(tmpdir / "identities.json")
+    shutil.copyfile(accs._IDENTITY_FILE, identity_file)
+
+    monkeypatch.setattr("getpass.getpass", lambda: "abcd")
+    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", identity_file)
     monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     accs.parse_identity_file()
 
