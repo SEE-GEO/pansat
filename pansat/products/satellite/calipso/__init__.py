@@ -1,9 +1,9 @@
 """
-pansat.products.satellite.cloud_sat
-===================================
+pansat.products.satellite.calipso
+=================================
 
-This module defines the CloudSat product class, which represents all
-supported CloudSat products.
+This module defines the Calipso product class, which represents all
+supported Calipso products.
 """
 import re
 import os
@@ -24,9 +24,9 @@ class NoAvailableProviderError(Exception):
     """
 
 
-class CloudSatProduct(Product):
+class CalipsoProduct(Product):
     """
-    The CloudSat class defines a generic interface for CloudSat products.
+    The Calipso class defines a generic interface for Calipso products.
 
     Attributes:
         name(``str``): The name of the product
@@ -38,13 +38,13 @@ class CloudSatProduct(Product):
         self.name = name
         self._description = description
         self.filename_regexp = re.compile(
-            r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P_R([\d]*)_E([\d]*)\.*"
+            r"CAL_LID_L2_" + name + r"-[\w]*-V[\d]?-[\d]{2}.([\d]{4})-([\d]{2})-([\d]{2})T([\d]{2})-([\d]{2})-([\d]{2})ZN\.*"
         )
 
     @property
     def description(self):
         """
-        Product description object describing the CloudSat product.
+        Product description object describing the Calipso product.
         """
         return self._description
 
@@ -66,15 +66,15 @@ class CloudSatProduct(Product):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a CloudSat product.
+            filename(``str``): Filename of a Calipso product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
             filename.
         """
         filename = os.path.basename(filename)
-        filename = filename.split("_")[0]
-        return datetime.strptime(filename, "%Y%j%H%M%S")
+        filename = filename.split(".")[1][:-2]
+        return datetime.strptime(filename, "%Y-%m-%dT%H-%M-%S")
 
     def _get_provider(self):
         """ Find a provider that provides the product. """
@@ -92,14 +92,14 @@ class CloudSatProduct(Product):
     @property
     def default_destination(self):
         """
-        The default destination for CloudSat product is
-        ``CloudSat/<product_name>``>
+        The default destination for Calipso product is
+        ``Calipso/<product_name>``>
         """
-        return Path("CloudSat") / Path(self.name)
+        return Path("Calipso") / Path(self.name)
 
     def __str__(self):
         """ The full product name. """
-        return "CloudSat_" + self.name
+        return "Calipso_" + self.name
 
     def download(self, start_time, end_time, destination=None, provider=None):
         """
@@ -131,91 +131,12 @@ class CloudSatProduct(Product):
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The CloudSat file to open.
+            filename(``pathlib.Path`` or ``str``): The Calipso file to open.
         """
         from pansat.formats.hdf4 import HDF4File
 
         file_handle = HDF4File(filename)
         return self.description.to_xarray_dataset(file_handle, globals())
-
-
-def _cloud_scenario_to_cloud_scenario_flag(cloud_scenario):
-    """
-    Extract cloud class from CloudSat cloud scenario data.
-
-    Extract bits 0 from the combined integer values, which encode the
-    whether the cloud type could be determined.
-    """
-    cloud_scenario[:].astype(np.int16)
-    mask = 0x0001
-    return np.bitwise_and(cloud_scenario[:], mask)
-
-
-def _cloud_scenario_to_cloud_class(cloud_scenario):
-    """
-    Extract cloud class from CloudSat cloud scenario data.
-
-    Extract bits 1-4 from the combined integer values, which encode the
-    cloud class.
-    """
-    cloud_scenario[:].astype(np.int16)
-    mask = 0x001E
-    return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 1)
-
-
-def _cloud_scenario_to_land_sea_flag(cloud_scenario):
-    """
-    Extract sea flag from CloudSat cloud scenario data.
-
-    Extract bits 5-6 from the combined integer values, which encode the
-    land-sea flag.
-    """
-    mask = 0x0060
-    return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 5)
-
-
-def _cloud_scenario_to_latitude_flag(cloud_scenario):
-    """
-    Extract latitude flag from CloudSat cloud scenario data.
-
-    Extract bits 7-8 from the combined integer values, which encode the
-    latitude flag.
-    """
-    mask = 0x0180
-    return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 7)
-
-
-def _cloud_scenario_to_algorithm_flag(cloud_scenario):
-    """
-    Extract algorithm flag from CloudSat cloud scenario data.
-
-    Extract bits 9-10 from the combined integer values, which encode the
-    algorithm used for classification.
-    """
-    mask = 0x0600
-    return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 9)
-
-
-def _cloud_scenario_to_quality_flag(cloud_scenario):
-    """
-    Extract quality flag from CloudSat cloud scenario data.
-
-    Extract bits 11-12 from the combined integer values, which encode the
-    data quality.
-    """
-    mask = 0x1800
-    return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 11)
-
-
-def _cloud_scenario_to_precipitation_flag(cloud_scenario):
-    """
-    Extract precipitation flag from CloudSat cloud scenario data.
-
-    Extract bits 13-14 from the combined integer values, which encode the
-    precipitation flag.
-    """
-    mask = 0x6000
-    return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 13)
 
 
 def _parse_products():
@@ -225,7 +146,7 @@ def _parse_products():
             description = ProductDescription(filename)
             python_name = filename.name.split(".")[0]
             product_name = description.name
-            globals()[python_name] = CloudSatProduct(product_name, description)
+            globals()[python_name] = CalipsoProduct(product_name, description)
 
 
 _parse_products()
