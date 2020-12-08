@@ -15,6 +15,7 @@ import numpy as np
 from pansat.download.accounts import get_identity
 from pansat.download.providers.data_provider import DataProvider
 from datetime import datetime, timedelta
+import logging
 
 COPERNICUS_PRODUCTS = [
     "reanalysis-era5-land",
@@ -24,6 +25,8 @@ COPERNICUS_PRODUCTS = [
     "reanalysis-era5-single-levels",
     "reanalysis-era5-single-levels-monthly-means",
 ]
+
+LOGGER = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -40,7 +43,7 @@ def _create_cds_api_rc():
     file.write(f"key: {key}\n")
     file.close()
 
-    print("Creating file: ", open(path).read())
+    LOGGER.info("Creating file: ", open(path).read())
     os.environ["CDSAPI_RC"] = path
     try:
         yield path
@@ -223,7 +226,7 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    print(destination, " already exists.")
+                    LOGGER.info(destination, " already exists.")
 
                 else:
                     if "pressure" in self.product.name:
@@ -294,7 +297,7 @@ class CopernicusProvider(DataProvider):
                             },
                             out,
                         )
-                    print("file downloaded and saved as", out)
+                    LOGGER.info("file downloaded and saved as", out)
 
                     files.append(out)
 
@@ -389,7 +392,7 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    print(out, " already exists.")
+                    LOGGER.info(out, " already exists.")
                 else:
                     if "pressure" in self.product.name:
                         c.retrieve(
@@ -462,7 +465,7 @@ class CopernicusProvider(DataProvider):
                             out,
                         )
 
-                    print("file downloaded and saved as", out)
+                    LOGGER.info("file downloaded and saved as", out)
                     files.append(out)
 
             return files
