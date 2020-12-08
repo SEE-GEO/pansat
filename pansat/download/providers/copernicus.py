@@ -393,6 +393,7 @@ class CopernicusProvider(DataProvider):
                 # only download if file not already already exists
                 if os.path.exists(out):
                     LOGGER.info(out, " already exists.")
+                    files.append(out)
                 else:
                     if "pressure" in self.product.name:
                         c.retrieve(
