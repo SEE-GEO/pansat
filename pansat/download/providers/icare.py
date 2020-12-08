@@ -28,6 +28,7 @@ ICARE_PRODUCTS = {
     "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
     "Calipso_333mCLay": ["SPACEBORNE", "CALIOP", "333mCLay"],
     "Calipso_05kmAPro": ["SPACEBORNE", "CALIOP", "05kmAPro"],
+    "Dardar_DARDAR-CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR-CLOUD"],
 }
 
 
