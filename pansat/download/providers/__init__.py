@@ -33,8 +33,10 @@ from pansat.download.providers.ges_disc import GesdiscProvider
 from pansat.download.providers.noaa import NOAAProvider
 from pansat.download.providers.meteo_france import GeoservicesProvider
 
-ALL_PROVIDERS = [CopernicusProvider,
-                 IcareProvider,
-                 GesdiscProvider,
-                 NOAAProvider,
-                 GeoservicesProvider]
+ALL_PROVIDERS = [
+    CopernicusProvider,
+    IcareProvider,
+    GesdiscProvider,
+    NOAAProvider,
+    GeoservicesProvider,
+]

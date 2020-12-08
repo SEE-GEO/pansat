@@ -22,6 +22,7 @@ _DATA_FOLDER = pathlib.Path(__file__).parent / "data"
 with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
     GPM_PRODUCTS = json.load(file)
 
+
 class GesdiscProvider(DiscreteProvider):
     """
     Dataprovider class for for products available from the
@@ -65,9 +66,7 @@ class GesdiscProvider(DiscreteProvider):
     def _request_string(self):
         """The URL containing the data files for the given product."""
         base_url = "https://gpm1.gesdisc.eosdis.nasa.gov/data/"
-        return (base_url
-                + GPM_PRODUCTS[str(self.product)]
-                + "/{year}/{day}/{filename}")
+        return base_url + GPM_PRODUCTS[str(self.product)] + "/{year}/{day}/{filename}"
 
     def get_files_by_day(self, year, day):
         """

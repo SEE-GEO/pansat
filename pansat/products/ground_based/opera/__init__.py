@@ -33,6 +33,7 @@ class OperaProduct(Product):
 
     .. _EUMETNET <https://www.eumetnet.eu/activities/observations-programme/current-activities/opera/>
     """
+
     def __init__(self, product_name, description):
         self.product_name = product_name
         self._description = description
@@ -75,8 +76,7 @@ class OperaProduct(Product):
         """
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
-        date_string = (match.group(1) + match.group(2) + match.group(3)
-                       + match.group(4))
+        date_string = match.group(1) + match.group(2) + match.group(3) + match.group(4)
         date = datetime.datetime.strptime(date_string, "%Y%j%H%M")
         return date
 
@@ -138,13 +138,13 @@ class OperaProduct(Product):
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
         from pansat.formats.hdf5 import HDF5File
+
         file_handle = HDF5File(filename, "r")
         return self.description.to_xarray_dataset(file_handle, globals())
 
 
 def edges_to_centers(grid):
-    new_grid = 0.25 * (grid[1:, 1:] + grid[1:, :-1]
-                       + grid[:-1, 1:] + grid[:-1, :-1])
+    new_grid = 0.25 * (grid[1:, 1:] + grid[1:, :-1] + grid[:-1, 1:] + grid[:-1, :-1])
     return new_grid
 
 
@@ -153,8 +153,10 @@ _LONGITUDE_GRID = None
 
 
 def _define_coordinate_grids():
-    projection_string = ("+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 "
-                         "+y_0=-2100000.0 +units=m +ellps=WGS84")
+    projection_string = (
+        "+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 "
+        "+y_0=-2100000.0 +units=m +ellps=WGS84"
+    )
     proj = pyproj.Proj(projection_string)
     x = np.arange(0, 1900 * 2000.0 + 1, 2000.0)
     y = np.arange(0, -2200 * 2000.0 - 1, -2000.0)
@@ -172,8 +174,10 @@ def _define_coordinate_grids():
 
 
 def _get_opera_projection():
-    projection_string = ("+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 "
-                         "+y_0=-2100000.0 +units=m +ellps=WGS84")
+    projection_string = (
+        "+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 "
+        "+y_0=-2100000.0 +units=m +ellps=WGS84"
+    )
     proj = pyproj.Proj(projection_string)
     return proj
 

@@ -27,14 +27,8 @@ class GPMProduct(Product):
     """
     Base class representing GPM products.
     """
-    def __init__(self,
-                 level,
-                 platform,
-                 sensor,
-                 name,
-                 version,
-                 variant,
-                 description):
+
+    def __init__(self, level, platform, sensor, name, version, variant, description):
         self.level = level
         self.platform = platform
         self.sensor = sensor
@@ -116,7 +110,7 @@ class GPMProduct(Product):
             variant = f"-{self.variant}"
         else:
             variant = ""
-        s = (f"GPM_{self.level}{variant}_{self.platform}_{self.sensor}")
+        s = f"GPM_{self.level}{variant}_{self.platform}_{self.sensor}"
         return s
 
     def download(self, start_time, end_time, destination=None, provider=None):
@@ -152,6 +146,7 @@ class GPMProduct(Product):
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
         from pansat.formats.hdf5 import HDF5File
+
         file_handle = HDF5File(filename, "r")
         return self.description.to_xarray_dataset(file_handle, globals())
 
@@ -176,7 +171,7 @@ def _extract_scantime(scantime_group):
     seconds = scantime_group["Second"][:]
     milli_seconds = scantime_group["MilliSecond"][:]
     n_dates = years.shape[0]
-    dates = np.zeros(n_dates, dtype='datetime64[ms]')
+    dates = np.zeros(n_dates, dtype="datetime64[ms]")
     for i in range(n_dates):
         year = years[i]
         month = months[i]
@@ -185,9 +180,11 @@ def _extract_scantime(scantime_group):
         minute = minutes[i]
         second = seconds[i]
         milli_second = milli_seconds[i]
-        dates[i] = np.datetime64(f"{year:04}-{month:02}-{day:02}"
-                                 f"T{hour:02}:{minute:02}:{second:02}"
-                                 f".{milli_second:03}")
+        dates[i] = np.datetime64(
+            f"{year:04}-{month:02}-{day:02}"
+            f"T{hour:02}:{minute:02}:{second:02}"
+            f".{milli_second:03}"
+        )
     return dates
 
 
@@ -203,13 +200,10 @@ def _parse_products():
             name = description.properties["name"]
             version = int(description.properties["version"])
             variant = description.properties["variant"]
-            globals()[python_name] = GPMProduct(level,
-                                                platform,
-                                                sensor,
-                                                name,
-                                                version,
-                                                variant,
-                                                description)
+            globals()[python_name] = GPMProduct(
+                level, platform, sensor, name, version, variant, description
+            )
+
 
 _parse_products()
 
@@ -217,15 +211,18 @@ _parse_products()
 # GPROF products
 ################################################################################
 
+
 class GPROFProduct(GPMProduct):
     """
     Specialization of GPM product for GPROF products, which all have the same
     data format.
     """
+
     def __init__(self, platform, sensor, version, variant=""):
         module_path = Path(__file__).parent
         description = ProductDescription(module_path / "gprof.ini")
         super().__init__("2A", platform, sensor, "GPROF", version, variant, description)
+
 
 l2a_gprof_gpm_gmi = GPROFProduct("GPM", "GMI", 5)
 l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)
