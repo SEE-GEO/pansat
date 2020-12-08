@@ -9,83 +9,18 @@ Reference
 ---------
 """
 import datetime
+import json
+import pathlib
+import re
+
+import requests
 
 from pansat.download import accounts
 from pansat.download.providers.discrete_provider import DiscreteProvider
-import requests
-import re
 
-GESDISC_L2_PRODUCTS = ["GPM_2ADPR.06",
-                       "GPM_2ADPRENV.06",
-                       "PM_2AGPROFAQUAAMSRE_CLIM.05",
-                       "GPM_2AGPROFF11SSMI_CLIM.05",
-                       "GPM_2AGPROFF13SSMI_CLIM.05",
-                       "GPM_2AGPROFF14SSMI_CLIM.05",
-                       "GPM_2AGPROFF15SSMI_CLIM.05",
-                       "GPM_2AGPROFF16SSMIS.05",
-                       "GPM_2AGPROFF16SSMIS_CLIM.05",
-                       "GPM_2AGPROFF17SSMIS.05",
-                       "GPM_2AGPROFF17SSMIS_CLIM.05",
-                       "GPM_2AGPROFF18SSMIS.05",
-                       "GPM_2AGPROFF18SSMIS_CLIM.05",
-                       "GPM_2AGPROFF19SSMIS.05",
-                       "GPM_2AGPROFF19SSMIS_CLIM.05",
-                       "GPM_2AGPROFGCOMW1AMSR2.05",
-                       "GPM_2AGPROFGCOMW1AMSR2_CLIM.05",
-                       "GPM_2AGPROFGPMGMI.05",
-                       "GPM_2AGPROFGPMGMI_CLIM.05",
-                       "GPM_2AGPROFMETOPAMHS.05",
-                       "GPM_2AGPROFMETOPAMHS_CLIM.05",
-                       "GPM_2AGPROFMETOPBMHS.05",
-                       "GPM_2AGPROFMETOPBMHS_CLIM.05",
-                       "GPM_2AGPROFMETOPCMHS.05",
-                       "GPM_2AGPROFMETOPCMHS_CLIM.05",
-                       "GPM_2AGPROFNOAA15AMSUB_CLIM.05",
-                       "GPM_2AGPROFNOAA16AMSUB_CLIM.05",
-                       "GPM_2AGPROFNOAA17AMSUB_CLIM.05",
-                       "GPM_2AGPROFNOAA18MHS.05",
-                       "GPM_2AGPROFNOAA18MHS_CLIM.05",
-                       "GPM_2AGPROFNOAA19MHS.05",
-                       "GPM_2AGPROFNOAA19MHS_CLIM.05",
-                       "GPM_2AGPROFNOAA20ATMS.05",
-                       "GPM_2AGPROFNOAA20ATMS_CLIM.05",
-                       "GPM_2AGPROFNPPATMS.05",
-                       "GPM_2AGPROFNPPATMS_CLIM.05",
-                       "GPM_2AKa.06",
-                       "GPM_2AKaENV.06",
-                       "GPM_2AKu.06",
-                       "GPM_2AKuENV.06",
-                       "GPM_2APRPSMT1SAPHIR.06",
-                       "GPM_2APRPSMT1SAPHIR_CLIM.06",
-                       "GPM_2BCMB.06",
-                       "GPM_2HCSH.06",
-                       "GPM_2HSLH.06"]
-
-GESDISC_L1C_PRODUCTS = ["GPM_1CAQUAAMSRE.05",
-                        "GPM_1CF08SSMI.06",
-                        "GPM_1CF10SSMI.06",
-                        "GPM_1CF11SSMI.06",
-                        "GPM_1CF13SSMI.06",
-                        "GPM_1CF14SSMI.06",
-                        "GPM_1CF15SSMI.06",
-                        "GPM_1CF16SSMIS.05",
-                        "GPM_1CF17SSMIS.05",
-                        "GPM_1CF18SSMIS.05",
-                        "GPM_1CF19SSMIS.05",
-                        "GPM_1CGCOMW1AMSR2.05",
-                        "GPM_1CGPMGMI.05",
-                        "GPM_1CGPMGMI_R.05",
-                        "GPM_1CMETOPAMHS.05",
-                        "GPM_1CMETOPBMHS.05",
-                        "GPM_1CMETOPCMHS.05",
-                        "GPM_1CMT1SAPHIR.05",
-                        "GPM_1CNOAA15AMSUB.05",
-                        "GPM_1CNOAA16AMSUB.05",
-                        "GPM_1CNOAA17AMSUB.05",
-                        "GPM_1CNOAA18MHS.05",
-                        "GPM_1CNOAA19MHS.05",
-                        "GPM_1CNOAA20ATMS.05",
-                        "GPM_1CNPPATMS.05"]
+_DATA_FOLDER = pathlib.Path(__file__).parent / "data"
+with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
+    GPM_PRODUCTS = json.load(file)
 
 class GesdiscProvider(DiscreteProvider):
     """
@@ -116,7 +51,7 @@ class GesdiscProvider(DiscreteProvider):
             A list of strings containing the names of the products that can
             be downloaded from this data provider.
         """
-        return GESDISC_L1C_PRODUCTS + GESDISC_L2_PRODUCTS
+        return GPM_PRODUCTS.keys()
 
     @classmethod
     def download_url(cls, url, destination):
@@ -129,13 +64,10 @@ class GesdiscProvider(DiscreteProvider):
     @property
     def _request_string(self):
         """The URL containing the data files for the given product."""
-        if self.product_name in GESDISC_L1C_PRODUCTS:
-            level = "L1C"
-        else:
-            level = "L2"
-        base_url = (f"https://gpm1.gesdisc.eosdis.nasa.gov/data/" +
-                    f"GPM_{level}/{self.product_name}")
-        return base_url + "/{year}/{day}/{filename}"
+        base_url = "https://gpm1.gesdisc.eosdis.nasa.gov/data/"
+        return (base_url
+                + GPM_PRODUCTS[str(self.product)]
+                + "/{year}/{day}/{filename}")
 
     def get_files_by_day(self, year, day):
         """

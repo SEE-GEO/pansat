@@ -312,6 +312,8 @@ class ProductDescription(ConfigParser):
         coordinates = {}
         for variable in self.variables:
             data = variable.get_data(file_handle, context)
+            if len(variable.dimensions) < len(data.shape):
+                data = np.squeeze(data)
             for index, dimension in enumerate(variable.dimensions):
                 coordinates[dimension] = np.arange(data.shape[index])
                 attrs = variable.get_attributes()

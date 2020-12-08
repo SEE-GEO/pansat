@@ -25,7 +25,7 @@ class NoAvailableProviderError(Exception):
 
 class GPMProduct(Product):
     """
-    Base class for products from the GPM mission.
+    Base class representing GPM products.
     """
     def __init__(self,
                  level,
@@ -113,11 +113,10 @@ class GPMProduct(Product):
 
     def __str__(self):
         if self.variant:
-            variant = f"_{self.variant}"
+            variant = f"-{self.variant}"
         else:
             variant = ""
-        s = (f"GPM_{self.level}{self.name}{self.platform}{self.sensor}"
-             f"{variant}.{self.version:02}")
+        s = (f"GPM_{self.level}{variant}_{self.platform}_{self.sensor}")
         return s
 
     def download(self, start_time, end_time, destination=None, provider=None):
@@ -156,20 +155,19 @@ class GPMProduct(Product):
         file_handle = HDF5File(filename, "r")
         return self.description.to_xarray_dataset(file_handle, globals())
 
-class GPROFProduct(GPMProduct):
-    """
-    Specialization of GPM product for GPROF products, which all have the same
-    data format.
-    """
-    def __init__(self, platform, sensor, version, variant=""):
-        module_path = Path(__file__).parent
-        description = ProductDescription(module_path / "gprof.ini")
-        super().__init__("2A", platform, sensor, "GPROF", version, variant, description)
-
-l2a_gprof_gpm_gmi = GPROFProduct("GPM", "GMI", 5)
-l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)
 
 def _extract_scantime(scantime_group):
+    """
+    Extract scan time as numpy object.
+
+    This function is use
+
+    Args:
+         scantime_group: The HDF5 group containing the scantime data.
+
+    Returns:
+         numpy.datetime64 object representing the scantime.
+    """
     years = scantime_group["Year"][:]
     months = scantime_group["Month"][:]
     days = scantime_group["DayOfMonth"][:]
@@ -214,3 +212,20 @@ def _parse_products():
                                                 description)
 
 _parse_products()
+
+################################################################################
+# GPROF products
+################################################################################
+
+class GPROFProduct(GPMProduct):
+    """
+    Specialization of GPM product for GPROF products, which all have the same
+    data format.
+    """
+    def __init__(self, platform, sensor, version, variant=""):
+        module_path = Path(__file__).parent
+        description = ProductDescription(module_path / "gprof.ini")
+        super().__init__("2A", platform, sensor, "GPROF", version, variant, description)
+
+l2a_gprof_gpm_gmi = GPROFProduct("GPM", "GMI", 5)
+l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)

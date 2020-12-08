@@ -53,7 +53,6 @@ class GeoservicesProvider(DataProvider):
         d_t = timedelta(seconds=d_t)
         time = start_time + d_t
         while (time < end_time):
-            print(time, end_time)
             yield time
             time += timedelta(minutes=15)
 
@@ -97,7 +96,6 @@ class GeoservicesProvider(DataProvider):
         files = []
         for time in self._get_times_in_range(start_time, end_time):
             filename = self._get_filename(time)
-            print("downloading file:", time, filename)
             files.append(self._download_file(time, destination / filename))
         return files
 

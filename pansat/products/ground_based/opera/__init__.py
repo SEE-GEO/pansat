@@ -1,3 +1,10 @@
+"""
+pansat.products.ground_based.opera
+==================================
+
+This module defines the ``OperaProduct`` class, which is used to represent data
+products from the EUMETNET Opera ground-radar network.
+"""
 import datetime
 from pathlib import Path
 import re
@@ -9,14 +16,29 @@ import pansat.download.providers as providers
 from pansat.products.product import Product
 from pansat.products.product_description import ProductDescription
 
+
+class NoAvailableProviderError(Exception):
+    """
+    Exception indicating that no suitable provider could be found for
+    a product.
+    """
+
+
 class OperaProduct(Product):
     """
+    Class representing Opera products.
+
+    OPERA is the Radar Programme of EUMETNET. More information can be found on
+    the `EUMETNET`_ homepage.
+
+    .. _EUMETNET <https://www.eumetnet.eu/activities/observations-programme/current-activities/opera/>
     """
     def __init__(self, product_name, description):
         self.product_name = product_name
         self._description = description
         self.filename_regexp = re.compile(
-            rf"OPERA_{self.product_name}_(\d*)_(\d{2})_(\d{3})_(\d{2})_(\d{2}).hdf"
+            rf"OPERA_{self.product_name}_(\d{{4}})_(\d{{3}})"
+            rf"_(\d{{2}})_(\d{{2}})\.hdf"
         )
 
     @property
@@ -55,7 +77,7 @@ class OperaProduct(Product):
         match = self.filename_regexp.match(path.name)
         date_string = (match.group(1) + match.group(2) + match.group(3)
                        + match.group(4))
-        date = datetime.strptime(date_string, "%y%j%H%M%S")
+        date = datetime.datetime.strptime(date_string, "%Y%j%H%M")
         return date
 
     def _get_provider(self):
@@ -129,6 +151,7 @@ def edges_to_centers(grid):
 _LATITUDE_GRID = None
 _LONGITUDE_GRID = None
 
+
 def _define_coordinate_grids():
     projection_string = ("+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 "
                          "+y_0=-2100000.0 +units=m +ellps=WGS84")
@@ -147,25 +170,38 @@ def _define_coordinate_grids():
     _LATITUDE_GRID.flags.writeable = False
     _LONGITUDE_GRID.flags.writeable = False
 
+
 def _get_opera_projection():
     projection_string = ("+proj=laea +lat_0=55.0 +lon_0=10.0 +x_0=1950000.0 "
                          "+y_0=-2100000.0 +units=m +ellps=WGS84")
     proj = pyproj.Proj(projection_string)
     return proj
 
+
 def get_latitude_grid(*args):
+    """
+    Returns the latitude grid on which the Opera data is provided.
+    """
     global _LATITUDE_GRID
     if _LATITUDE_GRID is None:
         _define_coordinate_grids()
     return _LATITUDE_GRID
 
+
 def get_longitude_grid(*args):
+    """
+    Returns the longitude grid on which the Opera data is provided.
+    """
     global _LONGITUDE_GRID
     if _LONGITUDE_GRID is None:
-        _define_coordiante_grids()
+        _define_coordinate_grids()
     return _LONGITUDE_GRID
 
+
 def _parse_products():
+    """
+    Parses available Opera products.
+    """
     module_path = Path(__file__).parent
     for filename in module_path.iterdir():
         if filename.match("*.ini"):
