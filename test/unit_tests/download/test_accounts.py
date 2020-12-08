@@ -30,6 +30,7 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     assert password == "abcd"
 
 
+@pytest.mark.usefixtures("test_identities")
 def test_add_identity_file(monkeypatch, tmpdir):
     """
     This file tests adding a new account to an existing identities file to ensure
