@@ -36,5 +36,5 @@ from pansat.download.providers.meteo_france import GeoservicesProvider
 ALL_PROVIDERS = [CopernicusProvider,
                  IcareProvider,
                  GesdiscProvider,
-                 NOAAProvider
+                 NOAAProvider,
                  GeoservicesProvider]
