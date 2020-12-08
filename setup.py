@@ -20,7 +20,7 @@ setuptools.setup(
     install_requires=["cryptography>=3.1", "numpy", "cdsapi", "requests", "xarray"],
     setup_requires=["pytest-runner"],
     tests_require=["sphinx_rtd_theme", "pytest", "appdirs", "scipy"],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     entry_points={"console_scripts": ["pansat=pansat.download.commandline:download"]},
     include_package_data=True,
     package_data={"": ["*.ini"]},
