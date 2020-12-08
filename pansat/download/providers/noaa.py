@@ -23,7 +23,9 @@ NOAA_PRODUCTS = [
     "ncep.reanalysis-surface_gauss",
     "ncep.reanalysis-spectral",
     "ncep.reanalysis-tropopause",
-    "igra-soundings"]
+    "igra-soundings",
+]
+
 
 class NOAAProvider(DataProvider):
     """
@@ -43,6 +45,7 @@ class NOAAProvider(DataProvider):
         super().__init__()
         self.product = product
         self.product_path = "/Datasets/" + ("/").join(self.product.name.split("-"))
+
         self.cache = {}
 
         if not product.name in NOAA_PRODUCTS:
@@ -64,7 +67,7 @@ class NOAAProvider(DataProvider):
         """
         return NOAA_PRODUCTS
 
-    def _ftp_listing_to_list(self, path, item_type=int, url=None):
+    def _ftp_listing_to_list(self, path, item_type=int, base_url=None):
         """
         Retrieve directory content from ftp listing as list.
 
@@ -74,7 +77,7 @@ class NOAAProvider(DataProvider):
 
            t(type): Type constructor to apply to the elements of the
            listing. To retrieve a list of strings use t = str.
-           url(``str``): base url
+           base_url(``str``): base url
 
         Return:
 
@@ -121,7 +124,7 @@ class NOAAProvider(DataProvider):
         return files
 
     def download(
-        self, start, end, destination, url=None, product_path=None, files=None
+        self, start, end, destination, base_url=None, product_path=None, files=None
     ):
         """
         This method downloads data for a given time range from the respective
@@ -132,7 +135,7 @@ class NOAAProvider(DataProvider):
             end(``int``): end year
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
-            url(``str``): base url
+            base_url(``str``): base url
             files(`list``): list of files if files are not sorted by year
         """
 
