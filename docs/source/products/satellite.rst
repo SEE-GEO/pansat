@@ -7,3 +7,4 @@
 
    satellite/cloud_sat
    satellite/calipso
+   satellite/dardar

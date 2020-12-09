@@ -39,7 +39,8 @@ class DardarProduct(Product):
         self._description = description
         self.filename_regexp = re.compile(
             # DARDAR-CLOUD_v2.1.1_2014015035336_41054.hdf
-            name + r"v[\d]\.[\d]\.[\d]_[\d]*_[\d]*\.*"
+            name.replace("_", "-")
+            + r"_v[\d]\.[\d]\.[\d]_[\d]*_[\d]*\.*"
         )
 
     @property
@@ -79,7 +80,6 @@ class DardarProduct(Product):
 
     def _get_provider(self):
         """ Find a provider that provides the product. """
-        print("+++", str(self))
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS

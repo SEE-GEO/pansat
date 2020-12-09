@@ -29,6 +29,7 @@ ICARE_PRODUCTS = {
     "Calipso_333mCLay": ["SPACEBORNE", "CALIOP", "333mCLay"],
     "Calipso_05kmAPro": ["SPACEBORNE", "CALIOP", "05kmAPro"],
     "Dardar_DARDAR-CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR-CLOUD"],
+    "Dardar_DARDAR_CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR_CLOUD"],
 }
 
 
