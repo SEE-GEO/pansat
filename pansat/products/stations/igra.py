@@ -32,17 +32,27 @@ class IGRASoundings(Product):
         name(``str``): name of product
         locs(pd.DataFrame): pandas dataframe with metadata on stations
                             (contains location ID, coordinates, and time period)
-        locations(``dict``): metadata on stations as dictionary with names as keys
+
         station(``pd.DataFrame``): pandas dataframe with metadata for chosen station
+        variable(``str`` ): variable to extract, if no station is given
     """
 
-    def __init__(self, location):
+    def __init__(self, location=None, variable=None):
         """
         Args:
 
         location(``str`` or tuple): station name or tuple with closest coordinates as float or int (lat,lon)
-        """
 
+        variable(``str`` ): variable to extract, if given monthly data of all stations will be downloaded
+
+        -- available variables:--
+        ghgt = Geopotential height
+        temp = Temperature
+        uwnd = Zonal wind component
+        vapr = Vapor pressure
+        vwnd = Meridional wind component
+        -----------------------------------
+        """
         self.name = "igra-soundings"
         provider = self._get_provider()
         provider = provider(self)
@@ -59,6 +69,9 @@ class IGRASoundings(Product):
             files=["igra2-station-list.txt"],
         )
 
+        self.variable = variable
+        self.station = location
+
         # pandas data frame with all locations and meta information
         self.locs = self.get_metadata()
 
@@ -66,16 +79,19 @@ class IGRASoundings(Product):
         colnames = ["ID", "lat", "lon", "n", "name", "start", "end", "nr"]
         self.locs.columns = colnames
 
-        if isinstance(location, str):
-            self.station = self.locs[self.locs.name == location]
-        else:
-            self.station = self.locs[
-                self.locs.name == self.find_nearest(location[0], location[1])
-            ]
+        if self.station == None:
+            self.filename_regexp = re.compile(str(self.variable) + ".*" + r".txt.zip")
 
-        self.filename_regexp = re.compile(
-            str(self.station.ID.values[0]) + ".*" + r".txt.zip"
-        )
+        else:
+            if isinstance(location, str):
+                self.station = self.locs[self.locs.name == location]
+            else:
+                self.station = self.locs[
+                    self.locs.name == self.find_nearest(location[0], location[1])
+                ]
+                self.filename_regexp = re.compile(
+                    str(self.station.ID.values[0]) + ".*" + r".txt.zip"
+                )
 
     def get_metadata(self):
         """Extracts data from meta data station inventory."""
@@ -167,20 +183,28 @@ class IGRASoundings(Product):
         Returns:
         filename(str): filename for download
         """
-        fname = str(self.station["ID"].values[0]) + "-data.txt.zip"
 
-        if "2yd" in product_path:
-            str(self.station["ID"].values[0]) + "-data-beg2018.txt.zip"
+        if self.variable != None:
+            fname = [
+                self.variable + "_00z-mly.txt.zip",
+                self.variable + "_12z-mly.txt.zip",
+            ]
+
+        elif "2yd" in product_path:
+            fname = [str(self.station["ID"].values[0]) + "-data-beg2018.txt.zip"]
+
+        else:
+            fname = [str(self.station["ID"].values[0]) + "-data.txt.zip"]
 
         return fname
 
-    def download(self, resolution=None, period=None, destination=None, provider=None):
+    def download(self, period=None, destination=None, provider=None):
         """
         Download IGRA sounding data for a given station.
 
         Args:
-        resolution(``str``): 'monthly' for monthly averages instead of all timesteps
-        period(``str``): 'recent' to download only past 1-2 years instead of full period
+
+        period(``str``): 'recent' to download only past 1-2 years instead of full period (last month for monthly data)
         destination(``str`` or ``pathlib.Path``): The destination where to store
                  the output data.
         Returns:
@@ -188,15 +212,18 @@ class IGRASoundings(Product):
         downloaded(``list``): ``list`` with names of all downloaded files for respective data product
 
         """
-        if resolution == "monthly":
+        if self.variable != None:
             path = "/pub/data/igra/monthly/monthly-"
+            if period == "recent":
+                product_path = path + "upd/"
+            else:
+                product_path = path + "por/"
         else:
             path = "/pub/data/igra/data/data-"
-
-        if period == "recent":
-            product_path = path + "2yd/"
-        else:
-            product_path = path + "por/"
+            if period == "recent":
+                product_path = path + "2yd/"
+            else:
+                product_path = path + "por/"
 
         if not provider:
             provider = self._get_provider()
@@ -215,7 +242,7 @@ class IGRASoundings(Product):
             destination=destination,
             base_url="ftp.ncdc.noaa.gov",
             product_path=product_path,
-            files=[filename],
+            files=filename,
         )
 
         return downloaded
