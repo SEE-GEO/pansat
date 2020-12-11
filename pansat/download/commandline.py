@@ -11,6 +11,7 @@ The following flags can be used:
     --endtime/-t1
     --variable/-var
     --domain/-d
+    --grid
     --list
 
 
@@ -43,6 +44,7 @@ def download():
         + " a global grid is used, if specified four arguments (lat1, lat2, lon1, lon2)"
         + " are required, with lat1<lat2, lon1<lon2"
     )
+    helpstring_grid = "specifying spatial/temporal gridding of reanalysis data"
 
     parser = argparse.ArgumentParser()
 
@@ -53,26 +55,23 @@ def download():
         "--list", action="store_true", help="list available providers/products"
     )
 
-    if sys.version_info >= (3, 7):
-        parser.add_argument(
-            "-t0",
-            "--starttime",
-            type=datetime.datetime.fromisoformat,
-            help=helpstring_t0,
-        )
-        parser.add_argument(
-            "-t1", "--endtime", type=datetime.datetime.fromisoformat, help=helpstring_t1
-        )
-    else:  # i.e. for Python 3.6
-        parser.add_argument("-t0", "--starttime", help=helpstring_t0)
-        parser.add_argument("-t1", "--endtime", help=helpstring_t1)
+    parser.add_argument(
+        "-t0",
+        "--starttime",
+        type=datetime.datetime.fromisoformat,
+        help=helpstring_t0,
+    )
+    parser.add_argument(
+        "-t1", "--endtime", type=datetime.datetime.fromisoformat, help=helpstring_t1
+    )
 
     parser.add_argument(
         "--type", choices=["satellite", "reanalysis"], help=helpstring_type
     )
     parser.add_argument("--pm", help=helpstring_pm)
-    parser.add_argument("-prod", "--product", nargs="+", help=helpstring_product)
+    parser.add_argument("-prod", "--product", help=helpstring_product)
     parser.add_argument("-var", "--variable", nargs="+", help=helpstring_variable)
+    parser.add_argument("--grid", nargs="+", help=helpstring_grid)
     parser.add_argument("-d", "--domain", nargs=4, type=float, help=helpstring_domain)
     args = parser.parse_args()
 
@@ -108,21 +107,20 @@ def download():
     if not args.pm:
         parser.error("no platform/model chosen")
 
-    if not args.product:
-        parser.error("no data product chosen")
-
-    if sys.version_info < (3, 7):
-        args.starttime = datetime.datetime.strptime(args.starttime, "%Y-%m-%dT%H:%M:%S")
-        args.endtime = datetime.datetime.strptime(args.endtime, "%Y-%m-%dT%H:%M:%S")
+    if str(args.type) == "satellite" and not args.product:
+        parser.error("no satellite data product chosen")
 
     if str(args.type) == "reanalysis" and not args.variable:
         parser.error("no reanalysis variable chosen")
 
-    if str(args.type) == "satellite" and len(args.product) > 1:
-        parser.error("satellite products expect only one argument")
+    if str(args.type) == "reanalysis" and not args.grid:
+        parser.error("no grid variable for reanalysis data chosen")
 
-    if str(args.type) == "reanalysis" and len(args.product) != 2:
-        parser.error("reanalysis products expect two arguments")
+    if str(args.pm) == "ncep" and len(args.grid) != 1:
+        parser.error("NCEP data requires exactly one argument for gridding information")
+
+    if str(args.pm) == "ERA5" and len(args.grid) != 2:
+        parser.error("ERA5 data requires exactly two arguments for gridding information")
 
     ##############################################################################################
     # loading download functions and starting download
@@ -138,13 +136,13 @@ def download():
         module = importlib.import_module(
             "pansat.products." + str(args.type) + "." + str(args.pm)
         )
-        if "l" + str(args.product[0]) in dir(module):
+        if "l" + str(args.product) in dir(module):
             productfunc = getattr(module, "l" + str(args.product[0]))
         elif "ERA5Product" in dir(module):
             era_product = getattr(module, "ERA5Product")
             if not args.domain:  # without given spatial domain (global)
                 productfunc = era_product(
-                    str(args.product[0]), str(args.product[1]), args.variable
+                    str(args.grid[0]), str(args.grid[1]), args.variable
                 )
             else:
                 productfunc = era_product(
@@ -153,6 +151,9 @@ def download():
                     args.variable,
                     args.domain,
                 )
+        elif "NCEPReanalysis" in dir(module):
+            ncep_product = getattr(module, "NCEPReanalysis")
+            productfunc = ncep_product(str(args.variable), str(args.grid[0]))
         else:
             parser.error("product " + str(args.product) + " not implemented")
 
@@ -164,5 +165,9 @@ def download():
             + str(args.pm)
             + " is not implemented"
         )
+
+    if args.pm == "ncep":
+        args.starttime = int(args.starttime.year)
+        args.endtime = int(args.endtime.year)
 
     files = productfunc.download(args.starttime, args.endtime)
