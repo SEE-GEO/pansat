@@ -32,7 +32,7 @@ setuptools.setup(
         "appdirs",
         "scipy",
         "beautifulsoup4",
-    ]
+    ],
     python_requires=">=3.8",
     entry_points={"console_scripts": ["pansat=pansat.download.commandline:download"]},
     include_package_data=True,
