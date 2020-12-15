@@ -26,7 +26,13 @@ setuptools.setup(
         "pyproj",
     ],
     setup_requires=["pytest-runner"],
-    tests_require=["sphinx_rtd_theme", "pytest", "appdirs", "scipy"],
+    tests_require=[
+        "sphinx_rtd_theme",
+        "pytest",
+        "appdirs",
+        "scipy",
+        "beautifulsoup4",
+    ]
     python_requires=">=3.8",
     entry_points={"console_scripts": ["pansat=pansat.download.commandline:download"]},
     include_package_data=True,
