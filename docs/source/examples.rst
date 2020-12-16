@@ -6,6 +6,8 @@ Examples
    :caption: Products
 
    notebooks/products/cloud_sat.ipynb
+   notebooks/products/calipso.ipynb
+   notebooks/products/dardar.ipynb
    notebooks/products/era5.ipynb
    notebooks/products/gpm.ipynb
    notebooks/products/ncep.ipynb
