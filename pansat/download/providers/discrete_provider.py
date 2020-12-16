@@ -212,5 +212,5 @@ class DiscreteProvider(DataProvider):
         files_negative = filter(negative_only, files_sorted)
 
         if files_negative:
-            return next(files_negative)
+            return list(files_negative)[-1]
         return files_sorted[0]

@@ -9,17 +9,18 @@ Reference
 ---------
 """
 import datetime
+import json
+import pathlib
+import re
+
+import requests
 
 from pansat.download import accounts
 from pansat.download.providers.discrete_provider import DiscreteProvider
-import requests
-import re
 
-GESDISC_PRODUCTS = {
-    "GPM_2A_DPR": ("GPM_L2", "GPM_2ADPR.06"),
-    "GPM_2B_DPRGMI": ("GPM_L2", "GPM_2BCMB.06"),
-    "GPM_2A_GMI": ("GPM_L2", "GPM_2AGPROFGPMGMI.05"),
-}
+_DATA_FOLDER = pathlib.Path(__file__).parent / "data"
+with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
+    GPM_PRODUCTS = json.load(file)
 
 
 class GesdiscProvider(DiscreteProvider):
@@ -38,7 +39,8 @@ class GesdiscProvider(DiscreteProvider):
         Args:
             product: The product to download.
         """
-        self.level, self.product_name = GESDISC_PRODUCTS[str(product)]
+        self.product_name = str(product)
+        self.level = self.product_name.split("_")[1][:2]
         super().__init__(product)
 
     @classmethod
@@ -50,14 +52,21 @@ class GesdiscProvider(DiscreteProvider):
             A list of strings containing the names of the products that can
             be downloaded from this data provider.
         """
-        return GESDISC_PRODUCTS.keys()
+        return GPM_PRODUCTS.keys()
+
+    @classmethod
+    def download_url(cls, url, destination):
+        auth = accounts.get_identity("GES DISC")
+        r = requests.get(url, auth=auth)
+        with open(destination, "wb") as f:
+            for chunk in r:
+                f.write(chunk)
 
     @property
     def _request_string(self):
         """The URL containing the data files for the given product."""
-        base_url = "https://gpm1.gesdisc.eosdis.nasa.gov/data/{level}" "/{product}"
-        base_url = base_url.format(level=self.level, product=self.product_name)
-        return base_url + "/{year}/{day}/{filename}"
+        base_url = "https://gpm1.gesdisc.eosdis.nasa.gov/data/"
+        return base_url + GPM_PRODUCTS[str(self.product)] + "/{year}/{day}/{filename}"
 
     def get_files_by_day(self, year, day):
         """
