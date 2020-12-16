@@ -48,8 +48,8 @@ def test_download():
     Download Dardar-cloud file.
     """
     product = dardar.dardar_cloud
-    t_0 = datetime(2018, 6, 1, 10)
-    t_1 = datetime(2018, 6, 1, 12)
+    t_0 = datetime(2016, 6, 1, 10)
+    t_1 = datetime(2016, 6, 1, 12)
     files = product.download(t_0, t_1)
 
     if HAS_HDF:
