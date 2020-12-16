@@ -58,7 +58,6 @@ class GOES16Product(Product):
         Return:
             True if the filename matches the product, False otherwise.
         """
-        print("MATCHING:", filename, self.filename_regexp.match(filename))
         return self.filename_regexp.match(filename)
 
     def filename_to_date(self, filename):
