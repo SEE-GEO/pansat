@@ -6,3 +6,4 @@
    :caption: Sub-Modules             
 
    satellite/cloud_sat
+   satellite/calipso
