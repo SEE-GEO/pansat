@@ -15,6 +15,8 @@ The following flags can be used:
     --grid
    Other flags
     --list
+    --add
+    --listIDs
 
 
 """
@@ -56,6 +58,10 @@ def download():
     ##############################################################################################
     parser.add_argument(
         "--list", action="store_true", help="list available providers/products"
+    )
+    parser.add_argument(
+        "--listIDs", action="store_true", help="list stored identities"
+            
     )
     parser.add_argument("--add", nargs=2, help=helpstring_add)
 
@@ -102,9 +108,19 @@ def download():
         return
 
     if args.add:
-        from  pansat.download import accounts
+        from pansat.download import accounts
         accounts.add_identity(args.add[0], args.add[1])
         return
+
+    if args.listIDs:
+        from pansat.download import accounts
+        identities=accounts.get_identities()
+        print("Identities are available for the following providers")
+        for key in identities.keys():
+            if key != "pansat":
+                print(key)
+        return
+
 
     #################################################################################
     # consistency checks to begin downloads
