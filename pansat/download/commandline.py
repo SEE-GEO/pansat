@@ -4,6 +4,7 @@ pansat.download.commandline
 The ``commandline´´ submodule allows to download data products from commandline using the argparse module.
 
 The following flags can be used:
+   Download flags
     --type
     --pm
     --product/-prod
@@ -12,6 +13,7 @@ The following flags can be used:
     --variable/-var
     --domain/-d
     --grid
+   Other flags
     --list
 
 
@@ -45,6 +47,7 @@ def download():
         + " are required, with lat1<lat2, lon1<lon2"
     )
     helpstring_grid = "specifying spatial/temporal gridding of reanalysis data"
+    helpstring_add="add account, requires arguments ``provider´´ and ``user_name´´"
 
     parser = argparse.ArgumentParser()
 
@@ -54,6 +57,7 @@ def download():
     parser.add_argument(
         "--list", action="store_true", help="list available providers/products"
     )
+    parser.add_argument("--add", nargs=2, help=helpstring_add)
 
     parser.add_argument(
         "-t0",
@@ -97,8 +101,13 @@ def download():
                         print(products[i])
         return
 
+    if args.add:
+        from  pansat.download import accounts
+        accounts.add_identity(args.add[0], args.add[1])
+        return
+
     #################################################################################
-    # consistency checks and conversion of times into datetime-format
+    # consistency checks to begin downloads
     #################################################################################
 
     if (args.starttime and not args.endtime) or (args.endtime and not args.starttime):
