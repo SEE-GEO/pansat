@@ -288,7 +288,7 @@ class IGRASoundings(Product):
             "PFLAG",
             "GPH",
             "ZFLAG",
-            "TEMP",
+            "T",
             "TFLAG",
             "RH",
             "DPDP",
