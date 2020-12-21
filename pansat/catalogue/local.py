@@ -70,6 +70,15 @@ class ProductCatalogue:
         return file_list
 
     def get_file_catalogue(self):
+        """
+        Getting a dictionary with all downloaded files, sorted by product and product class.
+
+        Returns:
+
+        catalogue(``dict``): nested dictionary with all downloaded files at default locations.
+
+
+        """
         catalogue = {}
         for dd in DEFAULT_DESTINATIONS:
             path = Path(dd)
@@ -97,5 +106,10 @@ class ProductCatalogue:
                 print("\t" * (i + 1) + str(value))
 
     def print_file_catalogue(self):
+        """
+
+        Prints the nested dictionary with all files per product and product class in tree-like structure.
+
+        """
         catalogue = self.get_file_catalogue()
         self.print_nested(catalogue, 0)
