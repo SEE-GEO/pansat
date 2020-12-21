@@ -271,20 +271,95 @@ class IGRASoundings(Product):
         ]
         return df
 
-    def open_regular(self, filename):
+    def open_station(self, filename):
         """
 
-        Reads in data for different variables from one sounding station.
-
+        Reads in data for different variables from one sounding station. This can take some time,
+        but afterwards the pandas dataframe is saved as a csv file which can be quickly be opened again.
 
         """
 
-    def open(self, filename):
+        columns = [
+            "datetime",
+            "LVLTYP1",
+            "LVLTYP2",
+            "ETIME",
+            "PRESS",
+            "PFLAG",
+            "GPH",
+            "ZFLAG",
+            "TEMP",
+            "TFLAG",
+            "RH",
+            "DPDP",
+            "WDIR",
+            "WSPD",
+        ]
+        df = pd.DataFrame(columns=columns)
+        rowidx = 0
+
+        with open(filename) as input_file:
+            for row in input_file:
+                rowidx += 1
+                values = row.split()
+                if len(values) == 9:
+                    if "#" in values[0]:
+                        date = datetime.datetime(
+                            int(values[1]),
+                            int(values[2]),
+                            int(values[3]),
+                            int(values[4]),
+                        )
+                    else:
+                        # check for flags in variable values
+                        if "A" in values[2] or "B" in values[2]:
+                            press = values[2][:-1]
+                            pflag = values[2][-1]
+                        else:
+                            press = values[2]
+                            pflag = ""
+
+                        if "A" in values[3] or "B" in values[3]:
+                            z = values[3][:-1]
+                            zflag = values[3][-1]
+                        else:
+                            z = values[3]
+                            zflag = ""
+
+                        if "A" in values[4] or "B" in values[4]:
+                            temp = values[4][:-1]
+                            tflag = values[4][-1]
+                        else:
+                            temp = values[4]
+                            tflag = ""
+
+                        rows = [
+                            date,
+                            values[0][0],
+                            values[0][1],
+                            values[1],
+                            press,
+                            pflag,
+                            z,
+                            zflag,
+                            temp,
+                            tflag,
+                            values[5],
+                            values[6],
+                            values[7],
+                            values[8],
+                        ]
+                        df.loc[rowidx, :] = rows
+
+            df.to_csv(os.path.splitext(filename)[0] + ".csv")
+
+    def open(self, filename, advanced=False):
 
         """Unzips and opens a text file containing IGRA sounding data.
 
         Args:
         filename(``str``): name of the file to be opened
+        advanced: if True, a formatted csv file will be produced from the data (only for data per station)
 
         Returns:
         dataframe(pandas.DataFrame): table as pandas dataframe object
@@ -297,5 +372,8 @@ class IGRASoundings(Product):
         # open monthly file format
         fname_to_open = os.path.splitext(filename)[0]
         df = self.open_monthly(fname_to_open)
+
+        if advanced == True:
+            df = self.open_stations(fname_to_open)
 
         return df
