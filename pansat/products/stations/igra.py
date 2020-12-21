@@ -9,12 +9,13 @@ This module defines the IGRA product class, which represents the global data pro
 
 import re
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 import pansat.download.providers as providers
 from pansat.products.product import Product
 import pandas as pd
 from math import radians, cos, sin, asin, sqrt
+import zipfile
 
 
 class NoAvailableProviderError(Exception):
@@ -190,6 +191,13 @@ class IGRASoundings(Product):
                 self.variable + "_12z-mly.txt.zip",
             ]
 
+            if "upd" in str(product_path):
+                yearmon = str(date.today().year) + str(date.today().month - 1)
+                fname = [
+                    self.variable + "_00z-mly-" + yearmon + ".txt.zip",
+                    self.variable + "_12z-mly-" + yearmon + ".txt.zip",
+                ]
+
         elif "2yd" in product_path:
             fname = [str(self.station["ID"].values[0]) + "-data-beg2018.txt.zip"]
 
@@ -246,3 +254,48 @@ class IGRASoundings(Product):
         )
 
         return downloaded
+
+    def open_monthly(self, filename):
+        """
+        Reads in data from monthly radiosoundings at all stations.
+
+        """
+        df = pd.read_fwf(filename)
+        df.columns = [
+            "Station",
+            "Year",
+            "Month",
+            "Level [hPa]",
+            "Value [$^\circ$C/10, m s$^{-1}$ or Pa]",
+            "Num",
+        ]
+        return df
+
+    def open_regular(self, filename):
+        """
+
+        Reads in data for different variables from one sounding station.
+
+
+        """
+
+    def open(self, filename):
+
+        """Unzips and opens a text file containing IGRA sounding data.
+
+        Args:
+        filename(``str``): name of the file to be opened
+
+        Returns:
+        dataframe(pandas.DataFrame): table as pandas dataframe object
+        """
+        # unzip downloaded file
+        with zipfile.ZipFile(filename, "r") as zip_ref:
+            targetdir = Path(filename).parent
+            zip_ref.extractall(targetdir)
+
+        # open monthly file format
+        fname_to_open = os.path.splitext(filename)[0]
+        df = self.open_monthly(fname_to_open)
+
+        return df
