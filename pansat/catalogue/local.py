@@ -9,47 +9,93 @@ This module defines the a catalogue class to look at and list information about 
 import datetime
 import glob
 import os
-from pansat.products import ALL_PRODUCTS 
+from pathlib import Path
+from pansat.products import ALL_PRODUCTS
 from pansat.products.reanalysis import era5, ncep
-from pansat.products.satellite import cloud_sat, era5
+from pansat.products.satellite import cloud_sat, calipso, dardar, gpm
+from pansat.products.ground_based import opera
 
 
-def ProductCatalogue():
+DEFAULT_DESTINATIONS = [
+    "ERA5",
+    "NCEP",
+    "IGRA",
+    "Calipso",
+    "Cloudsat",
+    "Dardar",
+    "GPM",
+    "Opera",
+]
+
+
+class ProductCatalogue:
     """
 
     The ProductCatalogue class contains methods to extract information about
     downloaded files.
+
+    Attributes:
+    available_products: string list with all currently supoprted products
+
     """
 
-    def __init__():
+    def __init__(self):
+        self.available_products = ALL_PRODUCTS
 
+    def get_files_for_product(self, product, path=None):
+        """
 
-    def check_products(path):
+        Get list with all files for specific product.
 
+        Args:
+        product: pansat product instance
+        paths(``PosixPath object``): product path, if None files are listed from default destination
 
+        Returns:
+        file_lists(``list``):
+        """
 
+        if path == None:
+            path = product.default_destination
+        file_list = []
 
+        p = path.glob("**/*")
+        files = [x for x in p if x.is_file()]
 
-    def get_files(product):
-        fnames = [os.path.basename(x) for x in glob.glob(product.path)]
+        # check whether files match respective name pattern, otherwise they are not included in list
+        for f in files:
+            if product.filename_regexp.match(str(f.name)):
+                file_list.append(f.name)
 
-        for f in fnames:
-            product.filename_regex.match(f)
+        return file_list
 
+    def get_file_catalogue(self):
+        catalogue = {}
+        for dd in DEFAULT_DESTINATIONS:
+            path = Path(dd)
 
-    def list_products(dir):
+            if path.is_dir():
+                p = path.glob("**/*")
+                subdirectories = [x.name for x in p if x.is_dir()]
+                p = path.glob("**/*")
+                files = [x.name for x in p if x.is_file()]
+                subdict = {}
 
+                for idx, x in enumerate(subdirectories):
+                    subdict[str(x)] = files[idx]
 
-    def get_times(product):
+                catalogue[str(path)] = subdict
 
+        return catalogue
 
-    def get_variables(product):
+    def print_nested(self, d, i):
+        for key, value in d.items():
+            print("\t" * i + str(key))
+            if isinstance(value, dict):
+                self.print_nested(value, i + 1)
+            else:
+                print("\t" * (i + 1) + str(value))
 
-
-
-
-
-
-
-
-
+    def print_file_catalogue(self):
+        catalogue = self.get_file_catalogue()
+        self.print_nested(catalogue, 0)

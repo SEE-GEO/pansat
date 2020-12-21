@@ -11,3 +11,4 @@ Examples
    notebooks/products/era5.ipynb
    notebooks/products/gpm.ipynb
    notebooks/products/ncep.ipynb
+   notebooks/products/catalogue.ipynb
