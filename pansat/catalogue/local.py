@@ -28,7 +28,8 @@ DEFAULT_DESTINATIONS = [
 ]
 
 
-class ProductCatalogue:
+
+class ProductCatalogue():
     """
 
     The ProductCatalogue class contains methods to extract information about
@@ -49,14 +50,17 @@ class ProductCatalogue:
 
         Args:
         product: pansat product instance
-        paths(``PosixPath object``): product path, if None files are listed from default destination
+        path(``str``): string or Path for product path, if None files are listed from default destination
 
         Returns:
-        file_lists(``list``):
+        file_lists(``list``): list containing all names that have been downloaded for a certain product.
         """
 
         if path == None:
             path = product.default_destination
+        else:
+            path= Path(path)
+
         file_list = []
 
         p = path.glob("**/*")
@@ -69,9 +73,17 @@ class ProductCatalogue:
 
         return file_list
 
-    def get_file_catalogue(self):
+
+
+
+    def get_file_catalogue(self, destination = None):
         """
         Getting a dictionary with all downloaded files, sorted by product and product class.
+
+        Args:
+
+        destination(``str``): string or Path to folder to check file structure from 
+        If destination is None, the catalogue starts checking for default destinations.  
 
         Returns:
 
@@ -80,24 +92,53 @@ class ProductCatalogue:
 
         """
         catalogue = {}
-        for dd in DEFAULT_DESTINATIONS:
-            path = Path(dd)
 
-            if path.is_dir():
-                p = path.glob("**/*")
-                subdirectories = [x.name for x in p if x.is_dir()]
-                p = path.glob("**/*")
-                files = [x.name for x in p if x.is_file()]
+        if destination == None:
+            for dd in DEFAULT_DESTINATIONS:
+                path = Path(dd)
+
+                if path.is_dir():
+                    p = path.glob("**/*")
+                    subdirectories = [x.name for x in p if x.is_dir()]
+                    subdict = {}
+
+                    for x in subdirectories:
+                        subd=path/ Path(x)
+                        p = subd.glob("*")
+                        files = [x.name for x in p if x.is_file()]
+                        subdict[str(x)] = files
+
+                    catalogue[str(path)] = subdict
+
+
+        else:
+            path = Path(destination)
+            p = path.glob("**/*")
+            subdirectories = [x.name for x in p if x.is_dir()]
+            subdict = {}
+
+            if len(subdirectories) > 0:
+                for x in subdirectories:
+                    subd=path/ Path(x)
+                    p = subd.glob("*")
+                    files = [x.name for x in p if x.is_file()]
+                    subdict[str(x)] = files                    
+
+
+            else:
                 subdict = {}
 
-                for idx, x in enumerate(subdirectories):
-                    subdict[str(x)] = files[idx]
+            catalogue[str(path)] = subdict
 
-                catalogue[str(path)] = subdict
 
         return catalogue
 
+
     def print_nested(self, d, i):
+        """
+        Function to print a nested dictionary in tree-like structure.
+
+        """
         for key, value in d.items():
             print("\t" * i + str(key))
             if isinstance(value, dict):
