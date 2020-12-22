@@ -28,8 +28,7 @@ DEFAULT_DESTINATIONS = [
 ]
 
 
-
-class ProductCatalogue():
+class ProductCatalogue:
     """
 
     The ProductCatalogue class contains methods to extract information about
@@ -59,7 +58,7 @@ class ProductCatalogue():
         if path == None:
             path = product.default_destination
         else:
-            path= Path(path)
+            path = Path(path)
 
         file_list = []
 
@@ -73,17 +72,14 @@ class ProductCatalogue():
 
         return file_list
 
-
-
-
-    def get_file_catalogue(self, destination = None):
+    def get_file_catalogue(self, destination=None):
         """
         Getting a dictionary with all downloaded files, sorted by product and product class.
 
         Args:
 
-        destination(``str``): string or Path to folder to check file structure from 
-        If destination is None, the catalogue starts checking for default destinations.  
+        destination(``str``): string or Path to folder to check file structure from
+        If destination is None, the catalogue starts checking for default destinations.
 
         Returns:
 
@@ -103,13 +99,12 @@ class ProductCatalogue():
                     subdict = {}
 
                     for x in subdirectories:
-                        subd=path/ Path(x)
+                        subd = path / Path(x)
                         p = subd.glob("*")
                         files = [x.name for x in p if x.is_file()]
                         subdict[str(x)] = files
 
                     catalogue[str(path)] = subdict
-
 
         else:
             path = Path(destination)
@@ -119,20 +114,17 @@ class ProductCatalogue():
 
             if len(subdirectories) > 0:
                 for x in subdirectories:
-                    subd=path/ Path(x)
+                    subd = path / Path(x)
                     p = subd.glob("*")
                     files = [x.name for x in p if x.is_file()]
-                    subdict[str(x)] = files                    
-
+                    subdict[str(x)] = files
 
             else:
                 subdict = {}
 
             catalogue[str(path)] = subdict
 
-
         return catalogue
-
 
     def print_nested(self, d, i):
         """
