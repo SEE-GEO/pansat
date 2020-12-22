@@ -11,10 +11,6 @@ from pansat.download.providers.icare import ICARE_PRODUCTS
 from pansat.download.providers.ges_disc import GPM_PRODUCTS
 
 
-
-
-
-
 ALL_PRODUCTS = [
     *COPERNICUS_PRODUCTS,
     *NOAA_PRODUCTS,

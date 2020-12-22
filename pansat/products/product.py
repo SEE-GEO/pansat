@@ -8,9 +8,6 @@ interface for objects representing data products.
 from abc import ABC, abstractproperty, abstractmethod
 
 
-
-
-
 class Product(ABC):
     """
     The abstract interface for satellite and reanalysis data products.
