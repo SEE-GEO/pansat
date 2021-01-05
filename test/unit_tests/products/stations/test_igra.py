@@ -9,17 +9,20 @@ import pansat.products.stations.igra as igra
 import random
 
 
-PRODUCTS = [igra.IGRASoundings([30, 170])]
+PRODUCTS = [igra.IGRASoundings([30, 170]), igra.IGRASoundings(variable="ghgt")]
 
 
-TEST_NAMES = {"igra-soundings": "ZZM00099027-data.txt.zip"}
+TEST_NAMES = {
+    "igra-soundings": "ZZM00099027-data.txt.zip",
+    "igra-soundings-var": "ghgt_00z-mly.txt.zip",
+}
 
 
-@pytest.mark.parametrize("product", PRODUCTS)
-def test_matches(product):
+def test_matches():
     """
     Assert that matches method returns true on the filename.
     """
+    product = PRODUCTS[0]
     filename = TEST_NAMES[product.name]
     assert product.matches(filename)
 
@@ -35,6 +38,21 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
-def test_download(tmpdir):
+def test_download_per_station(tmpdir):
     product = PRODUCTS[0]
     files = product.download(destination=str(tmpdir))
+
+
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
+def test_download_per_variable(tmpdir):
+    product = PRODUCTS[1]
+    files = product.download(destination=str(tmpdir))
+
+
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
+def test_unzip_and_open(tmpdir):
+    product = PRODUCTS[1]
+    fn = tmpdir / TEST_NAMES["igra-soundings-var"]
+    product.open(str(fn))

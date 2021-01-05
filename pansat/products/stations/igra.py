@@ -149,21 +149,6 @@ class IGRASoundings(Product):
         """
         return self.filename_regexp.match(filename)
 
-    def filename_to_date(self, filename):
-        """
-        Extract timestamp from filename.
-        Args:
-            filename(``str``): Filename of a NCEP product.
-        Returns:
-            ``datetime`` object representing the timestamp of the
-            filename.
-        """
-        filename = os.path.basename(filename)
-        filename = filename.split(".")[-2]
-        pattern = "%Y"
-
-        return datetime.strptime(filename, pattern)
-
     def _get_provider(self):
         """ Find a provider that provides the product. """
         available_providers = [
@@ -185,6 +170,10 @@ class IGRASoundings(Product):
         """
         return Path("IGRA") / Path(IGRASoundings.name)
 
+    def __str__(self):
+        """ Get product name. """
+        return IGRASoundings.name
+
     def get_filename(self, product_path):
         """Get filename for specific station
 
@@ -199,7 +188,8 @@ class IGRASoundings(Product):
             ]
 
             if "upd" in str(product_path):
-                yearmon = str(date.today().year) + str(date.today().month - 1)
+                prevmon = date.today() - timedelta(days=30 * 2)
+                yearmon = str(prevmon.year) + str(prevmon.month)
                 fname = [
                     self.variable + "_00z-mly-" + yearmon + ".txt.zip",
                     self.variable + "_12z-mly-" + yearmon + ".txt.zip",
@@ -227,7 +217,7 @@ class IGRASoundings(Product):
         downloaded(``list``): ``list`` with names of all downloaded files for respective data product
 
         """
-        if self.variable != None:
+        if self.variable is not None:
             path = "/pub/data/igra/monthly/monthly-"
             if period == "recent":
                 product_path = path + "upd/"
