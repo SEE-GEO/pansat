@@ -3,8 +3,7 @@ Tests for the pansat.products.satellite.modis module.
 """
 from datetime import datetime
 import pytest
-from pansat.products.satellite.modis import (modis_terra_1km,
-                                             modis_terra_geo)
+from pansat.products.satellite.modis import modis_terra_1km, modis_terra_geo
 
 PRODUCTS = [
     modis_terra_1km,
@@ -20,6 +19,7 @@ DATES = {
     str(modis_terra_1km): datetime(2020, 1, 9, 0, 15),
     str(modis_terra_geo): datetime(2008, 1, 7, 0, 0),
 }
+
 
 @pytest.mark.parametrize("product", PRODUCTS)
 def test_filename_regexp(product):
@@ -38,6 +38,7 @@ def test_filename_to_date(product):
     filename = FILENAMES[str(product)]
     date = product.filename_to_date(filename)
     assert date == DATES[str(product)]
+
 
 def test_download():
     """

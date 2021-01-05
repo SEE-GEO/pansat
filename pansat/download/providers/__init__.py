@@ -42,5 +42,5 @@ ALL_PROVIDERS = [
     NOAAProvider,
     GeoservicesProvider,
     LAADSDACProvider,
-    GOESAWSProvider
+    GOESAWSProvider,
 ]

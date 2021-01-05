@@ -27,12 +27,14 @@ GOES_AWS_PRODUCTS = [
     "GOES-17-ABI-L1b-RadM",
 ]
 
+
 class GOESAWSProvider(DiscreteProvider):
     """
     Dataprovider class for product available from NOAA GOES16 bucket on Amazon
     AWS.
     """
-    bucket_name = 'noaa-goes'
+
+    bucket_name = "noaa-goes"
 
     def __init__(self, product):
         """
@@ -42,10 +44,9 @@ class GOESAWSProvider(DiscreteProvider):
             product: The product to download.
         """
         super().__init__(product)
-        self.product_name = str(product)[8:] # Strip off GOES-XX
+        self.product_name = str(product)[8:]  # Strip off GOES-XX
         self.bucket_name = GOESAWSProvider.bucket_name + str(product.series_index)
-        self.client = boto3.client('s3',
-                                   config=Config(signature_version=UNSIGNED))
+        self.client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 
     @classmethod
     def get_available_products(cls):
@@ -61,20 +62,19 @@ class GOESAWSProvider(DiscreteProvider):
     def _get_keys(self, prefix):
 
         bucket = self.bucket_name
-        kwargs = {"Bucket": bucket,
-                  "Prefix": prefix}
+        kwargs = {"Bucket": bucket, "Prefix": prefix}
 
         while True:
             response = self.client.list_objects_v2(**kwargs)
-            for obj in response['Contents']:
-                key = obj['Key']
+            for obj in response["Contents"]:
+                key = obj["Key"]
                 if key.startswith(prefix):
                     filename = Path(key).name
                     if self.product.matches(filename):
                         yield filename
 
             try:
-                kwargs['ContinuationToken'] = response['NextContinuationToken']
+                kwargs["ContinuationToken"] = response["NextContinuationToken"]
             except KeyError:
                 break
 

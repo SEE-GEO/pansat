@@ -32,7 +32,7 @@ class LAADSDACProvider(DiscreteProvider):
     """
 
     base_url = "https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/"
-    file_pattern = re.compile('[\w\.]*.hdf')
+    file_pattern = re.compile("[\w\.]*.hdf")
 
     def __init__(self, product):
         """
