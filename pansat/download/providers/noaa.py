@@ -77,7 +77,7 @@ class NOAAProvider(DataProvider):
 
            t(type): Type constructor to apply to the elements of the
            listing. To retrieve a list of strings use t = str.
-           base_url(``str``): base url
+           base_url(``str``): FTP URL without subdirectories
 
         Return:
 
@@ -145,7 +145,7 @@ class NOAAProvider(DataProvider):
             product_path = self.product_path
 
         # get file list
-        if files == None:
+        if files is None:
             files = self.get_file_names(self.product.variable, start, end)
 
         ftp = ftplib.FTP(base_url)

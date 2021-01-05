@@ -31,12 +31,14 @@ class IGRASoundings(Product):
 
     Attributes:
         name(``str``): name of product
-        locs(pd.DataFrame): pandas dataframe with metadata on stations
+        locations(pd.DataFrame): pandas dataframe with metadata on stations
                             (contains location ID, coordinates, and time period)
 
         station(``pd.DataFrame``): pandas dataframe with metadata for chosen station
         variable(``str`` ): variable to extract, if no station is given
     """
+
+    name = "igra-soundings"
 
     def __init__(self, location=None, variable=None):
         """
@@ -54,7 +56,7 @@ class IGRASoundings(Product):
         vwnd = Meridional wind component
         -----------------------------------
         """
-        self.name = "igra-soundings"
+
         provider = self._get_provider()
         provider = provider(self)
 
@@ -74,21 +76,30 @@ class IGRASoundings(Product):
         self.station = location
 
         # pandas data frame with all locations and meta information
-        self.locs = self.get_metadata()
+        self.locations = self.get_metadata()
 
         # define column names of pandas dataframe with station info
-        colnames = ["ID", "lat", "lon", "n", "name", "start", "end", "nr"]
-        self.locs.columns = colnames
+        colnames = [
+            "ID",
+            "lat",
+            "lon",
+            "elevation [m]",
+            "name",
+            "start year",
+            "end year",
+            "# soundings in record",
+        ]
+        self.locations.columns = colnames
 
-        if self.station == None:
+        if self.station is None:
             self.filename_regexp = re.compile(str(self.variable) + ".*" + r".txt.zip")
 
         else:
             if isinstance(location, str):
-                self.station = self.locs[self.locs.name == location]
+                self.station = self.locations[self.locations.name == location]
             else:
-                self.station = self.locs[
-                    self.locs.name == self.find_nearest(location[0], location[1])
+                self.station = self.locations[
+                    self.locations.name == self.find_nearest(location[0], location[1])
                 ]
                 self.filename_regexp = re.compile(
                     str(self.station.ID.values[0]) + ".*" + r".txt.zip"
@@ -96,13 +107,13 @@ class IGRASoundings(Product):
 
     def get_metadata(self):
         """Extracts data from meta data station inventory."""
-        locs = pd.read_fwf(
+        locations = pd.read_fwf(
             str(self.default_destination) + "/igra2-station-list.txt",
             sep="/s",
             engine="python",
             header=None,
         )
-        return locs
+        return locations
 
     def dist(self, lat1, lon1, lat2, lon2):
         """
@@ -122,10 +133,10 @@ class IGRASoundings(Product):
 
     def find_nearest(self, lat, lon):
         """Find location of closest station to a given set of coordinates.  """
-        distances = self.locs.apply(
+        distances = self.locations.apply(
             lambda row: self.dist(lat, lon, row["lat"], row["lon"]), axis=1
         )
-        return self.locs.loc[distances.idxmin(), "name"]
+        return self.locations.loc[distances.idxmin(), "name"]
 
     def matches(self, filename):
         """
@@ -162,7 +173,7 @@ class IGRASoundings(Product):
         ]
         if not available_providers:
             raise NoAvailableProviderError(
-                f"Could not find provider for the product {self.name}."
+                f"Could not find provider for the product {IGRASoundings.name}."
             )
         return available_providers[0]
 
@@ -172,11 +183,7 @@ class IGRASoundings(Product):
         The default destination for IGRA product is
         ``IGRA/<product_name>``>
         """
-        return Path("IGRA") / Path(self.name)
-
-    def __str__(self):
-        """ The full product name. """
-        return self.name
+        return Path("IGRA") / Path(IGRASoundings.name)
 
     def get_filename(self, product_path):
         """Get filename for specific station
