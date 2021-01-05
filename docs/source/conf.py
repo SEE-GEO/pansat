@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "Pansat"
-copyright = "2020, Julia Kukulies, Simon Pfreundschuh, Franz Kanngießer, Hannah Imhof"
+copyright = "2021, Julia Kukulies, Simon Pfreundschuh, Franz Kanngießer, Hannah Imhof"
 author = "Julia Kukulies, Simon Pfreundschuh, Franz Kanngießer, Hannah Imhof"
 
 # The full version, including alpha/beta/rc tags
