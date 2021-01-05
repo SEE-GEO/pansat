@@ -8,3 +8,6 @@
    satellite/cloud_sat
    satellite/calipso
    satellite/dardar
+   satellite/gpm
+   satellite/modis
+   satellite/goes

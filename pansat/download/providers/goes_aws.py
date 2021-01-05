@@ -2,8 +2,9 @@
 pansat.download.providers.goes_aws
 ==================================
 
-This module contain a data provider for the GOES 16 data available from Amazon
-AWS cloud storage.
+This module contains a data provider for data from currently operational
+ GOES series satellites (GOES 16 and 17), which is available from Amazon
+ AWS cloud storage.
 
 Reference
 ---------
@@ -18,9 +19,12 @@ from botocore.config import Config
 from pansat.download.providers.discrete_provider import DiscreteProvider
 
 GOES_AWS_PRODUCTS = [
-    "ABI-L1b-RadC",
-    "ABI-L1b-RadF",
-    "ABI-L1b-RadM",
+    "GOES-16-ABI-L1b-RadC",
+    "GOES-16-ABI-L1b-RadF",
+    "GOES-16-ABI-L1b-RadM",
+    "GOES-17-ABI-L1b-RadC",
+    "GOES-17-ABI-L1b-RadF",
+    "GOES-17-ABI-L1b-RadM",
 ]
 
 class GOESAWSProvider(DiscreteProvider):
@@ -28,7 +32,7 @@ class GOESAWSProvider(DiscreteProvider):
     Dataprovider class for product available from NOAA GOES16 bucket on Amazon
     AWS.
     """
-    bucket_name = 'noaa-goes16'
+    bucket_name = 'noaa-goes'
 
     def __init__(self, product):
         """
@@ -38,7 +42,8 @@ class GOESAWSProvider(DiscreteProvider):
             product: The product to download.
         """
         super().__init__(product)
-        self.product_name = str(product)
+        self.product_name = str(product)[8:] # Strip off GOES-XX
+        self.bucket_name = GOESAWSProvider.bucket_name + str(product.series_index)
         self.client = boto3.client('s3',
                                    config=Config(signature_version=UNSIGNED))
 
@@ -55,7 +60,7 @@ class GOESAWSProvider(DiscreteProvider):
 
     def _get_keys(self, prefix):
 
-        bucket = GOESAWSProvider.bucket_name
+        bucket = self.bucket_name
         kwargs = {"Bucket": bucket,
                   "Prefix": prefix}
 
@@ -74,8 +79,8 @@ class GOESAWSProvider(DiscreteProvider):
                 break
 
     def _get_request_url(self, year, day, hour, filename):
-        url = f"https://noaa-goes16.s3.amazonaws.com/{self.product_name}/"
-        url += f"{year}/{day}/{hour:02}/{filename}"
+        url = f"https://noaa-goes{self.product.series_index}.s3.amazonaws.com/"
+        url += f"{self.product_name}/{year}/{day}/{hour:02}/{filename}"
         return url
 
     def get_files_by_day(self, year, day):
