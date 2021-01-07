@@ -46,7 +46,7 @@ class IcareProvider(DiscreteProvider):
 
         Args:
 
-        product: Product class object with specific product for ICARE
+            product(``Product``): Product class object with specific product for ICARE
 
         """
         if str(product) not in ICARE_PRODUCTS:
@@ -66,10 +66,10 @@ class IcareProvider(DiscreteProvider):
 
         Args:
 
-           path(str): The path from which to retrieve the ftp listing.
+            path(``str``): The path from which to retrieve the ftp listing.
 
-           t(type): Type constructor to apply to the elements of the
-           listing. To retrieve a list of strings use t = str.
+            item_type(``type``): Type constructor to apply to the elements of the
+                listing. To retrieve a list of strings use t = str.
 
         Return:
 
@@ -105,7 +105,7 @@ class IcareProvider(DiscreteProvider):
         Args:
             year(``int``): The year from which to retrieve the filenames.
             day(``int``): Day of the year of the data from which to retrieve the
-            the filenames.
+                the filenames.
 
         Return:
             List of the filenames of this product on the given day.

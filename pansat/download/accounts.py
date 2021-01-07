@@ -222,7 +222,7 @@ def add_identity(provider, user_name):
 
     Args:
         provider(``str``): Name of the data provider class for which the user
-        name is valid.
+            name is valid.
         user(``str``): User name for the data provider.
     """
     if not _PANSAT_SECRET:
@@ -246,14 +246,14 @@ def get_identity(provider):
     Retrieve identity for given provider.
 
     Args:
-       provider(``str``): Name of provider.
+        provider(``str``): Name of provider.
 
     Returns:
-       Tuple ``(user_name, password)`` containing the user name and password
-       for the given domain.
+        Tuple ``(user_name, password)`` containing the user name and password
+            for the given domain.
 
     Raises:
-       MissingProviderError, if no identity for the given domain could be found.
+        MissingProviderError: if no identity for the given domain could be found.
     """
     if not _PANSAT_SECRET:
         authenticate()

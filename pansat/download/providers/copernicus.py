@@ -63,8 +63,8 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-        product(str): product name, available products are land, single-level,
-        pressure-level for hourly and monthly resolution
+            product(``str``): product name, available products are land, single-level,
+                pressure-level for hourly and monthly resolution
         """
         super().__init__()
         self.product = product
@@ -90,12 +90,12 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-        start(datetime.datetime): datetime.datetime object for start time
-        end(datetime.datetime): datetime.datetime object for end time
+            start(``datetime.datetime``): datetime.datetime object for start time
+            end(``datetime.datetime``): datetime.datetime object for end time
 
         Returns:
-        dates(``list``): list with months for each year
-        years(``list``): list with all years
+            dates(``list``): list with months for each year
+            years(``list``): list with all years
 
         """
         # handling data ranges over multiple years:
@@ -138,11 +138,11 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-        start(datetime.datetime): datetime.datetime object for start time
-        end(datetime.datetime): datetime.datetime object for end time
+            start(``datetime.datetime``): datetime.datetime object for start time
+            end(``datetime.datetime``): datetime.datetime object for end time
 
         Returns:
-        dates(``list``): list with all hours, days, months and years between two dates
+            dates(``list``): list with all hours, days, months and years between two dates
         """
 
         # get list with all years, months, days, hours between the two dates
@@ -163,10 +163,10 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-            start(datetime.datetime): start date and time (year, month, day,
+            start(``datetime.datetime``): start date and time (year, month, day,
                 hour), if hour is not specified for hourly dataproduct, all
                 hours are downloaded for each date.
-            end(datetime.datetime): end date and time (year, month, day, hour),
+            end(``datetime.datetime``): end date and time (year, month, day, hour),
                 if hour is not specified for hourly dataproduct, all hours are
                 downloaded for each date.
             destination(``str`` or ``pathlib.Path``): path to directory where
@@ -311,10 +311,10 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-            start(datetime.datetime): start date and time (year, month, day,
+            start(``datetime.datetime``): start date and time (year, month, day,
                 hour), if hour is not specified for hourly dataproduct, all
                 hours are downloaded for each date.
-            end(datetime.datetime): end date and time (year, month, day, hour),
+            end(``datetime.datetime``): end date and time (year, month, day, hour),
                 if hour is not specified for hourly dataproduct, all hours are
                 downloaded for each date.
             destination(``str`` or ``pathlib.Path``): path to directory where
@@ -475,14 +475,14 @@ class CopernicusProvider(DataProvider):
 
         Args:
 
-           start(datetime.datetime): start date and time (year, month, day,
-               hour), if hour is not specified for hourly dataproduct, all
-               hours are downloaded for each date.
-           end(datetime.datetime): end date and time (year, month, day, hour),
-               if hour is not specified for hourly dataproduct, all hours are
-               downloaded for each date.
-           destination(``str`` or ``pathlib.Path``): path to directory where
-               the downloaded files should be stored.
+            start(``datetime.datetime``): start date and time (year, month, day,
+                hour), if hour is not specified for hourly dataproduct, all
+                hours are downloaded for each date.
+            end(``datetime.datetime``): end date and time (year, month, day, hour),
+                if hour is not specified for hourly dataproduct, all hours are
+                downloaded for each date.
+            destination(``str`` or ``pathlib.Path``): path to directory where
+                the downloaded files should be stored.
 
         """
 

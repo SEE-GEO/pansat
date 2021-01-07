@@ -36,9 +36,8 @@ class NCEPReanalysis(Product):
     def __init__(self, variable, grid):
         """
         Args:
-
-        variable(``str``): Variable to extract
-        grid(``str``): pressure, surface, spectral, surface_gauss or tropopause
+            variable(``str``): Variable to extract
+            grid(``str``): pressure, surface, spectral, surface_gauss or tropopause
         """
 
         self.variable = variable
@@ -54,8 +53,10 @@ class NCEPReanalysis(Product):
         """
         Determines whether a given filename matches the pattern used for
         the product.
+
         Args:
             filename(``str``): The filename
+
         Return:
             True if the filename matches the product, False otherwise.
         """
@@ -64,11 +65,13 @@ class NCEPReanalysis(Product):
     def filename_to_date(self, filename):
         """
         Extract timestamp from filename.
+
         Args:
             filename(``str``): Filename of a NCEP product.
+
         Returns:
             ``datetime`` object representing the timestamp of the
-            filename.
+                filename.
         """
         filename = os.path.basename(filename)
         filename = filename.split(".")[-2]
@@ -109,11 +112,10 @@ class NCEPReanalysis(Product):
             start_time(``datetime``): ``datetime`` object defining the start date
             end_time(``datetime``): ``datetime`` object defining the end date
             destination(``str`` or ``pathlib.Path``): The destination where to store
-                 the output data.
+                the output data.
 
         Returns:
-
-        downloaded(``list``): ``list`` with names of all downloaded files for respective data product
+            downloaded(``list``): ``list`` with names of all downloaded files for respective data product
 
         """
 
@@ -135,11 +137,10 @@ class NCEPReanalysis(Product):
         """Opens a given file of NCEP product class as xarray.
 
         Args:
-        filename(``str``): name of the file to be opened
+            filename(``str``): name of the file to be opened
 
         Returns:
-
-        xr(``xarray.Dataset``): xarray dataset object"""
+            xr(``xarray.Dataset``): xarray dataset object"""
         xr = xarray.open_dataset(filename)
 
         return xr
