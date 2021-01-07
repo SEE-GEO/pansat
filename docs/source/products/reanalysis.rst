@@ -1,3 +1,6 @@
+Reanalysis
+==========
+
 .. automodule:: pansat.products.reanalysis
   :members:
 
@@ -6,3 +9,4 @@
    :caption: Sub-Modules             
 
    reanalysis/era5
+   reanalysis/ncep
