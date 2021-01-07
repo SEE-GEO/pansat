@@ -36,5 +36,5 @@ setuptools.setup(
     ],
     python_requires=">=3.8",
     entry_points={"console_scripts": ["pansat=pansat.download.commandline:download"]},
-    package_data={"": ["*.ini", "*.json"]},
+    include_package_data=True,
 )
