@@ -3,7 +3,7 @@ pansat.download.providers.copernicus
 ====================================
 
 This module provides the ``CopernicusProvider`` class to download data from the
-Copernicus data store.
+`Copernicus data store <https://cds.climate.copernicus.eu/cdsapp#!/home>`_.
 """
 from contextlib import contextmanager
 import itertools
