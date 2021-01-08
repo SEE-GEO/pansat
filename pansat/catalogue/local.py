@@ -1,6 +1,7 @@
 """
 pansat.catalogue.local
-===================================
+======================
+
 This module defines the a catalogue class to look at and list information about downloaded files in local directory.
 
 """

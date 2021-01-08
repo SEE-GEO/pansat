@@ -1,6 +1,6 @@
 """
 pansat.products.reanalysis.ncep
-===================================
+===============================
 This module defines the NCEP reanalysis product class, which represents all
 supported NCEP reanalysis products.
 
