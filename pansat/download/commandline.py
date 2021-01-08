@@ -162,6 +162,9 @@ def download():
     ):
         modnames.append(modname)
 
+    modnames.append("pansat.products.ground_based.opera")
+    modnames.append("pansat.products.stations.igra")
+
     if "pansat.products." + str(args.type) + "." + str(args.pm) in modnames:
         module = importlib.import_module(
             "pansat.products." + str(args.type) + "." + str(args.pm)
