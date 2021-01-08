@@ -24,6 +24,7 @@ setuptools.setup(
         "requests",
         "xarray",
         "pyproj",
+        "appdirs",
     ],
     setup_requires=["pytest-runner"],
     tests_require=[
