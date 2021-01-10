@@ -32,7 +32,7 @@ from pansat.download.providers.icare import IcareProvider
 from pansat.download.providers.ges_disc import GesdiscProvider
 from pansat.download.providers.noaa import NOAAProvider
 from pansat.download.providers.meteo_france import GeoservicesProvider
-from pansat.download.providers.laads_dac import LAADSDACProvider
+from pansat.download.providers.laads_daac import LAADSDAACProvider
 from pansat.download.providers.goes_aws import GOESAWSProvider
 
 ALL_PROVIDERS = [
@@ -41,6 +41,6 @@ ALL_PROVIDERS = [
     GesdiscProvider,
     NOAAProvider,
     GeoservicesProvider,
-    LAADSDACProvider,
+    LAADSDAACProvider,
     GOESAWSProvider,
 ]

@@ -1,9 +1,10 @@
 """
-pansat.download.providers.ges_disc
-==================================
+pansat.download.providers.laads_daac
+====================================
 
-This module contains a data provider for NASA's Goddard Earth Sciences Data and
-Information Services Center (GES DISC).
+This module provides a provides data provides  for files from the
+The Level-1 and Atmosphere Archive & Distribution System (LAADS)
+Distributed Active Archive Center (DAAC).
 
 Reference
 ---------
@@ -25,7 +26,7 @@ LAADS_PRODUCTS = [
 ]
 
 
-class LAADSDACProvider(DiscreteProvider):
+class LAADSDAACProvider(DiscreteProvider):
     """
     Dataprovider class for for products available from the
     gpm1.gesdisc.eosdis.nasa.gov domain.
@@ -42,7 +43,6 @@ class LAADSDACProvider(DiscreteProvider):
             product: The product to download.
         """
         super().__init__(product)
-
     @classmethod
     def get_available_products(cls):
         """
@@ -57,7 +57,7 @@ class LAADSDACProvider(DiscreteProvider):
     @property
     def _request_string(self):
         """The URL containing the data files for the given product."""
-        base_url = LAADSDACProvider.base_url
+        base_url = LAADSDAACProvider.base_url
         base_url += f"{self.product.product_name.upper()}"
         return base_url + "/{year}/{day}/{filename}"
 
@@ -77,7 +77,7 @@ class LAADSDACProvider(DiscreteProvider):
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
         response = requests.get(request_string)
-        files = list(set(LAADSDACProvider.file_pattern.findall(response.text)))
+        files = list(set(LAADSDAACProvider.file_pattern.findall(response.text)))
         return [f for f in files]
 
     def download_file(self, filename, destination):
