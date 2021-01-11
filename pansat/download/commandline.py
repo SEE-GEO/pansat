@@ -187,8 +187,8 @@ def download():
                 )
             else:
                 productfunc = era_product(
-                    str(args.product[0]),
-                    str(args.product[1]),
+                    str(args.grid[0]),
+                    str(args.grid[1]),
                     args.variable,
                     args.domain,
                 )
