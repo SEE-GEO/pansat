@@ -7,7 +7,6 @@ import os
 import sys
 import pytest
 import pansat.products.reanalysis.era5 as era5
-
 import random
 
 

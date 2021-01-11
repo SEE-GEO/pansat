@@ -1,6 +1,6 @@
 """
 pansat.products.reanalysis.era5
-===================================
+===============================
 This module defines the ERA5 product class, which represents all
 supported ERA5 products.
 

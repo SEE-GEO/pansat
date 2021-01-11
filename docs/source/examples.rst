@@ -12,3 +12,4 @@ Examples
    notebooks/products/gpm.ipynb
    notebooks/products/ncep.ipynb
    notebooks/products/igra.ipynb
+   notebooks/products/catalogue.ipynb
