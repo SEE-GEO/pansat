@@ -2,9 +2,9 @@
 pansat.download.providers.laads_daac
 ====================================
 
-This module provides a provides data provides  for files from the
-The Level-1 and Atmosphere Archive & Distribution System (LAADS)
-Distributed Active Archive Center (DAAC).
+This module provides a data provider for files from the The Level-1 and
+Atmosphere Archive & Distribution System (LAADS) Distributed Active Archive
+Center (DAAC).
 
 Reference
 ---------
