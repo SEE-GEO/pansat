@@ -149,6 +149,18 @@ class IGRASoundings(Product):
         """
         return self.filename_regexp.match(filename)
 
+    def filename_to_date(self, filename):
+        """
+        Extract timestamp from filename.
+        Args:
+            filename(``str``): Filename of a ERA5 product.
+        Returns:
+            ``datetime`` object representing the timestamp of the
+            filename.
+        """
+        # note: no date in IGRA filenames
+        return os.path.basename(filename)
+
     def _get_provider(self):
         """ Find a provider that provides the product. """
         available_providers = [
