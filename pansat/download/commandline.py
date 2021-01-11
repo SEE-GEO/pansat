@@ -200,7 +200,7 @@ def download():
             if args.location:
                 productfunc = igra_product(station=args.location)
             elif args.name:
-                igra_product = igra_product(args.name)
+                productfunc = igra_product(args.name)
             elif args.variable:
                 productfunc = igra_product(variable=args.variable)
             else:
@@ -230,4 +230,4 @@ def download():
             if not args.recent:
                 files = productfunc.download()
             else:
-                files = productfunc.download("recent")
+                files = productfunc.download('recent')
