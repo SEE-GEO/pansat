@@ -40,7 +40,9 @@ def download():
     helpstring_t0 = "start of time interval in ISO 8601 format (YY-MM-DDThh:mm:ss)"
     helpstring_t1 = "end of time interval in ISO 8601 format (YY-MM-DDThh:mm:ss)"
     helpstring_type = "data type (satellite/reanalysis)"
-    helpstring_pm = "satellite (e.g. Cloudsat)/ model (e.g ERA5)/ ground_based/ stations"
+    helpstring_pm = (
+        "satellite (e.g. Cloudsat)/ model (e.g ERA5)/ ground_based/ stations"
+    )
     helpstring_product = "product to download"
     helpstring_variable = "variable(s) for reanalysis"
     helpstring_domain = (
@@ -75,8 +77,9 @@ def download():
     )
 
     parser.add_argument(
-        "--type", choices=["satellite", "reanalysis", "ground_based", "stations"], 
-        help=helpstring_type
+        "--type",
+        choices=["satellite", "reanalysis", "ground_based", "stations"],
+        help=helpstring_type,
     )
     parser.add_argument("--pm", help=helpstring_pm)
     parser.add_argument("-prod", "--product", help=helpstring_product)
@@ -85,6 +88,9 @@ def download():
     parser.add_argument("-d", "--domain", nargs=4, type=float, help=helpstring_domain)
     parser.add_argument("-loc", "--location", nargs=2, type=float, help=helpstring_loc)
     parser.add_argument("--name", help=helpstring_name)
+    parser.add_argument(
+        "--recent", action="store_true", help="only download last month of IGRA data"
+    )
     args = parser.parse_args()
 
     if args.list:
@@ -196,7 +202,7 @@ def download():
             elif args.name:
                 igra_product = igra_product(args.name)
             elif args.variable:
-                productfunc = igra_product(variable = args.variable)
+                productfunc = igra_product(variable=args.variable)
             else:
                 parser.error("can't download IGRA data with given arguments")
         else:
@@ -216,9 +222,12 @@ def download():
         args.endtime = int(args.endtime.year)
 
     if args.type != "stations":
-         files = productfunc.download(args.starttime, args.endtime)
+        files = productfunc.download(args.starttime, args.endtime)
     else:
         if not args.variable:
             files = productfunc.download()
         else:
-            files = productfunc.download('recent')
+            if not args.recent:
+                files = productfunc.download()
+            else:
+                files = productfunc.download("recent")
