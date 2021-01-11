@@ -74,11 +74,11 @@ class GOESProduct(Product):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a CloudSat product.
+            filename(``str``): Filename of a GOES product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
-            filename.
+                filename.
         """
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
@@ -103,7 +103,7 @@ class GOESProduct(Product):
     def default_destination(self):
         """
         The default destination for CloudSat product is
-        ``CloudSat/<product_name>``>
+        ``GOES-<index>/<product_name>``>
         """
         return Path(f"GOES-{self.series_index}") / Path(str(self))
 
@@ -141,7 +141,7 @@ class GOESProduct(Product):
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The CloudSat file to open.
+            filename(``pathlib.Path`` or ``str``): The GOES file to open.
         """
         return xarray.open_dataset(filename)
 
@@ -157,7 +157,7 @@ class GOES16L1BRadiances(GOESProduct):
 
 class GOES17L1BRadiances(GOESProduct):
     """
-    Class representing GOES16 L1 radiance products.
+    Class representing GOES17 L1 radiance products.
     """
 
     def __init__(self, region, channel):

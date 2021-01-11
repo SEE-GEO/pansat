@@ -22,7 +22,7 @@ class NoAvailableProviderError(Exception):
 
 class MODISProduct(Product):
     """
-    Base class for GOES16 product.
+    Base class for MODIS product.
     """
 
     def __init__(self, product_name):
@@ -53,11 +53,11 @@ class MODISProduct(Product):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a CloudSat product.
+            filename(``str``): Filename of a MODIS product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
-            filename.
+                filename.
         """
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
@@ -82,7 +82,7 @@ class MODISProduct(Product):
     def default_destination(self):
         """
         The default destination for CloudSat product is
-        ``CloudSat/<product_name>``>
+        ``MODIS/<product_name>``>
         """
         return Path("MODIS")
 
@@ -123,7 +123,7 @@ class MODISProduct(Product):
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The CloudSat file to open.
+            filename(``pathlib.Path`` or ``str``): The MODIS file to open.
         """
         raise Exception("Currently not implemented.")
 
