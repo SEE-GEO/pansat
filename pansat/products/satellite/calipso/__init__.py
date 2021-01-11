@@ -45,9 +45,7 @@ class CalipsoProduct(Product):
 
     @property
     def description(self):
-        """
-        Product description object describing the Calipso product.
-        """
+        # Product description object describing the Calipso product.
         return self._description
 
     def matches(self, filename):

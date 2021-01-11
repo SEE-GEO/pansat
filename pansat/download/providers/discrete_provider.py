@@ -81,7 +81,7 @@ class DiscreteProvider(DataProvider):
 
         Args:
             filename(``str``): The name of the file of which to find the
-            preceeding one.
+                preceeding one.
 
         Returns:
             The filename of the file preceeding the file with the given filename
