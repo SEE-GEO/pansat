@@ -29,6 +29,16 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     assert user_name == "user_name"
     assert password == "abcd"
 
+    accs.add_identity("provider", "other_name")
+    user_name, password = accs.get_identity("provider")
+
+    assert user_name == "other_name"
+    assert password == "abcd"
+
+    accs.delete_identity("provider")
+    with pytest.raises(accs.MissingProviderError):
+        accs.get_identity("provider")
+
 
 @pytest.mark.usefixtures("test_identities")
 def test_add_identity_file(monkeypatch, tmpdir):
