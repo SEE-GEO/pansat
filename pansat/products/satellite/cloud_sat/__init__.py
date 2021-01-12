@@ -43,9 +43,7 @@ class CloudSatProduct(Product):
 
     @property
     def description(self):
-        """
-        Product description object describing the CloudSat product.
-        """
+        # Product description object describing the CloudSat product.
         return self._description
 
     def matches(self, filename):

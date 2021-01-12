@@ -1,3 +1,5 @@
+.. _examples:
+
 Examples
 ========
 
@@ -13,3 +15,5 @@ Examples
    notebooks/products/ncep.ipynb
    notebooks/products/modis.ipynb
    notebooks/products/goes.ipynb
+   notebooks/products/igra.ipynb
+   notebooks/products/catalogue.ipynb

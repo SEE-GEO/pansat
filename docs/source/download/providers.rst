@@ -1,3 +1,8 @@
+.. _providers:
+
+Providers
+=========
+
 .. automodule:: pansat.download.providers
   :members:
 

@@ -1,2 +1,0 @@
-include LICENSE
-include pansat/products/satellite/cloud_sat/*.ini

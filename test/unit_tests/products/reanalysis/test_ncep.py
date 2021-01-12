@@ -1,28 +1,31 @@
 """
-Tests for the pansat.products.reanalysis.era5 module.
+Tests for the pansat.products.reanalysis.ncep module.
 """
 
 from datetime import datetime
 import os
-import sys
 import pytest
-import pansat.products.reanalysis.era5 as era5
+import pansat.products.reanalysis.ncep as ncep
 import random
 
 
 PRODUCTS = [
-    era5.ERA5Product("hourly", "surface", ["2m_temperature"]),
-    era5.ERA5Product("monthly", "land", ["asn"], domain=[25, 50, 70, 120]),
+    ncep.NCEPReanalysis("vwnd.sig995", "surface"),
+    ncep.NCEPReanalysis("air", "pressure"),
+    ncep.NCEPReanalysis("air", "tropopause"),
 ]
 
+
 TEST_NAMES = {
-    "reanalysis-era5-single-levels": "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
-    "reanalysis-era5-land-monthly-means": "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
+    "ncep.reanalysis-surface": "vwnd.sig995.2010.nc",
+    "ncep.reanalysis-pressure": "air.1995.nc",
+    "ncep.reanalysis-tropopause": "air.tropp.2018.nc",
 }
 
 TEST_TIMES = {
-    "reanalysis-era5-single-levels": datetime(2016, 10, 1, 15),
-    "reanalysis-era5-land-monthly-means": datetime(2016, 10, 1, 0),
+    "ncep.reanalysis-surface": datetime(2010, 1, 1, 0, 0),
+    "ncep.reanalysis-pressure": datetime(1995, 1, 1, 0, 0),
+    "ncep.reanalysis-tropopause": datetime(2018, 1, 1, 0, 0),
 }
 
 
@@ -55,19 +58,10 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Does not work on Windows")
 @pytest.mark.usefixtures("test_identities")
 def test_download(tmpdir):
-    # hourly
-    product = PRODUCTS[0]
-    t_0 = datetime(2016, 10, 1, 15)
-    t_1 = datetime(2016, 10, 1, 17)
-    product.download(t_0, t_1, str(tmpdir))
-    # monthly
     product = PRODUCTS[1]
-    t_0 = datetime(2016, 10, 1, 0)
-    t_1 = datetime(2016, 11, 1, 0)
-    product.download(t_0, t_1, str(tmpdir))
+    files = product.download(1995, 1999, str(tmpdir))
     # open file
     fn = tmpdir / TEST_NAMES[product.name]
     f = product.open(str(fn))
