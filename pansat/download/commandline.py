@@ -37,14 +37,14 @@ def download():
     # define helpstrings, i.e. what is shown for the --help/-h flag
     ################################################################
 
-    helpstring_t0 = "start of time interval in ISO 8601 format (YY-MM-DDThh:mm:ss)"
-    helpstring_t1 = "end of time interval in ISO 8601 format (YY-MM-DDThh:mm:ss)"
+    helpstring_t0 = "start of time interval in ISO 8601 format (YYYY-MM-DDThh:mm:ss)"
+    helpstring_t1 = "end of time interval in ISO 8601 format (YYYY-MM-DDThh:mm:ss)"
     helpstring_type = "data type (satellite/reanalysis)"
     helpstring_pm = (
         "satellite (e.g. Cloudsat)/ model (e.g ERA5)/ ground_based/ stations"
     )
     helpstring_product = "product to download"
-    helpstring_variable = "variable(s) for reanalysis"
+    helpstring_variable = "variable(s) for reanalysis/station data"
     helpstring_domain = (
         "data domain of model data in latitude and longitude, if not specified"
         + " a global grid is used, if specified four arguments (lat1, lat2, lon1, lon2)"
