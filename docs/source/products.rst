@@ -8,3 +8,4 @@ Products
 
    products/satellite
    products/reanalysis
+   products/ground_based
