@@ -32,10 +32,7 @@ class IGRASoundings(Product):
 
     Attributes:
         name(``str``): name of product
-        locations(pd.DataFrame): pandas dataframe with metadata on stations
-                            (contains location ID, coordinates, and time period)
-
-        station(``pd.DataFrame``): pandas dataframe with metadata for chosen station
+        location(``str`` or tuple): station name or tuple with closest coordinates
         variable(``str`` ): variable to extract, if no station is given
     """
 
@@ -58,33 +55,21 @@ class IGRASoundings(Product):
         -----------------------------------
         """
 
-        provider = self._get_provider()
-        provider = provider(self)
-
         self.variable = variable
-        self.station = location
+        self.location = location
 
-        if self.station is None:
+        if self.location is None:
             self.filename_regexp = re.compile(str(self.variable) + ".*" + r".txt.zip")
 
         else:
-            if isinstance(location, str):
-                self.station = self.locations[self.locations.name == location]
-            else:
-                self.station = self.locations[
-                    self.locations.name == self.find_nearest(location[0], location[1])
-                ]
-                self.filename_regexp = re.compile(
-                    str(self.station.ID.values[0]) + ".*" + r".txt.zip"
-                )
+            self.filename_regexp = re.compile(r"\b[A-Z]{3}" + ".*" + r".txt.zip")
 
-
-
-
-    def get_metadata(self, destination = None):
+    def get_metadata(self, station=False, destination=None):
         """Extracts data from meta data station inventory.
 
         Args:
+
+        station(``bool``): if True,  only get metadata for the station of IGRASounding object
 
         destination(``str`` or ``Path`` ): directory where metadata file should be stored,
                                            if None, file is stored in default destination
@@ -92,13 +77,17 @@ class IGRASoundings(Product):
 
         Returns:
 
-        locations(``pd.DataFrame`` ): pandas dataframe containing meta data of all locations 
+        locations(``pd.DataFrame`` ): pandas dataframe containing meta data of all locations
+                                         (contains location ID, coordinates, and time period)
 
         """
 
         # download meta data of all locations
         destination = self.default_destination
         destination.mkdir(parents=True, exist_ok=True)
+
+        provider = self._get_provider()
+        provider = provider(self)
 
         downloaded = provider.download(
             start=0,
@@ -121,17 +110,24 @@ class IGRASoundings(Product):
             "# soundings in record",
         ]
 
-        locations.columns = colnames
-
-        return locations
-
-
         locations = pd.read_fwf(
             str(self.default_destination) + "/igra2-station-list.txt",
             sep="/s",
             engine="python",
             header=None,
         )
+
+        locations.columns = colnames
+
+        if station is True:
+            if isinstance(self.location, str):
+                locations = locations[locations.name == self.location]
+            else:
+                locations = locations[
+                    locations.name
+                    == self.find_nearest(self.location[0], self.location[1], locations)
+                ]
+
         return locations
 
     def dist(self, lat1, lon1, lat2, lon2):
@@ -150,12 +146,12 @@ class IGRASoundings(Product):
         km = 6371 * c
         return km
 
-    def find_nearest(self, lat, lon):
+    def find_nearest(self, lat, lon, locations):
         """Find location of closest station to a given set of coordinates.  """
-        distances = self.locations.apply(
+        distances = locations.apply(
             lambda row: self.dist(lat, lon, row["lat"], row["lon"]), axis=1
         )
-        return self.locations.loc[distances.idxmin(), "name"]
+        return locations.loc[distances.idxmin(), "name"]
 
     def matches(self, filename):
         """
@@ -206,7 +202,7 @@ class IGRASoundings(Product):
         return IGRASoundings.name
 
     def get_filename(self, product_path):
-        """Get filename for specific station
+        """Get filename for specific station or variable.
 
         Returns:
         filename(str): filename for download
@@ -226,11 +222,21 @@ class IGRASoundings(Product):
                     self.variable + "_12z-mly-" + yearmon + ".txt.zip",
                 ]
 
-        elif "y2d" in product_path:
-            fname = [str(self.station["ID"].values[0]) + "-data-beg2018.txt.zip"]
-
         else:
-            fname = [str(self.station["ID"].values[0]) + "-data.txt.zip"]
+            locations = self.get_metadata()
+            if isinstance(self.location, str):
+                station = locations[locations.name == self.location]
+            else:
+                station = locations[
+                    locations.name
+                    == self.find_nearest(self.location[0], self.location[1], locations)
+                ]
+
+            if "y2d" in product_path:
+                fname = [str(station["ID"].values[0]) + "-data-beg2018.txt.zip"]
+
+            else:
+                fname = [str(station["ID"].values[0]) + "-data.txt.zip"]
 
         return fname
 
@@ -294,7 +300,7 @@ class IGRASoundings(Product):
             "Year",
             "Month",
             "Level [hPa]",
-            "Value [$^\circ$C/10, m s$^{-1}$ or Pa]",
+            "Value [degC/10, m/s or Pa]",
             "Num",
         ]
         return df
