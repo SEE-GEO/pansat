@@ -140,11 +140,11 @@ class HDF4File:
     """
     Simplified interface for reading HDF4 files. It combines the SD and VS
     low-level interfaces.
-
-    Attributes:
-        variables(``list``): List of strings of variable names contained in
-            this file.
     """
+
+    # Attributes:
+    #     variables(``list``): List of strings of variable names contained in
+    #         this file.
 
     def __init__(self, path):
         self.path = path

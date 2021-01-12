@@ -7,9 +7,9 @@ The login data is stored in encrypted format in a configuration
 file ``identities.json`` in the user's home directory tree.
 
 Upon first usage the ``identities.json`` file is setup with a custom user
- password. This password is used to encrypt all data passwords that are
- subsequently added by the user. The Fernet method is used to en- and decrypt
- the passwords. All password hashing is performed using random salt.
+password. This password is used to encrypt all data passwords that are
+subsequently added by the user. The Fernet method is used to en- and decrypt
+the passwords. All password hashing is performed using random salt.
 """
 import base64
 import getpass
@@ -222,7 +222,7 @@ def add_identity(provider, user_name):
 
     Args:
         provider(``str``): Name of the data provider class for which the user
-        name is valid.
+            name is valid.
         user(``str``): User name for the data provider.
     """
     if not _PANSAT_SECRET:
@@ -246,14 +246,14 @@ def get_identity(provider):
     Retrieve identity for given provider.
 
     Args:
-       provider(``str``): Name of provider.
+        provider(``str``): Name of provider.
 
     Returns:
-       Tuple ``(user_name, password)`` containing the user name and password
-       for the given domain.
+        Tuple ``(user_name, password)`` containing the user name and password
+            for the given domain.
 
     Raises:
-       MissingProviderError, if no identity for the given domain could be found.
+        MissingProviderError: if no identity for the given domain could be found.
     """
     if not _PANSAT_SECRET:
         authenticate()
