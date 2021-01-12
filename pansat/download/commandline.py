@@ -194,7 +194,7 @@ def download():
                 )
         elif "NCEPReanalysis" in dir(module):
             ncep_product = getattr(module, "NCEPReanalysis")
-            productfunc = ncep_product(str(args.variable), str(args.grid[0]))
+            productfunc = ncep_product(str(args.variable[0]), str(args.grid[0]))
         elif "IGRASoundings" in dir(module):
             igra_product = getattr(module, "IGRASoundings")
             if args.location:
