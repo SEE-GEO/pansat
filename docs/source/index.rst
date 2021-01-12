@@ -14,6 +14,11 @@ Welcome to Pansat's documentation!
 .. toctree::
    :maxdepth: 2
 
+   developer_guide
+
+.. toctree::
+   :maxdepth: 2
+
    examples
 
 .. toctree::

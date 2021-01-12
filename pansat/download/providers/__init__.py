@@ -25,7 +25,6 @@ Example
 
 
 """
-
 from pansat.download.providers.data_provider import DataProvider
 from pansat.download.providers.copernicus import CopernicusProvider
 from pansat.download.providers.icare import IcareProvider
