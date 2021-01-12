@@ -17,6 +17,7 @@ The following flags can be used:
    |  --list
    |  --add
    |  --listIDs
+   |  --delete
 
 
 """
@@ -65,6 +66,7 @@ def download():
     )
     parser.add_argument("--listIDs", action="store_true", help="list stored identities")
     parser.add_argument("--add", nargs=2, help=helpstring_add)
+    parser.add_argument("--delete", help="delete an identity")
 
     parser.add_argument(
         "-t0",
@@ -119,6 +121,11 @@ def download():
         from pansat.download import accounts
 
         accounts.add_identity(args.add[0], args.add[1])
+        return
+
+    if args.delete:
+        from pansat.download import accounts
+        accounts.delete_identity(args.delete)
         return
 
     if args.listIDs:
