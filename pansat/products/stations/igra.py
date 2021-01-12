@@ -16,6 +16,7 @@ from pansat.products.product import Product
 import pandas as pd
 from math import radians, cos, sin, asin, sqrt
 import zipfile
+from dateutil.relativedelta import relativedelta
 
 
 class NoAvailableProviderError(Exception):
@@ -200,14 +201,14 @@ class IGRASoundings(Product):
             ]
 
             if "upd" in str(product_path):
-                prevmon = date.today() - timedelta(days=30 * 2)
+                prevmon = date.today() - relativedelta(months=1)
                 yearmon = str(prevmon.year) + str(prevmon.month)
                 fname = [
                     self.variable + "_00z-mly-" + yearmon + ".txt.zip",
                     self.variable + "_12z-mly-" + yearmon + ".txt.zip",
                 ]
 
-        elif "2yd" in product_path:
+        elif "y2d" in product_path:
             fname = [str(self.station["ID"].values[0]) + "-data-beg2018.txt.zip"]
 
         else:
