@@ -5,6 +5,6 @@ jobs:
     runs-on: titanite
     steps:
       - uses: actions/checkout@v2
-      - uses: weekly_build
+      - uses: ./.github/actions/weekly_build
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
