@@ -1,0 +1,10 @@
+name: install_and_test
+on: [push]
+jobs:
+  install_and_test_job:
+    runs-on: titanite
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/weekly_build
+        env:
+          PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
