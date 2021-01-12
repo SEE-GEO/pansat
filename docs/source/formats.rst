@@ -1,8 +1,11 @@
 Formats
 =======
 
+.. automodule:: pansat.formats
+  :members:
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Sub-Modules             
 
    formats/hdf4

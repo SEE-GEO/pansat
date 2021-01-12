@@ -50,7 +50,7 @@ autodoc_default_options = {
 
 # To not have to import pyhdf for building the documentation. Will not work
 # for RTD.
-autodoc_mock_imports = ["pyhdf"]
+# autodoc_mock_imports = ["pyhdf"]
 
 # -- Options for HTML output -------------------------------------------------
 
