@@ -13,7 +13,7 @@ RUN wget \
 
 
 RUN git clone https://github.com/see-mof/pansat/ --branch main --single-branch
-cd pansat
-RUN conda install -c anaconda hdf5 satpy cartopy
-RUN pip install -e . pytest
+RUN conda install -c anaconda hdf5 satpy cartopy notebook
+RUN cd pansat && pip install -e .
+RUN pip install pytest appdirs
 
