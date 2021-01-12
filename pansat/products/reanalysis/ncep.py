@@ -109,8 +109,8 @@ class NCEPReanalysis(Product):
         Download data product for given time range.
 
         Args:
-            start_time(``datetime``): ``datetime`` object defining the start date
-            end_time(``datetime``): ``datetime`` object defining the end date
+            start(``int``): start year
+            end(``int``): end year
             destination(``str`` or ``pathlib.Path``): The destination where to store
                 the output data.
 
