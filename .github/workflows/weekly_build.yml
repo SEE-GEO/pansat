@@ -1,4 +1,4 @@
-name: install_and_test
+name: weekly build
 on: [push]
 jobs:
   install_and_test_job:
