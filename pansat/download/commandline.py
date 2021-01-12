@@ -198,11 +198,11 @@ def download():
         elif "IGRASoundings" in dir(module):
             igra_product = getattr(module, "IGRASoundings")
             if args.location:
-                productfunc = igra_product(station=args.location)
+                productfunc = igra_product(args.location)
             elif args.name:
                 productfunc = igra_product(args.name)
             elif args.variable:
-                productfunc = igra_product(variable=args.variable)
+                productfunc = igra_product(variable=str(args.variable[0]))
             else:
                 parser.error("can't download IGRA data with given arguments")
         else:
