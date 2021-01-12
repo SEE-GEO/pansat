@@ -61,36 +61,8 @@ class IGRASoundings(Product):
         provider = self._get_provider()
         provider = provider(self)
 
-        destination = self.default_destination
-        destination.mkdir(parents=True, exist_ok=True)
-        # download meta data of all locations
-        downloaded = provider.download(
-            start=0,
-            end=0,
-            destination=destination,
-            base_url="ftp.ncdc.noaa.gov",
-            product_path="/pub/data/igra/",
-            files=["igra2-station-list.txt"],
-        )
-
         self.variable = variable
         self.station = location
-
-        # pandas data frame with all locations and meta information
-        self.locations = self.get_metadata()
-
-        # define column names of pandas dataframe with station info
-        colnames = [
-            "ID",
-            "lat",
-            "lon",
-            "elevation [m]",
-            "name",
-            "start year",
-            "end year",
-            "# soundings in record",
-        ]
-        self.locations.columns = colnames
 
         if self.station is None:
             self.filename_regexp = re.compile(str(self.variable) + ".*" + r".txt.zip")
@@ -106,8 +78,54 @@ class IGRASoundings(Product):
                     str(self.station.ID.values[0]) + ".*" + r".txt.zip"
                 )
 
-    def get_metadata(self):
-        """Extracts data from meta data station inventory."""
+
+
+
+    def get_metadata(self, destination = None):
+        """Extracts data from meta data station inventory.
+
+        Args:
+
+        destination(``str`` or ``Path`` ): directory where metadata file should be stored,
+                                           if None, file is stored in default destination
+
+
+        Returns:
+
+        locations(``pd.DataFrame`` ): pandas dataframe containing meta data of all locations 
+
+        """
+
+        # download meta data of all locations
+        destination = self.default_destination
+        destination.mkdir(parents=True, exist_ok=True)
+
+        downloaded = provider.download(
+            start=0,
+            end=0,
+            destination=destination,
+            base_url="ftp.ncdc.noaa.gov",
+            product_path="/pub/data/igra/",
+            files=["igra2-station-list.txt"],
+        )
+
+        # define column names of pandas dataframe with station info
+        colnames = [
+            "ID",
+            "lat",
+            "lon",
+            "elevation [m]",
+            "name",
+            "start year",
+            "end year",
+            "# soundings in record",
+        ]
+
+        locations.columns = colnames
+
+        return locations
+
+
         locations = pd.read_fwf(
             str(self.default_destination) + "/igra2-station-list.txt",
             sep="/s",
