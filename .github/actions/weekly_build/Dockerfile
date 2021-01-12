@@ -13,7 +13,9 @@ RUN wget \
 
 
 RUN git clone https://github.com/see-mof/pansat/ --branch main --single-branch
-RUN conda install -c anaconda hdf5 satpy cartopy notebook
-RUN cd pansat && pip install -e .
+RUN conda install -c anaconda hdf5 notebook
+RUN conda install -c conda-forge satpy cartopy 
 RUN pip install pytest appdirs
 
+COPY entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
