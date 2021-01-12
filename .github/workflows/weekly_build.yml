@@ -2,7 +2,7 @@ name: weekly build
 on: [push]
 jobs:
   install_and_test_job:
-    runs-on: titanite
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/weekly_build
