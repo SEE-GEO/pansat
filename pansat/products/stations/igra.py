@@ -89,14 +89,17 @@ class IGRASoundings(Product):
         provider = self._get_provider()
         provider = provider(self)
 
-        downloaded = provider.download(
-            start=0,
-            end=0,
-            destination=destination,
-            base_url="ftp.ncdc.noaa.gov",
-            product_path="/pub/data/igra/",
-            files=["igra2-station-list.txt"],
-        )
+        path = Path(destination / "igra2-station-list.txt" )
+
+        if path.is_file() == False:
+            downloaded = provider.download(
+                start=0,
+                end=0,
+                destination=destination,
+                base_url="ftp.ncdc.noaa.gov",
+                product_path="/pub/data/igra/",
+                files=["igra2-station-list.txt"],
+            )
 
         # define column names of pandas dataframe with station info
         colnames = [
