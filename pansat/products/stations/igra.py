@@ -89,7 +89,7 @@ class IGRASoundings(Product):
         provider = self._get_provider()
         provider = provider(self)
 
-        path = Path(destination / "igra2-station-list.txt" )
+        path = Path(destination / "igra2-station-list.txt")
 
         if path.is_file() == False:
             downloaded = provider.download(
