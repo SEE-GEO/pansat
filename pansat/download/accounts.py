@@ -241,6 +241,22 @@ def add_identity(provider, user_name):
         file.write(json.dumps(identities))
 
 
+def delete_identity(provider):
+    """
+    Remove identity for provider.
+
+    Args:
+        provider(``str``): Name of the data provider whose identity to
+            delete.
+    """
+    if not _PANSAT_SECRET:
+        authenticate()
+    identities = get_identities()
+    del identities[provider]
+    with open(_IDENTITY_FILE, "w") as file:
+        file.write(json.dumps(identities))
+
+
 def get_identity(provider):
     """
     Retrieve identity for given provider.
