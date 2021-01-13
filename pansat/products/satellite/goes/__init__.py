@@ -102,7 +102,7 @@ class GOESProduct(Product):
     @property
     def default_destination(self):
         """
-        The default destination for CloudSat product is
+        The default destination for GOES product is
         ``GOES-<index>/<product_name>``>
         """
         return Path(f"GOES-{self.series_index}") / Path(str(self))
