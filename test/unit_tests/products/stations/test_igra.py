@@ -38,6 +38,13 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
+def test_get_metadata(tmpdir):
+    product = PRODUCTS[0]
+    locations = product.get_metadata()
+
+
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
 def test_download_per_station(tmpdir):
     product = PRODUCTS[0]
     files = product.download(destination=str(tmpdir))
