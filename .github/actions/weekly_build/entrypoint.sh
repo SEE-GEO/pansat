@@ -1,5 +1,6 @@
 #!/bin/bash
-cd /github/workspace/pansat
+cd /github/workspace/
+ls
 pip install .
 pytest test/unit_tests
 
