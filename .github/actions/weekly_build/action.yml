@@ -3,6 +3,4 @@ description: 'Runs slow tests and examples.'
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - -e PANSAT_PASSWORD
   post-entrypoint: '/cleanup.sh'
