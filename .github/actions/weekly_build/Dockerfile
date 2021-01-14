@@ -18,5 +18,4 @@ RUN conda install -c conda-forge satpy cartopy
 RUN pip install pytest appdirs
 
 COPY entrypoint.sh /entrypoint.sh
-USER simonpf
 ENTRYPOINT ["/entrypoint.sh"]
