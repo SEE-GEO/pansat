@@ -5,4 +5,4 @@ runs:
   image: 'Dockerfile'
   args:
     - -e PANSAT_PASSWORD
-  post-entrypoint: 'cleanup.sh'
+  post-entrypoint: '/cleanup.sh'
