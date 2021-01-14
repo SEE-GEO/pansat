@@ -1,1 +1,2 @@
-chmod -R 770 /github/workspace/
+#!/bin/bash
+chown -R 549:500 /github/workspace/

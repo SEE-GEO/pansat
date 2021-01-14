@@ -1,12 +1,14 @@
 #!/bin/bash
+
+# Setup identities file.
+mkdir -p /root/.config/pansat
+cp /github/workspace/test/unit_tests/test_data/identities.json /root/.config/pansat
+
 cd /github/workspace/
 ls
-pip install .
-pytest test/unit_tests
+pip install -e /github/workspace
+pytest /github/workspace/test/unit_tests
 
-cd notebooks
-jupyter nbconvert --to notebook *.ipynb
-cd products
-jupyter nbconvert --to notebook *.ipynb
-
+jupyter nbconvert --to notebook --execute /github/workspace/notebooks/*.ipynb
+jupyter nbconvert --to notebook --execute /github/workspace/notebooks/products/*.ipynb
 
