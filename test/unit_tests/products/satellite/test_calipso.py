@@ -8,10 +8,16 @@ import pytest
 import pansat.products.satellite.calipso as calipso
 
 TEST_NAMES = {
-    "333mCLay": "CAL_LID_L2_333mCLay-ValStage1-V3-30.2016-11-21T10-41-52ZN.hdf"
+    "333mCLay": "CAL_LID_L2_333mCLay-ValStage1-V3-30.2016-11-21T10-41-52ZN.hdf",
+    "01kmCLay": "CAL_LID_L2_01kmCLay-ValStage1-V3-30.2016-11-21T10-41-52ZN.hdf",
+    "05kmAPro": "CAL_LID_L2_05kmAPro-Standard-V4-20.2016-11-21T10-41-52ZN.hdf",
 }
-TEST_TIMES = {"333mCLay": datetime(2016, 11, 21, 10, 41, 52)}
-PRODUCTS = [calipso.clay333m]
+TEST_TIMES = {
+    "333mCLay": datetime(2016, 11, 21, 10, 41, 52),
+    "01kmCLay": datetime(2016, 11, 21, 10, 41, 52),
+    "05kmAPro": datetime(2016, 11, 21, 10, 41, 52),
+}
+PRODUCTS = [calipso.clay333m, calipso.apro5km]
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 HAS_HDF = False

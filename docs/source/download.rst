@@ -6,3 +6,4 @@ Download
 
    download/providers
    download/accounts
+   download/commandline

@@ -45,9 +45,7 @@ class DardarProduct(Product):
 
     @property
     def description(self):
-        """
-        Product description object describing the Dardar product.
-        """
+        # Product description object describing the Dardar product.
         return self._description
 
     def matches(self, filename):

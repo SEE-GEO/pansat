@@ -1,3 +1,6 @@
+Satellite
+=========
+
 .. automodule:: pansat.products.satellite
   :members:
 

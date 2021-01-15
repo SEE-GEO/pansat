@@ -6,15 +6,18 @@
 Welcome to Pansat's documentation!
 ==================================
 
+.. toctree::
+   :maxdepth: 2
+
+   user_guide
 
 .. toctree::
-   :caption: Examples
+   :maxdepth: 2
 
    examples
 
 .. toctree::
    :maxdepth: 2
-   :caption: API Reference
 
    api_reference
 

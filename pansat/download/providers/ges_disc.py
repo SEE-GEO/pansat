@@ -3,7 +3,7 @@ pansat.download.providers.ges_disc
 ==================================
 
 This module contains a data provider for NASA's Goddard Earth Sciences Data and
-Information Services Center (GES DISC).
+Information Services Center (`GES DISC <https://disc.gsfc.nasa.gov/>`_).
 
 Reference
 ---------
