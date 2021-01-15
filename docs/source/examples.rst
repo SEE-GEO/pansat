@@ -14,4 +14,10 @@ Examples
    notebooks/products/gpm.ipynb
    notebooks/products/ncep.ipynb
    notebooks/products/igra.ipynb
+   notebooks/products/opera.ipynb
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Additional functionality
+
    notebooks/products/catalogue.ipynb

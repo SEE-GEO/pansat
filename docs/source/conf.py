@@ -48,6 +48,10 @@ autodoc_default_options = {
     "special-members": True,
 }
 
+# To not have to import pyhdf for building the documentation. Will not work
+# for RTD.
+autodoc_mock_imports = ["pyhdf"]
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
