@@ -43,6 +43,7 @@ class LAADSDAACProvider(DiscreteProvider):
             product: The product to download.
         """
         super().__init__(product)
+
     @classmethod
     def get_available_products(cls):
         """
