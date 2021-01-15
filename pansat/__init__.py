@@ -1,4 +1,16 @@
+"""
+======
+pansat
+======
+
+Accessing satellite and reanalysis data made easy.
+"""
+import os
 import logging
 
-log_format = "{name} ({levelname:10}) :: {message}"
-logging.basicConfig(format=log_format, style="{")
+# Set logging level.
+_LOGGING_LEVEL = os.environ.get("PANSAT_LOG_LEVEL", "WARNING")
+_LOG_FORMAT = "{name} ({levelname:10}) :: {message}"
+logging.basicConfig(level=_LOGGING_LEVEL,
+                    format=_LOG_FORMAT,
+                    style="{")
