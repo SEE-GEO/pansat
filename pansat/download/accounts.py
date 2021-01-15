@@ -160,7 +160,9 @@ def authenticate():
     entered_secret_hashed = hash_password(entered_secret.decode(), salt)
 
     if secret_hashed != entered_secret_hashed:
+        LOGGER.error("Wrong password")
         raise WrongPasswordError("The password you entered is incorrect.")
+    LOGGER.info("Authentification successful.")
 
     _PANSAT_SECRET = entered_secret
 
@@ -179,6 +181,8 @@ def initialize_identity_file():
     """
     global _IDENTITIES
     global _PANSAT_SECRET
+
+    LOGGER.info("Initializing new identity file: %s", _IDENTITY_FILE)
 
     password = get_password(check=True)
     salt = base64.urlsafe_b64encode(os.urandom(16))
@@ -199,6 +203,9 @@ def parse_identity_file():
     if _IDENTITY_FILE.exists():
         global _IDENTITIES
         _IDENTITIES = json.loads(open(_IDENTITY_FILE).read())
+
+        LOGGER.info("Parsed identity file: %s", _IDENTITY_FILE)
+
     else:
         initialize_identity_file()
 
@@ -240,6 +247,8 @@ def add_identity(provider, user_name):
     with open(_IDENTITY_FILE, "w") as file:
         file.write(json.dumps(identities))
 
+    LOGGER.info("Added identity: %s, %s", provider, user_name)
+
 
 def delete_identity(provider):
     """
@@ -256,6 +265,8 @@ def delete_identity(provider):
     with open(_IDENTITY_FILE, "w") as file:
         file.write(json.dumps(identities))
 
+    LOGGER.info("Removed identity for provider %s", provider)
+
 
 def get_identity(provider):
     """
@@ -271,6 +282,8 @@ def get_identity(provider):
     Raises:
         MissingProviderError: if no identity for the given domain could be found.
     """
+    LOGGER.info("Retrieving identity for provider %s", provider)
+
     if not _PANSAT_SECRET:
         authenticate()
     identities = get_identities()
