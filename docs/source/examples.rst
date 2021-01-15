@@ -13,6 +13,8 @@ Examples
    notebooks/products/era5.ipynb
    notebooks/products/gpm.ipynb
    notebooks/products/ncep.ipynb
+   notebooks/products/modis.ipynb
+   notebooks/products/goes.ipynb
    notebooks/products/igra.ipynb
    notebooks/products/opera.ipynb
 
