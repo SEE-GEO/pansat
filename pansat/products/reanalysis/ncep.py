@@ -41,7 +41,7 @@ class NCEPReanalysis(Product):
             grid(``str``): pressure, surface, spectral, surface_gauss or tropopause
         """
 
-        self._variable = variable
+        self.variable = variable
         if grid == "tropopause":
             self.variable = variable + ".tropp"
         self.name = "ncep.reanalysis-" + str(grid)
