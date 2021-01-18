@@ -7,6 +7,7 @@ import os
 import pytest
 import pansat.products.reanalysis.ncep as ncep
 import random
+import sys
 
 
 PRODUCTS = [
