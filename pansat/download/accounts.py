@@ -31,8 +31,11 @@ _APP_DIR = Path(user_config_dir("pansat", "pansat"))
 _APP_DIR.mkdir(parents=True, exist_ok=True)
 
 # The path to the configuration file.
-_IDENTITY_FILE = Path(_APP_DIR)
-_IDENTITY_FILE /= Path("identities.json")
+_IDENTITY_FILE = os.environ.get("PANSAT_IDENTITIES_FILE")
+if _IDENTITY_FILE:
+    _IDENTITY_FILE = Path(_IDENTITY_FILE)
+else:
+    _IDENTITY_FILE = Path(_APP_DIR) / Path("identities.json")
 
 _PANSAT_SECRET = None
 

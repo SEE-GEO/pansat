@@ -8,3 +8,5 @@ jobs:
       - uses: ./.github/actions/weekly_build
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
+          PANSAT_LOG_LEVEL: DEBUG
+

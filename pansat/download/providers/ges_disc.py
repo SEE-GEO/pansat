@@ -10,8 +10,10 @@ Reference
 """
 import datetime
 import json
+import os
 import pathlib
 import re
+import tempfile
 
 import requests
 
@@ -22,14 +24,13 @@ _DATA_FOLDER = pathlib.Path(__file__).parent / "data"
 with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
     GPM_PRODUCTS = json.load(file)
 
-
 class GesdiscProvider(DiscreteProvider):
     """
     Dataprovider class for for products available from the
     gpm1.gesdisc.eosdis.nasa.gov domain.
     """
 
-    base_url = "gpm1.gesdisc.eosdis.nasa.gov"
+    base_url = "https://gpm1.gesdisc.eosdis.nasa.gov"
     file_pattern = re.compile('"[^"]*.HDF5"')
 
     def __init__(self, product):
@@ -82,10 +83,31 @@ class GesdiscProvider(DiscreteProvider):
         """
         day = str(day)
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(year=year, day=day, filename="")
-        response = requests.get(request_string)
+        request_string = self._request_string.format(year=year,
+                                                     day=day,
+                                                     filename="")
+        auth = accounts.get_identity("GES DISC")
+        response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
+
+    def _download_with_redirect(self, url, destination):
+        """
+        Handles download from GES DISC server with redirect.
+
+        Arguments:
+            url(``str``): The URL of the file to retrieve.
+            destination(``str``): Destination to store the data.
+        """
+
+        auth = accounts.get_identity("GES DISC")
+        response = requests.get(url, auth=auth)
+        url = response.url
+        response = requests.get(url, auth=auth)
+
+        with open(destination, "wb") as f:
+            for chunk in response:
+                f.write(chunk)
 
     def download_file(self, filename, destination):
         """
@@ -100,11 +122,8 @@ class GesdiscProvider(DiscreteProvider):
         year = t.year
         day = t.strftime("%j")
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(
+        url = self._request_string.format(
             year=year, day=day, filename=filename
         )
-        auth = accounts.get_identity("GES DISC")
-        r = requests.get(request_string, auth=auth)
-        with open(destination, "wb") as f:
-            for chunk in r:
-                f.write(chunk)
+
+        self._download_with_redirect(url, destination)
