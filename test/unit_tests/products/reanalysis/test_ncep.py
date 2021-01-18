@@ -58,6 +58,7 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Does not work on Windows")
 @pytest.mark.usefixtures("test_identities")
 def test_download(tmpdir):
     product = PRODUCTS[1]
