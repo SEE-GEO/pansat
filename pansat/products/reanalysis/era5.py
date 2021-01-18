@@ -8,11 +8,11 @@ supported ERA5 products.
 """
 
 
-import xarray
 import re
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
+import xarray
 import pansat.download.providers as providers
 from pansat.products.product import Product
 
@@ -41,7 +41,7 @@ class ERA5Product(Product):
                           if None: global data will be downloaded
     """
 
-    def __init__(self, tsteps, levels, variables, domain=None, name=None):
+    def __init__(self, tsteps, levels, variables, domain=None):
         self.variables = variables
 
         if not domain:
@@ -60,38 +60,28 @@ class ERA5Product(Product):
 
             self.domain = domain
 
-        if not name:
-            if levels == "surface":
-                self.levels = "single-levels"
-            elif levels == "pressure":
-                self.levels = "pressure-levels"
-            elif levels == "land":
-                self.levels = levels
-            else:
-                raise Exception(
-                    "Supported data products are: surface, pressure and land."
-                )
-
-            if tsteps == "monthly":
-                self.tsteps = "monthly-means"
-                self.name = self.name = (
-                    "reanalysis-era5-" + self.levels + "-" + self.tsteps
-                )
-            elif tsteps == "hourly":
-                self.tsteps = tsteps
-                self.name = "reanalysis-era5-" + self.levels
-
-            else:
-                raise Exception("tsteps has to be monthly or hourly.")
+        if levels == "surface":
+            self.levels = "single-levels"
+        elif levels == "pressure":
+            self.levels = "pressure-levels"
+        elif levels == "land":
+            self.levels = levels
         else:
-            self.name = name
+            raise Exception("Supported data products are: surface, pressure and land.")
+
+        if tsteps == "monthly":
+            self.tsteps = "monthly-means"
+            self.name = self.name = "reanalysis-era5-" + self.levels + "-" + self.tsteps
+        elif tsteps == "hourly":
+            self.tsteps = tsteps
+            self.name = "reanalysis-era5-" + self.levels
+
+        else:
+            raise Exception("tsteps has to be monthly or hourly.")
 
         self.filename_regexp = re.compile(
             self.name + r"_[\d]*.*_" + self.variables[0] + r".*.nc"
         )
-
-    def variables(self):
-        return self._variables
 
     def matches(self, filename):
         """
@@ -150,7 +140,7 @@ class ERA5Product(Product):
         """ The full product name. """
         return self.name
 
-    def download(self, t0, t1, destination=None, provider=None):
+    def download(self, start, end, destination=None):
         """
         Download data product for given time range.
 
@@ -163,12 +153,11 @@ class ERA5Product(Product):
                 the output data.
 
         Returns:
-            downloaded(``list``): ``list`` with names of all downloaded files for respective data product
+            downloaded(``list``): name list of all downloaded files for data product
 
         """
 
-        if not provider:
-            provider = self._get_provider()
+        provider = self._get_provider()
 
         if not destination:
             destination = self.default_destination
@@ -177,18 +166,21 @@ class ERA5Product(Product):
         destination.mkdir(parents=True, exist_ok=True)
         provider = provider(self)
 
-        downloaded = provider.download(t0, t1, destination)
+        downloaded = provider.download(start, end, destination)
 
         return downloaded
 
-    def open(self, filename):
-        """Opens a given file of ERA5 product class as xarray.
+    @classmethod
+    def open(cls, filename):
+        """Opens a given file of NCEP product class as xarray.
 
         Args:
             filename(``str``): name of the file to be opened
 
         Returns:
-            xr(``xarray.Dataset``): xarray dataset object"""
-        xr = xarray.open_dataset(filename)
+            datasets(``xarray.Dataset``): xarray dataset object for opened file
+        """
 
-        return xr
+        datasets = xarray.open_dataset(filename)
+
+        return datasets

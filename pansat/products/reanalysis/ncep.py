@@ -7,11 +7,12 @@ supported NCEP reanalysis products.
 
 """
 
-import xarray
 import re
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
+
+import xarray
 import pansat.download.providers as providers
 from pansat.products.product import Product
 
@@ -40,14 +41,11 @@ class NCEPReanalysis(Product):
             grid(``str``): pressure, surface, spectral, surface_gauss or tropopause
         """
 
-        self.variable = variable
+        self._variable = variable
         if grid == "tropopause":
             self.variable = variable + ".tropp"
         self.name = "ncep.reanalysis-" + str(grid)
         self.filename_regexp = re.compile(self.variable + ".*" + r".nc")
-
-    def variable(self):
-        return self._variable
 
     def matches(self, filename):
         """
@@ -104,7 +102,7 @@ class NCEPReanalysis(Product):
         """ The full product name. """
         return self.name
 
-    def download(self, t0, t1, destination=None, provider=None):
+    def download(self, start, end, destination=None):
         """
         Download data product for given time range.
 
@@ -115,12 +113,11 @@ class NCEPReanalysis(Product):
                 the output data.
 
         Returns:
-            downloaded(``list``): ``list`` with names of all downloaded files for respective data product
+            downloaded(``list``): name list of all downloaded files for data product
 
         """
 
-        if not provider:
-            provider = self._get_provider()
+        provider = self._get_provider()
 
         if not destination:
             destination = self.default_destination
@@ -129,18 +126,21 @@ class NCEPReanalysis(Product):
         destination.mkdir(parents=True, exist_ok=True)
         provider = provider(self)
 
-        downloaded = provider.download(t0, t1, destination)
+        downloaded = provider.download(start, end, destination)
 
         return downloaded
 
-    def open(self, filename):
+    @classmethod
+    def open(cls, filename):
         """Opens a given file of NCEP product class as xarray.
 
         Args:
             filename(``str``): name of the file to be opened
 
         Returns:
-            xr(``xarray.Dataset``): xarray dataset object"""
-        xr = xarray.open_dataset(filename)
+            datasets(``xarray.Dataset``): xarray dataset object for opened file
+        """
 
-        return xr
+        datasets = xarray.open_dataset(filename)
+
+        return datasets
