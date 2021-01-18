@@ -24,6 +24,7 @@ setuptools.setup(
         "requests",
         "xarray",
         "pyproj",
+        "boto3",
     ],
     setup_requires=["pytest-runner"],
     tests_require=[
