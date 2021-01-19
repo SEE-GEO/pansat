@@ -230,4 +230,4 @@ def download():
             if not args.recent:
                 files = productfunc.download()
             else:
-                files = productfunc.download('recent')
+                files = productfunc.download("recent")
