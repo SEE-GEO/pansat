@@ -10,19 +10,15 @@ import pytest
 import pansat.products.reanalysis.era5 as era5
 
 
-
 PRODUCTS = [
     era5.ERA5Product("hourly", "surface", ["2m_temperature"]),
     era5.ERA5Product("monthly", "land", ["asn"], domain=[25, 50, 70, 120]),
 ]
 
 TEST_NAMES = {
-    "reanalysis-era5-single-levels":
-    "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
-    "reanalysis-era5-land-monthly-means":
-    "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
+    "reanalysis-era5-single-levels": "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
+    "reanalysis-era5-land-monthly-means": "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
 }
-
 
 
 TEST_TIMES = {
