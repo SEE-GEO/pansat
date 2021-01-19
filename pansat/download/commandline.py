@@ -157,7 +157,6 @@ def download():
     ):
         modnames.append(modname)
 
-
     if "pansat.products." + str(args.type) + "." + str(args.pm) in modnames:
         module = importlib.import_module(
             "pansat.products." + str(args.type) + "." + str(args.pm)
@@ -180,16 +179,16 @@ def download():
         elif "NCEPReanalysis" in dir(module):
             ncep_product = getattr(module, "NCEPReanalysis")
             productfunc = ncep_product(str(args.variable), str(args.grid[0]))
-        elif str(args.pm)+"_"+str(args.product) in dir(module): #for modis data
-            productfunc = getattr(module, str(args.pm)+"_"+str(args.product))
+        elif str(args.pm) + "_" + str(args.product) in dir(module):  # for modis data
+            productfunc = getattr(module, str(args.pm) + "_" + str(args.product))
         else:
             parser.error("product " + str(args.product) + " not implemented")
 
     elif str(args.pm) == "goes_16" or str(args.pm) == "goes_17":
-         module = importlib.import_module(
-                 "pansat.products." + str(args.type) + "." + str(args.pm)[:-3]
-         )
-         productfunc = getattr(module,str(args.pm)+"_l"+str(args.product))
+        module = importlib.import_module(
+            "pansat.products." + str(args.type) + "." + str(args.pm)[:-3]
+        )
+        productfunc = getattr(module, str(args.pm) + "_l" + str(args.product))
 
     else:
         parser.error(
