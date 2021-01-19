@@ -16,3 +16,6 @@ Providers
    providers/icare
    providers/copernicus
    providers/ges_disc
+   providers/goes_aws
+   providers/laads_daac
+   providers/noaa

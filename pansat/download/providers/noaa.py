@@ -1,6 +1,6 @@
 """
 pansat.download.providers.noaa
-=======================================
+==============================
 
 This module provides the NoaaProvider class to download data stored at the NOAA data server.
 
@@ -38,7 +38,7 @@ class NOAAProvider(DataProvider):
 
         Args:
 
-        product: Product class object with specific product for NOAA
+            product: Product class object with specific product for NOAA
         """
         super().__init__()
         self.product = product
@@ -71,11 +71,10 @@ class NOAAProvider(DataProvider):
 
         Args:
 
-           path(str): The path from which to retrieve the ftp listing.
-
-           t(type): Type constructor to apply to the elements of the
-           listing. To retrieve a list of strings use t = str.
-           base_url(``str``): FTP URL without subdirectories
+            path(str): The path from which to retrieve the ftp listing.
+            t(type): Type constructor to apply to the elements of the
+                listing. To retrieve a list of strings use t = str.
+            base_url(``str``): FTP URL without subdirectories
 
         Return:
 

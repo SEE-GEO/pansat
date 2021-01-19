@@ -1,3 +1,6 @@
+Download
+========
+
 .. automodule:: pansat.download
   :members:
 

@@ -9,7 +9,7 @@ data products that do not use the NetCDf format and thus need additional
 information in order to read them into an ``xarray`` Dataset.
 
 Example
-=======
+-------
 
 The example below provides a minimal example for a product description file.
 
@@ -35,7 +35,7 @@ has a mandatory ``type`` defining its meaning. The following section
 types are currently supported:
 
 properties
-==========
+----------
 
 The ``properties`` section defines the general properties of the dataset.
 So far, this section is used only to set the name of the product. The
@@ -43,7 +43,7 @@ title of the section is ignored.
 
 
 dimension
-=========
+---------
 
 The ``dimension`` section defines a dimension used in the dataset. If
 the section contains a field ``name``, then the variable of this name
@@ -54,7 +54,7 @@ try to infer the size of the dimension and use element indices
 
 
 variable
-========
+--------
 
 The ``variable`` section defines a multi-dimensional data array. A ``variable``
 section must have fields ``name`` and ``dimensions``, which contain the name of
@@ -74,14 +74,14 @@ entries:
 
 
 coordinate
-==========
+----------
 
 For ``coordinate`` sections, the same rules apply as for ``variable`` section.
 The difference between a coordinate and a variable is that variables are mapped
 to xarray Datasets, whereas coordinates are mapped to coordinates.
 
 Reference
-=========
+---------
 """
 
 from configparser import ConfigParser
@@ -289,7 +289,7 @@ class ProductDescription(ConfigParser):
 
     @property
     def name(self):
-        """The name of the data product."""
+        # The name of the data product.
         return self._name
 
     def _get_data(self, file_handle, context):
