@@ -13,3 +13,4 @@ Accessing satellite and reanalysis data made easy.
 Online documentation and Examples for Pansat is available [here](https://pansat.readthedocs.io/en/latest/)
 
 
+![Hurricane Laura (2020) as seen by GOES 16](../master/docs/images/goes_17.png)
