@@ -3,11 +3,12 @@ Tests for the pansat.products.reanalysis.era5 module.
 """
 
 from datetime import datetime
+import random
 import os
 import sys
 import pytest
 import pansat.products.reanalysis.era5 as era5
-import random
+
 
 
 PRODUCTS = [
@@ -16,9 +17,13 @@ PRODUCTS = [
 ]
 
 TEST_NAMES = {
-    "reanalysis-era5-single-levels": "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
-    "reanalysis-era5-land-monthly-means": "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
+    "reanalysis-era5-single-levels":
+    "reanalysis-era5-single-levels_2016100115_2m_temperature.nc",
+    "reanalysis-era5-land-monthly-means":
+    "reanalysis-era5-land-monthly-means_201610_asn25-50-70-120.nc",
 }
+
+
 
 TEST_TIMES = {
     "reanalysis-era5-single-levels": datetime(2016, 10, 1, 15),
@@ -47,6 +52,10 @@ def test_matches(product):
 
 @pytest.fixture(scope="session")
 def tmpdir(tmpdir_factory):
+    """
+    Creates temporary directory for test session.
+
+    """
     tmp_dir = tmpdir_factory.mktemp(f"data{random.randint(1,300)}")
     return tmp_dir
 
@@ -58,6 +67,10 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Does not work on Windows")
 @pytest.mark.usefixtures("test_identities")
 def test_download(tmpdir):
+    """
+    Test downloading and opening of a monthly and an hourly ERA5 file.
+
+    """
     # hourly
     product = PRODUCTS[0]
     t_0 = datetime(2016, 10, 1, 15)
@@ -69,6 +82,6 @@ def test_download(tmpdir):
     t_1 = datetime(2016, 11, 1, 0)
     product.download(t_0, t_1, str(tmpdir))
     # open file
-    fn = tmpdir / TEST_NAMES[product.name]
-    f = product.open(str(fn))
-    f.close()
+    filename = tmpdir / TEST_NAMES[product.name]
+    data = product.open(str(filename))
+    data.close()
