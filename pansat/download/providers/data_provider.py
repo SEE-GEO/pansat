@@ -21,6 +21,10 @@ class DataProvider(metaclass=ABCMeta):
         """
         Return the names of products available from this data provider.
 
+        This method is used by each data product to determine whether it can
+        use this provider to download data. The names provided here must therefore
+        match the string representation returned by the product's ``__str__`` method.
+
         Return:
             A list of strings containing the names of the products that can
             be downloaded from this data provider.

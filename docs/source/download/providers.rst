@@ -5,6 +5,7 @@ Providers
 
 .. automodule:: pansat.download.providers
   :members:
+  :special-members:
 
 .. toctree::
    :maxdepth: 1
