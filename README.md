@@ -12,6 +12,7 @@
 
 Online documentation and Examples for Pansat is available [here](https://pansat.readthedocs.io/en/latest/)
 
+## Hurricane Laura (2020) as seen by GOES 
 
 ![Hurricane Laura (2020) as seen by GOES](/docs/index.png)
 
