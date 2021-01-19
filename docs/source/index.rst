@@ -6,7 +6,11 @@
 Welcome to Pansat's documentation!
 ==================================
 
+<<<<<<< HEAD
 **pansat** provides a unified interface for a wide range of satellite, reanalysis and other meteorological data with a focus on data that is relevant for atmospheric research. Many of these datasets appear in different formats and are difficult to download and access in a consistent way. Therefore,  **pansat** tries to overcome this difficulties and provides user-friendly download functionalities that can be used within python or from the command line. Currently, **pansat** supports various gridded and ungridded datasets from different data providers and allows for a quick implementation of new data products. The user can specify time ranges, regions and variables for the datasets to be downloaded, which facilitates the access the data needed for case studies, climatological time series or collocations of different datasets. 
+=======
+**pansat** provides a unified interface for a wide range of satellite, reanalysis and other meteorological data with a focus on data that is relevant for atmospheric research. Many of these datasets appear in different formats and are difficult to download and access in a consistent way. Therefore,  **pansat** tries to overcome this difficulties and provides user-friendly download functionalities that can be used within python or from the command line. Currently, *pansat* supports various gridded and ungridded datasets from different data providers and allows for a quick implementation of new data products. The user can specify time ranges, regions and variables for the datasets to be downloaded, which facilitates the access the data needed for case studies, climatological time series or collocations of different datasets. 
+>>>>>>> 089473ecf0d05a65ed05428e84d3b98d8d3824d1
 
 
 
