@@ -6,16 +6,14 @@ This module provides the NoaaProvider class to download data stored at the NOAA 
 
 """
 
-from contextlib import contextmanager
-import itertools
-import os
+
+import ftplib
+from ftplib import FTP
 from pathlib import Path
-import tempfile
 import numpy as np
 from pansat.download.accounts import get_identity
 from pansat.download.providers.data_provider import DataProvider
-from datetime import datetime, timedelta
-import ftplib
+
 
 NOAA_PRODUCTS = [
     "ncep.reanalysis-surface",
@@ -85,7 +83,7 @@ class NOAAProvider(DataProvider):
 
         """
 
-        if base_url == None:
+        if base_url is None:
             base_url = NOAAProvider.base_url
 
         if not path in self.cache:
@@ -105,7 +103,8 @@ class NOAAProvider(DataProvider):
             self.cache[path] = listing
         return self.cache[path]
 
-    def get_file_names(self, var, start, end):
+    @classmethod
+    def get_file_names(cls, var, start, end):
         """
         Return all files from given year.
 
@@ -117,10 +116,10 @@ class NOAAProvider(DataProvider):
             List of the filenames of this product for given variable and time range by year."""
 
         files = []
-        for y in np.arange(start, end + 1):
-            year_str = str(y)
-            fn = var + "." + year_str + ".nc"
-            files.append(fn)
+        for year in np.arange(start, end + 1):
+            year_str = str(year)
+            filename = var + "." + year_str + ".nc"
+            files.append(filename)
         return files
 
     def download(
@@ -139,9 +138,9 @@ class NOAAProvider(DataProvider):
             files(`list``): list of files if files are not sorted by year
         """
 
-        if base_url == None:
+        if base_url is None:
             base_url = self.base_url
-        if product_path == None:
+        if product_path is None:
             product_path = self.product_path
 
         # get file list
@@ -157,8 +156,8 @@ class NOAAProvider(DataProvider):
         for filename in files:
             output = Path(str(destination)) / str(filename)
             output_files.append(str(output))
-            with open(str(output), "wb") as fp:
-                ftp.retrbinary("RETR " + filename, fp.write)
+            with open(str(output), "wb") as ftpfile:
+                ftp.retrbinary("RETR " + filename, ftpfile.write)
 
         ftp.quit()
 
