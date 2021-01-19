@@ -125,6 +125,7 @@ def download():
 
     if args.delete:
         from pansat.download import accounts
+
         accounts.delete_identity(args.delete)
         return
 
@@ -237,4 +238,4 @@ def download():
             if not args.recent:
                 files = productfunc.download()
             else:
-                files = productfunc.download('recent')
+                files = productfunc.download("recent")
