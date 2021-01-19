@@ -230,7 +230,7 @@ class CopernicusProvider(DataProvider):
                 # only download if file not already already exists
                 if os.path.exists(out):
                     LOGGER.info(destination, "%s already exists.")
-
+                    files.append(out)
                 else:
                     if "pressure" in self.product.name:
                         client.retrieve(
@@ -300,11 +300,11 @@ class CopernicusProvider(DataProvider):
                             },
                             out,
                         )
-                    LOGGER.info("file downloaded and saved as %s", out)
 
+                    LOGGER.info("file downloaded and saved as %s", out)
                     files.append(out)
 
-                return files
+            return files
 
     def download_hourly(self, start, end, destination):
         """Downloads hourly files for given time range and stores at specified location.

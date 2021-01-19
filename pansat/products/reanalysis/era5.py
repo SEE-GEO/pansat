@@ -28,9 +28,7 @@ class ERA5Product(Product):
     """
     The ERA5 class defines a generic interface for ERA5 products.
 
-
     Attributes:
-        tsteps(``str``): "monthly" or "hourly" to choose resolution of output timesteps
         levels(``str``): "surface", "pressure" or "land". <surface> contains surface data
                           and column-integrated values, pressure levels contains data throughout
                           the atmosphere column and <land> contains data from surface to soil depth
@@ -41,7 +39,8 @@ class ERA5Product(Product):
                           if None: global data will be downloaded
     """
 
-    def __init__(self, tsteps, levels, variables, domain=None):
+    def __init__(self, levels, variables, domain=None):
+
         self.variables = variables
 
         if not domain:
@@ -69,11 +68,9 @@ class ERA5Product(Product):
         else:
             raise Exception("Supported data products are: surface, pressure and land.")
 
-        if tsteps == "monthly":
-            self.tsteps = "monthly-means"
+        if self.tsteps == "monthly-means":
             self.name = self.name = "reanalysis-era5-" + self.levels + "-" + self.tsteps
-        elif tsteps == "hourly":
-            self.tsteps = tsteps
+        elif self.tsteps == "hourly":
             self.name = "reanalysis-era5-" + self.levels
 
         else:
@@ -184,3 +181,27 @@ class ERA5Product(Product):
         datasets = xarray.open_dataset(filename)
 
         return datasets
+
+
+class ERA5Monthly(ERA5Product):
+    """
+
+    Child Class of ERA5Product for monthly ERA5 data.
+
+    """
+
+    def __init__(self, levels, variables, domain=None):
+        self.tsteps = "monthly-means"
+        super().__init__(levels, variables, domain)
+
+
+class ERA5Hourly(ERA5Product):
+    """
+
+    Child Class of ERA5Product for hourly ERA5 data.
+
+    """
+
+    def __init__(self, levels, variables, domain=None):
+        self.tsteps = "hourly"
+        super().__init__(levels, variables, domain)
