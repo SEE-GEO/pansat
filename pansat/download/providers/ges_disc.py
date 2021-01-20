@@ -24,6 +24,7 @@ _DATA_FOLDER = pathlib.Path(__file__).parent / "data"
 with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
     GPM_PRODUCTS = json.load(file)
 
+
 class GesdiscProvider(DiscreteProvider):
     """
     Dataprovider class for for products available from the
@@ -83,9 +84,7 @@ class GesdiscProvider(DiscreteProvider):
         """
         day = str(day)
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(year=year,
-                                                     day=day,
-                                                     filename="")
+        request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
@@ -122,8 +121,6 @@ class GesdiscProvider(DiscreteProvider):
         year = t.year
         day = t.strftime("%j")
         day = "0" * (3 - len(day)) + day
-        url = self._request_string.format(
-            year=year, day=day, filename=filename
-        )
+        url = self._request_string.format(year=year, day=day, filename=filename)
 
         self._download_with_redirect(url, destination)
