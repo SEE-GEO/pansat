@@ -9,6 +9,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import xarray
+
 import pansat.download.providers as providers
 from pansat.products.product import Product
 
