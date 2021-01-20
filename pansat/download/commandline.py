@@ -44,18 +44,22 @@ def download():
     # define helpstrings, i.e. what is shown for the --help/-h flag
     ################################################################
 
-    helpstring_t0 = "start of time interval in ISO 8601 format (YY-MM-DDThh:mm:ss)"
-    helpstring_t1 = "end of time interval in ISO 8601 format (YY-MM-DDThh:mm:ss)"
+    helpstring_t0 = "start of time interval in ISO 8601 format (YYYY-MM-DDThh:mm:ss)"
+    helpstring_t1 = "end of time interval in ISO 8601 format (YYYY-MM-DDThh:mm:ss)"
     helpstring_type = "data type (satellite/reanalysis)"
-    helpstring_pm = "satellite (e.g. Cloudsat)/ model (e.g ERA5)"
+    helpstring_pm = (
+        "satellite (e.g. Cloudsat)/ model (e.g ERA5)/ ground_based/ stations"
+    )
     helpstring_product = "product to download"
-    helpstring_variable = "variable(s) for reanalysis"
+    helpstring_variable = "variable(s) for reanalysis/station data"
     helpstring_domain = (
         "data domain of model data in latitude and longitude, if not specified"
         + " a global grid is used, if specified four arguments (lat1, lat2, lon1, lon2)"
         + " are required, with lat1<lat2, lon1<lon2"
     )
     helpstring_grid = "specifying spatial/temporal gridding of reanalysis data"
+    helpstring_loc = "location of station in [lat,lon]"
+    helpstring_name = "name of station"
     helpstring_add = "add account, requires arguments ``provider´´ and ``user_name´´"
 
     parser = argparse.ArgumentParser()
@@ -80,13 +84,20 @@ def download():
     )
 
     parser.add_argument(
-        "--type", choices=["satellite", "reanalysis"], help=helpstring_type
+        "--type",
+        choices=["satellite", "reanalysis", "ground_based", "stations"],
+        help=helpstring_type,
     )
     parser.add_argument("--pm", help=helpstring_pm)
     parser.add_argument("-prod", "--product", help=helpstring_product)
     parser.add_argument("-var", "--variable", nargs="+", help=helpstring_variable)
     parser.add_argument("--grid", nargs="+", help=helpstring_grid)
     parser.add_argument("-d", "--domain", nargs=4, type=float, help=helpstring_domain)
+    parser.add_argument("-loc", "--location", nargs=2, type=float, help=helpstring_loc)
+    parser.add_argument("--name", help=helpstring_name)
+    parser.add_argument(
+        "--recent", action="store_true", help="only download last month of IGRA data"
+    )
     args = parser.parse_args()
 
     if args.list:
@@ -164,12 +175,17 @@ def download():
     ):
         modnames.append(modname)
 
+    modnames.append("pansat.products.ground_based.opera")
+    modnames.append("pansat.products.stations.igra")
+
     if "pansat.products." + str(args.type) + "." + str(args.pm) in modnames:
         module = importlib.import_module(
             "pansat.products." + str(args.type) + "." + str(args.pm)
         )
         if "l" + str(args.product) in dir(module):
-            productfunc = getattr(module, "l" + str(args.product[0]))
+            productfunc = getattr(module, "l" + str(args.product))
+        elif str(args.product) in dir(module):
+            productfunc = getattr(module, str(args.product))
         elif "ERA5Product" in dir(module):
             era_product = getattr(module, "ERA5Product")
             if not args.domain:  # without given spatial domain (global)
@@ -178,14 +194,24 @@ def download():
                 )
             else:
                 productfunc = era_product(
-                    str(args.product[0]),
-                    str(args.product[1]),
+                    str(args.grid[0]),
+                    str(args.grid[1]),
                     args.variable,
                     args.domain,
                 )
         elif "NCEPReanalysis" in dir(module):
             ncep_product = getattr(module, "NCEPReanalysis")
-            productfunc = ncep_product(str(args.variable), str(args.grid[0]))
+            productfunc = ncep_product(str(args.variable[0]), str(args.grid[0]))
+        elif "IGRASoundings" in dir(module):
+            igra_product = getattr(module, "IGRASoundings")
+            if args.location:
+                productfunc = igra_product(args.location)
+            elif args.name:
+                productfunc = igra_product(args.name)
+            elif args.variable:
+                productfunc = igra_product(variable=str(args.variable[0]))
+            else:
+                parser.error("can't download IGRA data with given arguments")
         else:
             parser.error("product " + str(args.product) + " not implemented")
 
@@ -202,4 +228,13 @@ def download():
         args.starttime = int(args.starttime.year)
         args.endtime = int(args.endtime.year)
 
-    files = productfunc.download(args.starttime, args.endtime)
+    if args.type != "stations":
+        files = productfunc.download(args.starttime, args.endtime)
+    else:
+        if not args.variable:
+            files = productfunc.download()
+        else:
+            if not args.recent:
+                files = productfunc.download()
+            else:
+                files = productfunc.download("recent")
