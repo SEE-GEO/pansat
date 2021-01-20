@@ -23,4 +23,4 @@ RUN pip install pytest appdirs beautifulsoup4 matplotlib lxml boto3
 
 COPY entrypoint.sh /entrypoint.sh
 COPY cleanup.sh /cleanup.sh
-#ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
