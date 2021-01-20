@@ -1,0 +1,19 @@
+name: release
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  release_job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: 'main'
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - run: pip install .
+      - run: pip install wheel twine
+      - run: python setup.py sdist bdist_wheel
+      - run: python -m twine upload -u __token__ -p ${{ secrets.TWINE_TOKEN }} dist/*
