@@ -16,6 +16,10 @@ URL = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/"
 
 
 def retrieve_page(url):
+    """
+    Wrapper function to retrieve URL and raise StopIteration if
+    that fails.
+    """
     try:
         response = requests.get(url)
     except requests.ConnectionError:
@@ -61,9 +65,6 @@ def map_pages(function, parent_url, depth=10):
 
 
     """
-
-    print("scraping: ", parent_url)
-
     response = retrieve_page(parent_url)
     soup = BeautifulSoup(response.text, features="lxml")
 

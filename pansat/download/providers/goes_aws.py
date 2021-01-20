@@ -45,8 +45,10 @@ class GOESAWSProvider(DiscreteProvider):
         """
         super().__init__(product)
         self.product_name = str(product)[8:]  # Strip off GOES-XX
-        self.bucket_name = GOESAWSProvider.bucket_name + str(product.series_index)
-        self.client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+        self.bucket_name = GOESAWSProvider.bucket_name
+        self.bucket_name += str(product.series_index)
+        self.client = boto3.client("s3",
+                                   config=Config(signature_version=UNSIGNED))
 
     @classmethod
     def get_available_products(cls):

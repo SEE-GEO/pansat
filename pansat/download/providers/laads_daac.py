@@ -9,8 +9,6 @@ Center (DAAC).
 Reference
 ---------
 """
-import datetime
-
 from pansat.download import accounts
 from pansat.download.providers.discrete_provider import DiscreteProvider
 import requests
@@ -76,7 +74,9 @@ class LAADSDAACProvider(DiscreteProvider):
         """
         day = str(day)
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(year=year, day=day, filename="")
+        request_string = self._request_string.format(year=year,
+                                                     day=day,
+                                                     filename="")
         response = requests.get(request_string)
         files = list(set(LAADSDAACProvider.file_pattern.findall(response.text)))
         return [f for f in files]
@@ -97,7 +97,6 @@ class LAADSDAACProvider(DiscreteProvider):
         request_string = self._request_string.format(
             year=year, day=day, filename=filename
         )
-        print("downloading:", request_string)
         auth = accounts.get_identity("GES DISC")
         r = requests.get(request_string, auth=auth)
         with open(destination, "wb") as f:
