@@ -4,6 +4,7 @@ pansat.download.commandline
 The ``commandline`` submodule allows to download data products from commandline using the argparse module.
 
 The following flags can be used:
+
    | Download flags
    |  --type
    |  --pm
@@ -18,7 +19,6 @@ The following flags can be used:
    |  --add
    |  --listIDs
    |  --delete
-
 
 """
 import argparse

@@ -31,8 +31,11 @@ _APP_DIR = Path(user_config_dir("pansat", "pansat"))
 _APP_DIR.mkdir(parents=True, exist_ok=True)
 
 # The path to the configuration file.
-_IDENTITY_FILE = Path(_APP_DIR)
-_IDENTITY_FILE /= Path("identities.json")
+_IDENTITY_FILE = os.environ.get("PANSAT_IDENTITIES_FILE")
+if _IDENTITY_FILE:
+    _IDENTITY_FILE = Path(_IDENTITY_FILE)
+else:
+    _IDENTITY_FILE = Path(_APP_DIR) / Path("identities.json")
 
 _PANSAT_SECRET = None
 
@@ -160,7 +163,9 @@ def authenticate():
     entered_secret_hashed = hash_password(entered_secret.decode(), salt)
 
     if secret_hashed != entered_secret_hashed:
+        LOGGER.error("Wrong password")
         raise WrongPasswordError("The password you entered is incorrect.")
+    LOGGER.info("Authentification successful.")
 
     _PANSAT_SECRET = entered_secret
 
@@ -179,6 +184,8 @@ def initialize_identity_file():
     """
     global _IDENTITIES
     global _PANSAT_SECRET
+
+    LOGGER.info("Initializing new identity file: %s", _IDENTITY_FILE)
 
     password = get_password(check=True)
     salt = base64.urlsafe_b64encode(os.urandom(16))
@@ -199,6 +206,9 @@ def parse_identity_file():
     if _IDENTITY_FILE.exists():
         global _IDENTITIES
         _IDENTITIES = json.loads(open(_IDENTITY_FILE).read())
+
+        LOGGER.info("Parsed identity file: %s", _IDENTITY_FILE)
+
     else:
         initialize_identity_file()
 
@@ -240,6 +250,26 @@ def add_identity(provider, user_name):
     with open(_IDENTITY_FILE, "w") as file:
         file.write(json.dumps(identities))
 
+    LOGGER.info("Added identity: %s, %s", provider, user_name)
+
+
+def delete_identity(provider):
+    """
+    Remove identity for provider.
+
+    Args:
+        provider(``str``): Name of the data provider whose identity to
+            delete.
+    """
+    if not _PANSAT_SECRET:
+        authenticate()
+    identities = get_identities()
+    del identities[provider]
+    with open(_IDENTITY_FILE, "w") as file:
+        file.write(json.dumps(identities))
+
+    LOGGER.info("Removed identity for provider %s", provider)
+
 
 def delete_identity(provider):
     """
@@ -271,6 +301,8 @@ def get_identity(provider):
     Raises:
         MissingProviderError: if no identity for the given domain could be found.
     """
+    LOGGER.info("Retrieving identity for provider %s", provider)
+
     if not _PANSAT_SECRET:
         authenticate()
     identities = get_identities()

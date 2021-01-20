@@ -5,6 +5,7 @@ Providers
 
 .. automodule:: pansat.download.providers
   :members:
+  :special-members:
 
 .. toctree::
    :maxdepth: 1
@@ -15,3 +16,6 @@ Providers
    providers/icare
    providers/copernicus
    providers/ges_disc
+   providers/goes_aws
+   providers/laads_daac
+   providers/noaa

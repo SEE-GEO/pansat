@@ -170,7 +170,7 @@ def _extract_scantime(scantime_group):
     minutes = scantime_group["Minute"][:]
     seconds = scantime_group["Second"][:]
     milli_seconds = scantime_group["MilliSecond"][:]
-    n_dates = years.shape[0]
+    n_dates = years.size
     dates = np.zeros(n_dates, dtype="datetime64[ms]")
     for i in range(n_dates):
         year = years[i]

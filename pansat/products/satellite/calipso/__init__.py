@@ -40,7 +40,8 @@ class CalipsoProduct(Product):
         self.filename_regexp = re.compile(
             r"CAL_LID_L2_"
             + name
-            + r"-[\w]*-V[\d]?-[\d]{2}.([\d]{4})-([\d]{2})-([\d]{2})T([\d]{2})-([\d]{2})-([\d]{2})ZN\.*"
+            + r"-[\w]*-V[\d]?-[\d]{2}.([\d]{4})-([\d]{2})-([\d]{2})T([\d]{2})"
+            + r"-([\d]{2})-([\d]{2})ZN\.*"
         )
 
     @property

@@ -54,8 +54,6 @@ Once pansat is installed, you can use it by importing it into a python executabl
 
 For inspiration on how to use pansat, see the :ref:`example <examples>`  jupyter notebooks.
 
-There is also a command line interface included in the package, see :ref:`command-line-tool`.
-
 Accounts
 --------
 
@@ -63,3 +61,13 @@ All of the data providers require a user account. Pansat manages these accounts,
 :ref:`accounts`. The user needs to create the respective account on the providers website
 before downloading data for the first time. See the specific :ref:`providers` classes for
 links to the websites.
+
+Command line interface
+----------------------
+
+There is also a command line interface included in the package, see :ref:`command-line-tool`.
+
+Catalogue
+---------
+
+It is possible to list and search through the files downloaded with Pansat, see :ref:`catalogue`.

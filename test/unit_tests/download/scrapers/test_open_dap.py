@@ -23,5 +23,32 @@ def test_is_date():
 
 
 def test_map_pages():
-    results = open_dap.map_pages(open_dap.extract_gpm_products, "http://spfrnd.de")
-    assert not results
+    """
+    Assert that 1 GPM product is found when listing of product for specific
+    day is parsed.
+
+
+    """
+    url = (
+        "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L1C/"
+        "GPM_1CF10SSMI.06/1990/344"
+    )
+    results = open_dap.map_pages(open_dap.extract_gpm_products, url)
+    assert len(results) == 1
+
+    url = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L1C/" "GPM_1CF10SSMI.06"
+    open_dap.map_pages(open_dap.extract_gpm_products, url)
+
+
+def test_extract_gpm_products():
+    """
+    Assert that GPM products is correctly extracted from HTML page.
+    """
+    url = (
+        "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L1C/"
+        "GPM_1CGPMGMI_R.05/2014/063/contents.html"
+    )
+    response = open_dap.retrieve_page(url)
+    results = open_dap.extract_gpm_products(response.text)
+
+    assert results == ("1C", "R", "GPM", "GMI")
