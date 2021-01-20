@@ -16,4 +16,4 @@ jobs:
       - run: pip install .
       - run: pip install wheel twine
       - run: python setup.py sdist bdist_wheel
-      - run: python -m twine upload --repository testpypi -u __token__ -p ${{ secrets.TWINE_TOKEN }} dist/*
+      - run: python -m twine upload -u __token__ -p ${{ secrets.TWINE_TOKEN }} dist/*

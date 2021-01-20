@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pansat",
-    version="0.0.1",
+    version="0.0.dev1",
     author="Julia Kukulies, Simon Pfreundschuh, Franz Kanngießer, Hannah Imhof",
     description="Download, extraction, remapping and analysis of satellite and climate data",
     long_description=long_description,
