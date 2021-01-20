@@ -4,19 +4,26 @@ pansat.download.commandline
 The ``commandline`` submodule allows to download data products from commandline using the argparse module.
 
 The following flags can be used:
-   | Download flags
-   |  --type
-   |  --pm
-   |  --product/-prod
-   |  --starttime/-t0
-   |  --endtime/-t1
-   |  --variable/-var
-   |  --domain/-d
-   |  --grid
-   | Other flags
-   |  --list
-   |  --add
-   |  --listIDs
+   Download flags
+
+   .. code-block::
+
+      --type
+      --pm
+      --product/-prod
+      --starttime/-t0
+      --endtime/-t1
+      --variable/-var
+      --domain/-d
+      --grid
+   
+   Other flags
+
+   .. code-block::
+
+      --list
+      --add
+      --listIDs
 
 
 """

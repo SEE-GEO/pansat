@@ -2,7 +2,7 @@
 pansat.catalogue.local
 ======================
 
-This module defines the a catalogue class to look at and list information about downloaded files in local directory.
+This module defines the catalogue class to look at and list information about downloaded files in local directory.
 
 """
 
@@ -36,7 +36,8 @@ class ProductCatalogue:
     downloaded files.
 
     Attributes:
-    available_products: string list with all currently supoprted products
+
+        available_products: string list with all currently supoprted products
 
     """
 
@@ -49,11 +50,12 @@ class ProductCatalogue:
         Get list with all files for specific product.
 
         Args:
-        product: pansat product instance
-        path(``str``): string or Path for product path, if None files are listed from default destination
+
+            product: pansat product instance
+            path(``str``): string or Path for product path, if None files are listed from default destination
 
         Returns:
-        file_lists(``list``): list containing all names that have been downloaded for a certain product.
+            file_lists(``list``): list containing all names that have been downloaded for a certain product.
         """
 
         if path == None:
@@ -79,12 +81,12 @@ class ProductCatalogue:
 
         Args:
 
-        destination(``str``): string or Path to folder to check file structure from
-        If destination is None, the catalogue starts checking for default destinations.
+            destination(``str``): string or Path to folder to check file structure from.
+                If destination is None, the catalogue starts checking for default destinations.
 
         Returns:
 
-        catalogue(``dict``): nested dictionary with all downloaded files at default locations.
+            catalogue(``dict``): nested dictionary with all downloaded files at default locations.
 
 
         """
@@ -130,7 +132,6 @@ class ProductCatalogue:
     def print_nested(self, d, i):
         """
         Function to print a nested dictionary in tree-like structure.
-
         """
         for key, value in d.items():
             print("\t" * i + str(key))
@@ -141,9 +142,7 @@ class ProductCatalogue:
 
     def print_file_catalogue(self):
         """
-
         Prints the nested dictionary with all files per product and product class in tree-like structure.
-
         """
         catalogue = self.get_file_catalogue()
         self.print_nested(catalogue, 0)

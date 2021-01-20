@@ -8,6 +8,9 @@ import pytest
 import pansat.download.accounts as accs
 
 
+HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+
+
 def test_initialize_identity_file(monkeypatch, tmpdir):
     """
     This tests creates a new identities.json file in a temporary directory,
@@ -28,6 +31,16 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
 
     assert user_name == "user_name"
     assert password == "abcd"
+
+    accs.add_identity("provider", "other_name")
+    user_name, password = accs.get_identity("provider")
+
+    assert user_name == "other_name"
+    assert password == "abcd"
+
+    accs.delete_identity("provider")
+    with pytest.raises(accs.MissingProviderError):
+        accs.get_identity("provider")
 
 
 @pytest.mark.usefixtures("test_identities")
@@ -70,12 +83,9 @@ def test_parse_identity_failure(monkeypatch, tmpdir):
         accs.authenticate()
 
 
-HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
-
-
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
-def test_parse_data_provider_failure(monkeypatch):
+def test_parse_data_provider_failure():
     """
     This test reads the identity file from the ``test_data`` folder and
     request login information for an unknown provider. This test asserts
@@ -87,7 +97,8 @@ def test_parse_data_provider_failure(monkeypatch):
 
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-def test_parse_identity(monkeypatch):
+@pytest.mark.usefixtures("test_identities")
+def test_parse_identity():
     """
     This test reads the identity file from the ``test_data`` folder and
     tries to  authenticates with the password read from the PANSAT_PASSWORD

@@ -23,15 +23,19 @@ Example
     t_1 = datetime(2016, 11, 21, 12)
     files = provider.download(t_0, t_1)
 
-
+Attributes:
+    ALL_PROVIDERS: List containing all available data provider classes.
+        This list should be used by products to determine a data provider to
+        use to download files.
 """
-
 from pansat.download.providers.data_provider import DataProvider
 from pansat.download.providers.copernicus import CopernicusProvider
 from pansat.download.providers.icare import IcareProvider
 from pansat.download.providers.ges_disc import GesdiscProvider
 from pansat.download.providers.noaa import NOAAProvider
 from pansat.download.providers.meteo_france import GeoservicesProvider
+from pansat.download.providers.laads_daac import LAADSDAACProvider
+from pansat.download.providers.goes_aws import GOESAWSProvider
 
 ALL_PROVIDERS = [
     CopernicusProvider,
@@ -39,4 +43,6 @@ ALL_PROVIDERS = [
     GesdiscProvider,
     NOAAProvider,
     GeoservicesProvider,
+    LAADSDAACProvider,
+    GOESAWSProvider,
 ]

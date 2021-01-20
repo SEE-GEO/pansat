@@ -29,9 +29,7 @@ class OperaProduct(Product):
     Class representing Opera products.
 
     OPERA is the Radar Programme of EUMETNET. More information can be found on
-    the `EUMETNET`_ homepage.
-
-    .. _EUMETNET <https://www.eumetnet.eu/activities/observations-programme/current-activities/opera/>
+    the `EUMETNET <https://www.eumetnet.eu/activities/observations-programme/current-activities/opera/>`_ homepage.
     """
 
     def __init__(self, product_name, description):
@@ -68,7 +66,7 @@ class OperaProduct(Product):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a GPM product.
+            filename(``str``): Filename of an Opera product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
@@ -96,8 +94,8 @@ class OperaProduct(Product):
     @property
     def default_destination(self):
         """
-        The default destination for GPM product is
-        ``GPM/<product_name>``>
+        The default destination for Opera product is
+        ``Opera/<product_name>``>
         """
         return Path("Opera") / Path(self.product_name)
 
@@ -135,7 +133,7 @@ class OperaProduct(Product):
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The GPM file to open.
+            filename(``pathlib.Path`` or ``str``): The Opera file to open.
         """
         from pansat.formats.hdf5 import HDF5File
 
