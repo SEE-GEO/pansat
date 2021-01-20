@@ -72,5 +72,3 @@ def test_download(tmp_path):
     assert start_date.year == 2018
     assert start_date.month == 6
     assert start_date.day == 1
-
-

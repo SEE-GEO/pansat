@@ -74,9 +74,7 @@ class LAADSDAACProvider(DiscreteProvider):
         """
         day = str(day)
         day = "0" * (3 - len(day)) + day
-        request_string = self._request_string.format(year=year,
-                                                     day=day,
-                                                     filename="")
+        request_string = self._request_string.format(year=year, day=day, filename="")
         response = requests.get(request_string)
         files = list(set(LAADSDAACProvider.file_pattern.findall(response.text)))
         return [f for f in files]

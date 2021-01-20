@@ -16,6 +16,7 @@ except Exception:
 
 TEST_FILE = PurePath(__file__).parent / "test_data" / "test_file.hdf5"
 
+
 @pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
 def test_dataset():
     """

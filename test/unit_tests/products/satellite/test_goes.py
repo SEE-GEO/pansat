@@ -106,6 +106,7 @@ def test_filename_to_date(product):
     date = product.filename_to_date(filename)
     assert date == datetime(2017, 3, 3, 3, 10, 8)
 
+
 def test_download(tmp_path):
     """
     Ensures that downloading a single file works.

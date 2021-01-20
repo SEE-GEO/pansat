@@ -108,14 +108,16 @@ class DiscreteProvider(DataProvider):
         files_of_day = self.get_files_by_day(year, day)
         files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
         time_deltas_start = np.array(
-            [(self.product.filename_to_date(f) - start_time).total_seconds()
-             for f in files_of_day])
+            [
+                (self.product.filename_to_date(f) - start_time).total_seconds()
+                for f in files_of_day
+            ]
+        )
         if time_deltas_start.min() > 0 and start_inclusive:
             year = time.year
             day = int(time.strftime("%j"))
             files_of_day = self.get_files_by_day(year, day)
-            files_of_day = sorted(files_of_day,
-                                  key=self.product.filename_to_date)
+            files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
             files.append(files_of_day[-1])
 
         #
@@ -126,12 +128,14 @@ class DiscreteProvider(DataProvider):
             year = time.year
             day = int(time.strftime("%j"))
             files_of_day = self.get_files_by_day(year, day)
-            files_of_day = sorted(files_of_day,
-                                  key=self.product.filename_to_date)
+            files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
 
             time_deltas_start = np.array(
-                [(self.product.filename_to_date(f) - start_time).total_seconds()
-                 for f in files_of_day])
+                [
+                    (self.product.filename_to_date(f) - start_time).total_seconds()
+                    for f in files_of_day
+                ]
+            )
             indices = np.where(time_deltas_start > 0.0)[0]
             if len(indices) > 0:
                 start_index = indices[0]
@@ -139,8 +143,11 @@ class DiscreteProvider(DataProvider):
                 start_index = -1
 
             time_deltas_end = np.array(
-                [(self.product.filename_to_date(f) - end_time).total_seconds()
-                 for f in files_of_day])
+                [
+                    (self.product.filename_to_date(f) - end_time).total_seconds()
+                    for f in files_of_day
+                ]
+            )
             indices = np.where(time_deltas_end > 0.0)[0]
             if len(indices) > 0:
                 end_index = indices[0]

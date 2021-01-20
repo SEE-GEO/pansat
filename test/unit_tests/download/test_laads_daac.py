@@ -28,4 +28,3 @@ def test_download(tmp_path):
     provider = LAADSDAACProvider(modis_terra_1km)
     files = provider.get_files_by_day(2020, 1)
     provider.download_file(files[0], tmp_path / "test.hdf")
-

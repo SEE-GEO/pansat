@@ -70,10 +70,7 @@ def download():
     parser.add_argument("--add", nargs=2, help=helpstring_add)
 
     parser.add_argument(
-        "-t0",
-        "--starttime",
-        type=datetime.datetime.fromisoformat,
-        help=helpstring_t0,
+        "-t0", "--starttime", type=datetime.datetime.fromisoformat, help=helpstring_t0,
     )
     parser.add_argument(
         "-t1", "--endtime", type=datetime.datetime.fromisoformat, help=helpstring_t1
