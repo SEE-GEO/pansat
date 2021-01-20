@@ -10,6 +10,7 @@ from abc import abstractmethod
 from datetime import timedelta
 from pathlib import Path
 from pansat.download.providers.data_provider import DataProvider
+import numpy as np
 
 
 class DiscreteProvider(DataProvider):
@@ -68,67 +69,15 @@ class DiscreteProvider(DataProvider):
         destination.mkdir(parents=True, exist_ok=True)
 
         files = self.get_files_in_range(start_time, end_time)
+        if len(files) == []:
+            files = self.get_files_in_range(start_time, end_time, True)
+
         downloaded = []
         for f in files:
             path = destination / f
             self.download_file(f, path)
             downloaded.append(path)
         return downloaded
-
-    def get_preceding_file(self, filename):
-        """
-        Return filename of the file that preceeds the given filename in time.
-
-        Args:
-            filename(``str``): The name of the file of which to find the
-                preceeding one.
-
-        Returns:
-            The filename of the file preceeding the file with the given filename
-            as ``str``.
-        """
-        time = self.product.filename_to_date(filename)
-
-        year = time.year
-        day = int((time.strftime("%j")))
-        files = self.get_files_by_day(year, day)
-
-        # If first file of day, return last file of next day.
-        i = files.index(filename)
-        if i == 0:
-            delta = timedelta(days=1)
-            time_previous = time - delta
-            year = time_previous.year
-            day = int((time_previous.strftime("%j")))
-            return self.get_files_by_day(year, day)[-1]
-        return files[i - 1]
-
-    def get_following_file(self, filename):
-        """
-        Return filename of the file that follows the given filename in time.
-
-        Args:
-            filename(``str``): The name of the file of which to find the following file.
-
-        Returns:
-            The filename of the file following the file with the given filename.
-        """
-        time = self.product.filename_to_date(filename)
-
-        year = time.year
-        day = int((time.strftime("%j")))
-        files = self.get_files_by_day(year, day)
-
-        i = files.index(filename)
-        # If last file of day, return first file of next day.
-        if i == len(files) - 1:
-            delta = timedelta(days=1)
-            following_time = time + delta
-            year = following_time.year
-            day = int((following_time.strftime("%j")))
-            return self.get_files_by_day(year, day)[0]
-
-        return files[i + 1]
 
     def get_files_in_range(self, start_time, end_time, start_inclusive=False):
         """
@@ -154,25 +103,62 @@ class DiscreteProvider(DataProvider):
         time = start_time
         files = []
 
-        while (end_time - time).total_seconds() > 0.0:
+        year = time.year
+        day = int(time.strftime("%j"))
+        files_of_day = self.get_files_by_day(year, day)
+        files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
+        time_deltas_start = np.array(
+            [
+                (self.product.filename_to_date(f) - start_time).total_seconds()
+                for f in files_of_day
+            ]
+        )
+        if time_deltas_start.min() > 0 and start_inclusive:
             year = time.year
             day = int(time.strftime("%j"))
             files_of_day = self.get_files_by_day(year, day)
+            files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
+            files.append(files_of_day[-1])
 
-            def file_filter(filename):
-                delta_start = self.product.filename_to_date(filename) - start_time
-                delta_end = self.product.filename_to_date(filename) - end_time
-                file_within_range = delta_start.total_seconds() > 0
-                file_within_range &= delta_end.total_seconds() <= 0
-                return file_within_range
+        #
+        # Go over days within range an add all included files.
+        #
 
-            files += filter(file_filter, files_of_day)
+        while (time - end_time).total_seconds() < 24 * 60 * 60:
+            year = time.year
+            day = int(time.strftime("%j"))
+            files_of_day = self.get_files_by_day(year, day)
+            files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
 
+            time_deltas_start = np.array(
+                [
+                    (self.product.filename_to_date(f) - start_time).total_seconds()
+                    for f in files_of_day
+                ]
+            )
+            indices = np.where(time_deltas_start > 0.0)[0]
+            if len(indices) > 0:
+                start_index = indices[0]
+            else:
+                start_index = -1
+
+            time_deltas_end = np.array(
+                [
+                    (self.product.filename_to_date(f) - end_time).total_seconds()
+                    for f in files_of_day
+                ]
+            )
+            indices = np.where(time_deltas_end > 0.0)[0]
+            if len(indices) > 0:
+                end_index = indices[0]
+            else:
+                end_index = -1
+
+            if start_index > 0 and start_inclusive:
+                start_index -= 1
+
+            files += files_of_day[start_index:end_index]
             time += delta
-
-        if start_inclusive:
-            f_p = self.get_preceeding_file(files[0])
-            files.insert(f_p, 0)
 
         return files
 
@@ -187,7 +173,6 @@ class DiscreteProvider(DataProvider):
             The filename of the file with the closest start time
             before the given time.
         """
-
         # Check last file from previous day
         delta = timedelta(days=1)
         previous_day = time - delta

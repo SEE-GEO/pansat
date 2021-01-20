@@ -5,17 +5,19 @@ pansat.download.providers.copernicus
 This module provides the ``CopernicusProvider`` class to download data from the
 `Copernicus data store <https://cds.climate.copernicus.eu/cdsapp#!/home>`_.
 """
+
+import logging
 from contextlib import contextmanager
 import itertools
 import os
 from pathlib import Path
 import tempfile
-import cdsapi
+from datetime import timedelta
 import numpy as np
+import cdsapi
 from pansat.download.accounts import get_identity
 from pansat.download.providers.data_provider import DataProvider
-from datetime import datetime, timedelta
-import logging
+
 
 COPERNICUS_PRODUCTS = [
     "reanalysis-era5-land",
@@ -43,7 +45,7 @@ def _create_cds_api_rc():
     file.write(f"key: {key}\n")
     file.close()
 
-    LOGGER.info("Creating file: ", open(path).read())
+    LOGGER.info("Creating file: %s", open(path).read())
     os.environ["CDSAPI_RC"] = path
     try:
         yield path
@@ -84,7 +86,8 @@ class CopernicusProvider(DataProvider):
         """
         return COPERNICUS_PRODUCTS
 
-    def get_timesteps_monthly(self, start, end):
+    @classmethod
+    def get_timesteps_monthly(cls, start, end):
         """
         Create a time range with all dates between the start and end date.
 
@@ -132,7 +135,8 @@ class CopernicusProvider(DataProvider):
 
         return dates, years
 
-    def get_timesteps_hourly(self, start, end):
+    @classmethod
+    def get_timesteps_hourly(cls, start, end):
         """
         Create a time range with all dates between the start and end date.
 
@@ -145,13 +149,12 @@ class CopernicusProvider(DataProvider):
             dates(``list``): list with all hours, days, months and years between two dates
         """
 
-        # get list with all years, months, days, hours between the two dates
         delta = end - start
-        hour = delta / 3600
+        dhour = delta / 3600
         dates = []
-        for i in range(hour.seconds + 1):
-            h = start + timedelta(hours=i)
-            dates.append(h)
+        for hour in range(dhour.seconds + 1):
+            hourdelta = start + timedelta(hours=hour)
+            dates.append(hourdelta)
 
         return dates
 
@@ -176,7 +179,7 @@ class CopernicusProvider(DataProvider):
         # open new client instance
 
         with _create_cds_api_rc():
-            c = cdsapi.Client()
+            client = cdsapi.Client()
 
             # subset region, if requested
             if self.product.domain == "global":
@@ -226,11 +229,11 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    LOGGER.info(destination, " already exists.")
-
+                    LOGGER.info(destination, "%s already exists.")
+                    files.append(out)
                 else:
                     if "pressure" in self.product.name:
-                        c.retrieve(
+                        client.retrieve(
                             self.product.name,
                             {
                                 "product_type": "monthly_averaged_reanalysis",
@@ -284,7 +287,7 @@ class CopernicusProvider(DataProvider):
                         )
 
                     else:
-                        c.retrieve(
+                        client.retrieve(
                             self.product.name,
                             {
                                 "product_type": "monthly_averaged_reanalysis",
@@ -297,11 +300,11 @@ class CopernicusProvider(DataProvider):
                             },
                             out,
                         )
-                    LOGGER.info("file downloaded and saved as", out)
 
+                    LOGGER.info("file downloaded and saved as %s", out)
                     files.append(out)
 
-                return files
+            return files
 
     def download_hourly(self, start, end, destination):
         """Downloads hourly files for given time range and stores at specified location.
@@ -324,7 +327,7 @@ class CopernicusProvider(DataProvider):
         # open new client instance
 
         with _create_cds_api_rc():
-            c = cdsapi.Client()
+            client = cdsapi.Client()
 
             # subset region, if requested
             if self.product.domain == "global":
@@ -349,7 +352,7 @@ class CopernicusProvider(DataProvider):
             files = []
 
             # send API request for each specific hour in time range
-            for idx, date in enumerate(dates):
+            for idx in np.arange(len(dates)):
                 # define download parameters for hourly download
                 year = str(dates[idx].year)
                 month = str(dates[idx].month)
@@ -392,11 +395,11 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    LOGGER.info(out, " already exists.")
+                    LOGGER.info(out, "%s already exists.")
                     files.append(out)
                 else:
                     if "pressure" in self.product.name:
-                        c.retrieve(
+                        client.retrieve(
                             self.product.name,
                             {
                                 "product_type": download_key,
@@ -451,7 +454,7 @@ class CopernicusProvider(DataProvider):
                         )
 
                     else:
-                        c.retrieve(
+                        client.retrieve(
                             self.product.name,
                             {
                                 "product_type": download_key,
@@ -466,7 +469,7 @@ class CopernicusProvider(DataProvider):
                             out,
                         )
 
-                    LOGGER.info("file downloaded and saved as", out)
+                    LOGGER.info("file downloaded and saved as %s", out)
                     files.append(out)
 
             return files

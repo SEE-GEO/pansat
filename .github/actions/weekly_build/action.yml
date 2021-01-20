@@ -1,0 +1,6 @@
+name: 'Weekly build'
+description: 'Runs slow tests and examples.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  post-entrypoint: '/cleanup.sh'

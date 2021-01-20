@@ -56,12 +56,19 @@ def test_filename_to_date(product):
 
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.usefixtures("test_identities")
-def test_download():
+def test_download(tmp_path):
     """
     Download CloudSat L1B file.
     """
     product = gpm.l2a_gprof_metopb_mhs
     t_0 = datetime(2018, 6, 1, 10)
-    t_1 = datetime(2018, 6, 1, 12)
-    product.download(t_0, t_1)
+    t_1 = datetime(2018, 6, 1, 11)
+
+    dest = gpm.l2a_gprof_metopb_mhs.default_destination
+    files = product.download(t_0, t_1, tmp_path / dest)
+    dataset = gpm.l2a_gprof_metopb_mhs.open(files[0])
+    dates = dataset["scan_time"].data
+    start_date = datetime.utcfromtimestamp(dates[0].astype(int) * 1e-9)
+    assert start_date.year == 2018
+    assert start_date.month == 6
+    assert start_date.day == 1

@@ -2,12 +2,13 @@
 Tests for the pansat.products.reanalysis.ncep module.
 """
 
+
+import random
+import sys
 from datetime import datetime
 import os
 import pytest
 import pansat.products.reanalysis.ncep as ncep
-import random
-import sys
 
 
 PRODUCTS = [
@@ -51,6 +52,10 @@ def test_matches(product):
 
 @pytest.fixture(scope="session")
 def tmpdir(tmpdir_factory):
+    """
+    Creates temporary directory for test session.
+
+    """
     tmp_dir = tmpdir_factory.mktemp(f"data{random.randint(1,300)}")
     return tmp_dir
 
@@ -62,9 +67,13 @@ HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 @pytest.mark.skipif(sys.platform.startswith("win"), reason="Does not work on Windows")
 @pytest.mark.usefixtures("test_identities")
 def test_download(tmpdir):
+    """
+    Test downloading and opening NCEP files.
+
+    """
     product = PRODUCTS[1]
-    files = product.download(1995, 1999, str(tmpdir))
+    product.download(1995, 1999, str(tmpdir))
     # open file
-    fn = tmpdir / TEST_NAMES[product.name]
-    f = product.open(str(fn))
-    f.close()
+    filename = tmpdir / TEST_NAMES[product.name]
+    data = product.open(str(filename))
+    data.close()

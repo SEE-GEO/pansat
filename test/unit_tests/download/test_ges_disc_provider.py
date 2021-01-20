@@ -24,12 +24,6 @@ def test_ges_disc_provider():
     n = len(files)
     file = files[n // 2]
 
-    following = data_provider.get_following_file(file)
-    assert following == files[n // 2 + 1]
-
-    preceding = data_provider.get_preceding_file(file)
-    assert preceding == files[n // 2 - 1]
-
     date = l2a_dpr.filename_to_date(file)
     date_file = data_provider.get_file_by_date(date)
     assert date_file == file

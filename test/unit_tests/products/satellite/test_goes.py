@@ -105,3 +105,16 @@ def test_filename_to_date(product):
     filename = FILENAMES[_id(product)]
     date = product.filename_to_date(filename)
     assert date == datetime(2017, 3, 3, 3, 10, 8)
+
+
+def test_download(tmp_path):
+    """
+    Ensures that downloading a single file works.
+    """
+    t_0 = datetime(2020, 1, 10, 0, 0)
+    t_1 = datetime(2020, 1, 10, 0, 2)
+
+    p = goes_16_l1b_radiances_c01_conus
+    files = goes_16_l1b_radiances_c01_conus.download(t_0, t_1, destination=tmp_path)
+    assert len(files) > 0
+    goes_16_l1b_radiances_c01_conus.open(files[0])
