@@ -1,5 +1,5 @@
 name: weekly build
-on: [push]
+on: [push.main]
 jobs:
   install_and_test_job:
     runs-on: self-hosted
