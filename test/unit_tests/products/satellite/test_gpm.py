@@ -6,6 +6,14 @@ import os
 import pytest
 import pansat.products.satellite.gpm as gpm
 
+HAS_HDF = False
+try:
+    from pansat.formats.hdf5 import HDF5File
+
+    HAS_HDF = True
+except Exception:
+    pass
+
 PRODUCTS = [gpm.l2a_dpr]
 TEST_NAMES = {
     str(gpm.l1c_metopb_mhs): (
@@ -23,6 +31,9 @@ TEST_NAMES = {
     str(gpm.l2a_gprof_metopb_mhs): (
         "2A.METOPB.MHS.GPROF2017v2.20161121" "-S104106-E122227.021676.V05C.HDF"
     ),
+    str(gpm.l2b_gpm_cmb): (
+        "2B.GPM.DPRGMI.2HCSHv4-1.20161124-S113145-E130417.015571.V06A.HDF5"
+    ),
 }
 TEST_TIMES = {
     str(gpm.l1c_metopb_mhs): datetime(2016, 11, 24, 11, 19, 34),
@@ -30,6 +41,7 @@ TEST_TIMES = {
     str(gpm.l2a_dpr): datetime(2018, 1, 10, 10, 27, 56),
     str(gpm.l2a_gprof_gpm_gmi): datetime(2016, 11, 24, 11, 31, 45),
     str(gpm.l2a_gprof_metopb_mhs): datetime(2016, 11, 21, 10, 41, 6),
+    str(gpm.l2b_gpm_cmb): datetime(2016, 11, 21, 10, 41, 6),
 }
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
@@ -56,6 +68,7 @@ def test_filename_to_date(product):
 
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
 def test_download(tmp_path):
     """
     Download CloudSat L1B file.
