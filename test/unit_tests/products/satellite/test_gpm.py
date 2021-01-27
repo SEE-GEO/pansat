@@ -5,7 +5,14 @@ from datetime import datetime
 import os
 import pytest
 import pansat.products.satellite.gpm as gpm
-import sys
+
+HAS_HDF = False
+try:
+    from pansat.formats.hdf5 import HDF5File
+
+    HAS_HDF = True
+except Exception:
+    pass
 
 PRODUCTS = [gpm.l2a_dpr]
 TEST_NAMES = {
@@ -61,7 +68,7 @@ def test_filename_to_date(product):
 
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Does not work on Windows")
+@pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
 def test_download(tmp_path):
     """
     Download CloudSat L1B file.
