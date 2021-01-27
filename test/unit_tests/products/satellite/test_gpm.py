@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import pytest
 import pansat.products.satellite.gpm as gpm
+import sys
 
 PRODUCTS = [gpm.l2a_dpr]
 TEST_NAMES = {
