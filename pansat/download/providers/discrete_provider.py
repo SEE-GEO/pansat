@@ -69,7 +69,7 @@ class DiscreteProvider(DataProvider):
         destination.mkdir(parents=True, exist_ok=True)
 
         files = self.get_files_in_range(start_time, end_time)
-        if len(files) == []:
+        if len(files) == 0:
             files = self.get_files_in_range(start_time, end_time, True)
 
         downloaded = []
