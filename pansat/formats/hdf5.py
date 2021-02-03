@@ -12,7 +12,7 @@ import numpy as np
 try:
     from h5py import File
 except ImportError as error:
-    print("The h5py package is required to read HDF4 files. Please install it.")
+    print("The h5py package is required to read HDF5 files. Please install it.")
     raise error
 
 

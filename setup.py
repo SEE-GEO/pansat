@@ -37,7 +37,7 @@ setuptools.setup(
         "lxml",
         "netcdf4",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.7",
     entry_points={"console_scripts": ["pansat=pansat.download.commandline:download"]},
     include_package_data=True,
 )
