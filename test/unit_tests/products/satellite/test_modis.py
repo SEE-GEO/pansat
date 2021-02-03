@@ -40,6 +40,9 @@ def test_filename_to_date(product):
     assert date == DATES[str(product)]
 
 
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.usefixtures("test_identities")
+@pytest.mark.xfail
 def test_download():
     """
     Ensure that downloading of MODIS products works.
