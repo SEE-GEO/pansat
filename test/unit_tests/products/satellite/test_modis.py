@@ -2,6 +2,7 @@
 Tests for the pansat.products.satellite.modis module.
 """
 from datetime import datetime
+import os
 import pytest
 from pansat.products.satellite.modis import modis_terra_1km, modis_terra_geo
 
@@ -19,6 +20,8 @@ DATES = {
     str(modis_terra_1km): datetime(2020, 1, 9, 0, 15),
     str(modis_terra_geo): datetime(2008, 1, 7, 0, 0),
 }
+
+HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
 @pytest.mark.parametrize("product", PRODUCTS)
