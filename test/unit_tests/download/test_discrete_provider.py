@@ -85,9 +85,9 @@ def test_last_file_of_day_included():
     """
     from pansat.download.providers import IcareProvider
     from datetime import datetime
+
     provider = IcareProvider(dardar_cloud)
     t_0 = datetime(2006, 6, 20, 22, 30)
     t_1 = datetime(2006, 6, 21, 0, 0)
     files = provider.get_files_in_range(t_0, t_1)
     assert len(files) == 1
-
