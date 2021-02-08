@@ -152,7 +152,7 @@ class DiscreteProvider(DataProvider):
             if len(indices) > 0:
                 end_index = indices[0]
             else:
-                end_index = -1
+                end_index = None
 
             if start_index > 0 and start_inclusive:
                 start_index -= 1
