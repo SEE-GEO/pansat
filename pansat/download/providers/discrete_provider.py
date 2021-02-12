@@ -114,8 +114,9 @@ class DiscreteProvider(DataProvider):
             ]
         )
         if time_deltas_start.min() > 0 and start_inclusive:
-            year = time.year
-            day = int(time.strftime("%j"))
+            previous_day = time - timedelta(days=1)
+            year = previous_day.year
+            day = int(previous_day.strftime("%j"))
             files_of_day = self.get_files_by_day(year, day)
             files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
             files.append(files_of_day[-1])
@@ -125,10 +126,11 @@ class DiscreteProvider(DataProvider):
         #
 
         while (time - end_time).total_seconds() < 24 * 60 * 60:
-            year = time.year
-            day = int(time.strftime("%j"))
-            files_of_day = self.get_files_by_day(year, day)
-            files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
+            if time != start_time:
+                year = time.year
+                day = int(time.strftime("%j"))
+                files_of_day = self.get_files_by_day(year, day)
+                files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
 
             time_deltas_start = np.array(
                 [

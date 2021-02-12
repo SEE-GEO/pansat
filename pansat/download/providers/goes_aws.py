@@ -27,6 +27,7 @@ GOES_AWS_PRODUCTS = [
     "GOES-17-ABI-L1b-RadM",
 ]
 
+_BUCKET_CACHE = {}
 
 class GOESAWSProvider(DiscreteProvider):
     """
@@ -62,22 +63,22 @@ class GOESAWSProvider(DiscreteProvider):
 
     def _get_keys(self, prefix):
 
+        global _BUCKET_CACHE
+
         bucket = self.bucket_name
         kwargs = {"Bucket": bucket, "Prefix": prefix}
 
-        while True:
-            response = self.client.list_objects_v2(**kwargs)
-            for obj in response["Contents"]:
-                key = obj["Key"]
-                if key.startswith(prefix):
-                    filename = Path(key).name
-                    if self.product.matches(filename):
-                        yield filename
-
-            try:
-                kwargs["ContinuationToken"] = response["NextContinuationToken"]
-            except KeyError:
-                break
+        files = []
+        if not prefix in _BUCKET_CACHE:
+            while True:
+                response = self.client.list_objects_v2(**kwargs)
+                files += [Path(obj["Key"]).name for obj in response["Contents"]]
+                try:
+                    kwargs["ContinuationToken"] = response["NextContinuationToken"]
+                except KeyError:
+                    break
+            _BUCKET_CACHE[prefix] = files
+        return _BUCKET_CACHE[prefix]
 
     def _get_request_url(self, year, day, hour, filename):
         url = f"https://noaa-goes{self.product.series_index}.s3.amazonaws.com/"
@@ -97,7 +98,7 @@ class GOESAWSProvider(DiscreteProvider):
             for the given day.
         """
         prefix = f"{self.product_name}/{year}/{day:03}"
-        files = list(self._get_keys(prefix))
+        files = [f for f in self._get_keys(prefix) if self.product.matches(f)]
         return files
 
     def download_file(self, filename, destination):
