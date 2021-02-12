@@ -29,6 +29,7 @@ GOES_AWS_PRODUCTS = [
 
 _BUCKET_CACHE = {}
 
+
 class GOESAWSProvider(DiscreteProvider):
     """
     Dataprovider class for product available from NOAA GOES16 bucket on Amazon
