@@ -205,7 +205,8 @@ def parse_identity_file():
     """
     if _IDENTITY_FILE.exists():
         global _IDENTITIES
-        _IDENTITIES = json.loads(open(_IDENTITY_FILE).read())
+        with open(_IDENTITY_FILE) as file:
+            _IDENTITIES = json.loads(file.read())
 
         LOGGER.info("Parsed identity file: %s", _IDENTITY_FILE)
 

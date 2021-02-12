@@ -40,12 +40,10 @@ def _create_cds_api_rc():
     _, path = tempfile.mkstemp()
     url, key = get_identity("Copernicus")
     # Write key to file.
-    file = open(path, "w")
-    file.write(f"url: {url}\n")
-    file.write(f"key: {key}\n")
-    file.close()
+    with open(path, "w") as file:
+        file.write(f"url: {url}\n")
+        file.write(f"key: {key}\n")
 
-    LOGGER.info("Creating file: %s", open(path).read())
     os.environ["CDSAPI_RC"] = path
     try:
         yield path
