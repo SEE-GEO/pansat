@@ -36,6 +36,7 @@ from pansat.download.providers.noaa import NOAAProvider
 from pansat.download.providers.meteo_france import GeoservicesProvider
 from pansat.download.providers.laads_daac import LAADSDAACProvider
 from pansat.download.providers.goes_aws import GOESAWSProvider
+from pansat.download.providers.iowa_state import IowaStateProvider
 
 ALL_PROVIDERS = [
     CopernicusProvider,
@@ -45,4 +46,5 @@ ALL_PROVIDERS = [
     GeoservicesProvider,
     LAADSDAACProvider,
     GOESAWSProvider,
+    IowaStateProvider,
 ]

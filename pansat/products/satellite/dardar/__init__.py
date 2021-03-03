@@ -15,13 +15,7 @@ import numpy as np
 from pansat.products.product_description import ProductDescription
 import pansat.download.providers as providers
 from pansat.products.product import Product
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class DardarProduct(Product):
@@ -84,7 +78,7 @@ class DardarProduct(Product):
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find a provider for the" f" product {self.name}."
             )
         return available_providers[0]

@@ -7,25 +7,19 @@ the global data product of radiosoundings: IGRA.
 
 
 """
-
 import re
 import os
 from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 from pathlib import Path
 from math import radians, cos, sin, asin, sqrt
 import zipfile
 
+import pandas as pd
+
 import pansat.download.providers as providers
 from pansat.products.product import Product
-import pandas as pd
-from dateutil.relativedelta import relativedelta
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class IGRASoundings(Product):
@@ -193,7 +187,7 @@ class IGRASoundings(Product):
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find provider for the product {IGRASoundings.name}."
             )
         return available_providers[0]

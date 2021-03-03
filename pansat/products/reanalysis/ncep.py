@@ -15,13 +15,7 @@ from pathlib import Path
 import xarray
 import pansat.download.providers as providers
 from pansat.products.product import Product
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class NCEPReanalysis(Product):
@@ -85,7 +79,7 @@ class NCEPReanalysis(Product):
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find provider for the product {self.name}."
             )
         return available_providers[0]
