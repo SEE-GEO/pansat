@@ -5,7 +5,7 @@ pansat.download.providers.iowa_state
 
 This module provides a data provider class to download MRMS products from an
 archive located at https://mtarchive.geol.iastate.edu/, which is hosted by the
- Department of Geological and atmospheric sciences at Iowa State University.
+Department of Geological and atmospheric sciences at Iowa State University.
 
 This provider doesn't require any user authentication to download data.
 """
