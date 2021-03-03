@@ -79,7 +79,7 @@ class DiscreteProvider(DataProvider):
             downloaded.append(path)
         return downloaded
 
-    def get_files_in_range(self, start_time, end_time, start_inclusive=False):
+    def get_files_in_range(self, start_time, end_time, start_inclusive=True):
         """
         Get all files within time range.
 
@@ -113,7 +113,7 @@ class DiscreteProvider(DataProvider):
                 for f in files_of_day
             ]
         )
-        if time_deltas_start.min() > 0 and start_inclusive:
+        if time_deltas_start.min(initial=-1) > 0 and start_inclusive:
             previous_day = time - timedelta(days=1)
             year = previous_day.year
             day = int(previous_day.strftime("%j"))

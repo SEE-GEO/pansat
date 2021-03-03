@@ -26,15 +26,15 @@ from pansat.download import providers
 from pansat.products.product import Product
 from pansat.exceptions import NoAvailableProvider, MissingDependency
 
-
-class MRMSPrecipRate(Product):
+class MRMSProduct(Product):
     """
     MRMS radar-only instantaneous precipitation rates.
     """
 
-    def __init__(self):
-        self.name = "MRMS_PrecipRate"
-        self.filename_regexp = re.compile(r"PrecipRate_00\.00_\d{8}-\d{6}.grib2\.?g?z?")
+    def __init__(self, name, variable_name):
+        self.name = f"MRMS_{name}"
+        self.variable_name = variable_name
+        self.filename_regexp = re.compile(name + r"_00\.00_\d{8}-\d{6}.grib2\.?g?z?")
 
     @property
     def default_destination(self):
@@ -48,7 +48,7 @@ class MRMSPrecipRate(Product):
         return datetime.strptime(name, "00_%Y%m%d-%H%M%S")
 
     def __str__(self):
-        return "MRMS_PrecipRate"
+        return self.name
 
     def _get_provider(self):
         """ Find a provider that provides the product. """
@@ -126,7 +126,9 @@ class MRMSPrecipRate(Product):
         else:
             dataset = xr.load_dataset(filename, engine="cfgrib")
 
-        return dataset.rename({"paramId_0": "precip_rate"})
+        return dataset.rename({"paramId_0": self.variable_name})
 
 
-mrms_precip_rate = MRMSPrecipRate()
+mrms_precip_rate = MRMSProduct("PrecipRate", "precip_rate")
+mrms_radar_quality_index = MRMSProduct("RadarQualityIndex", "radar_quality_index")
+mrms_precip_type = MRMSProduct("PrecipFlag", "precip_flag")

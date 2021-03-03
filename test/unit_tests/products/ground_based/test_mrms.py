@@ -1,16 +1,24 @@
 from datetime import datetime
 
 import pytest
-from pansat.products.ground_based.mrms import mrms_precip_rate
+from pansat.products.ground_based.mrms import (mrms_precip_rate,
+                                               mrms_precip_type,
+                                               mrms_radar_quality_index)
 
+_PRODUCTS = {
+    "PrecipRate_00.00_20210101-020400.grib2.gz": mrms_precip_rate,
+    "PrecipType_00.00_20210101-020400.grib2.gz": mrms_precip_type,
+    "RadarQualityIndex_00.00_20210101-020400.grib2.gz": mrms_radar_quality_index,
+}
 
-def test_filename_to_date():
+@pytest.mark.parametrize("filename", _PRODUCTS)
+def test_filename_to_date(filename):
     """
     Ensure that filename to date extracts the right time from a given
     filename.
     """
-    filename = "PrecipRate_00.00_20210101-020400.grib2.gz"
-    time = mrms_precip_rate.filename_to_date(filename)
+    product = _PRODUCTS[filename]
+    time = product.filename_to_date(filename)
     assert time.year == 2021
     assert time.month == 1
     assert time.day == 1
@@ -18,14 +26,16 @@ def test_filename_to_date():
     assert time.minute == 4
 
 
-@pytest.mark.xfail(reason="Requires cfgrib package.")
-def test_download_and_open(tmp_path):
+#@pytest.mark.xfail(reason="Requires cfgrib package.")
+@pytest.mark.parametrize("filename", _PRODUCTS)
+def test_download_and_open(tmp_path, filename):
     """
     Ensure that the download method work as expected.
     """
+    product = _PRODUCTS[filename]
     start_time = datetime(2021, 1, 1, 0, 0, 0)
     end_time = datetime(2021, 1, 1, 0, 0, 1)
-    files = mrms_precip_rate.download(start_time, end_time, destination=tmp_path)
+    files = product.download(start_time, end_time, destination=tmp_path)
     assert len(files) == 1
 
     dataset = mrms_precip_rate.open(files[0])

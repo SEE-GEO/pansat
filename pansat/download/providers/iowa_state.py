@@ -16,7 +16,11 @@ import requests
 
 from pansat.download.providers.discrete_provider import DiscreteProvider
 
-PRODUCTS = {"MRMS_PrecipRate": ["mrms", "ncep", "PrecipRate"]}
+PRODUCTS = {
+    "MRMS_PrecipRate": ["mrms", "ncep", "PrecipRate"],
+    "MRMS_RadarQualityIndex": ["mrms", "ncep", "RadarQualityIndex"],
+    "MRMS_PrecipFlag": ["mrms", "ncep", "PrecipFlag"],
+}
 
 
 class IowaStateProvider(DiscreteProvider):
@@ -69,7 +73,7 @@ class IowaStateProvider(DiscreteProvider):
         date = datetime(year=year, month=1, day=1) + timedelta(days=day - 1)
         url = self.get_url(date)
         with requests.get(url) as r:
-            return self.product.filename_regexp.findall(r.text)
+            return list(set(self.product.filename_regexp.findall(r.text)))
 
     def download_file(self, filename, destination):
         """
