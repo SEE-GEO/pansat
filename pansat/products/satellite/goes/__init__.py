@@ -134,8 +134,18 @@ class GOESProduct(Product):
         else:
             destination = Path(destination)
         destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
 
+        if isinstance(self.channel, list):
+            files = []
+            for c in self.channel:
+                prod = GOESProduct(
+                    self.series_index, self.level, self.name, self.region, c
+                )
+                p = provider(prod)
+                files += p.download(start_time, end_time, destination)
+            return files
+
+        provider = provider(self)
         return provider.download(start_time, end_time, destination)
 
     def open(self, filename):
@@ -170,20 +180,24 @@ goes_16_l1b_radiances_c01_full_disk = GOES16L1BRadiances("F", 1)
 goes_16_l1b_radiances_c02_full_disk = GOES16L1BRadiances("F", 2)
 goes_16_l1b_radiances_c03_full_disk = GOES16L1BRadiances("F", 3)
 goes_16_l1b_radiances_c04_full_disk = GOES16L1BRadiances("F", 4)
-goes_16_l1b_radiances_all_full_disk = GOES16L1BRadiances("F", list(range(16)))
+goes_16_l1b_radiances_rgb_full_disk = GOES16L1BRadiances("F", [1, 2, 3])
+goes_16_l1b_radiances_all_full_disk = GOES16L1BRadiances("F", list(range(1, 17)))
 goes_16_l1b_radiances_c01_conus = GOES16L1BRadiances("C", 1)
 goes_16_l1b_radiances_c02_conus = GOES16L1BRadiances("C", 2)
 goes_16_l1b_radiances_c03_conus = GOES16L1BRadiances("C", 3)
 goes_16_l1b_radiances_c04_conus = GOES16L1BRadiances("C", 4)
+goes_17_l1b_radiances_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
 goes_16_l1b_radiances_all_conus = GOES16L1BRadiances("C", list(range(16)))
 
 goes_17_l1b_radiances_c01_full_disk = GOES17L1BRadiances("F", 1)
 goes_17_l1b_radiances_c02_full_disk = GOES17L1BRadiances("F", 2)
 goes_17_l1b_radiances_c03_full_disk = GOES17L1BRadiances("F", 3)
 goes_17_l1b_radiances_c04_full_disk = GOES17L1BRadiances("F", 4)
-goes_17_l1b_radiances_all_full_disk = GOES17L1BRadiances("F", list(range(16)))
+goes_17_l1b_radiances_rgb_full_disk = GOES17L1BRadiances("F", [1, 2, 3])
+goes_17_l1b_radiances_all_full_disk = GOES17L1BRadiances("F", list(range(1, 17)))
 goes_17_l1b_radiances_c01_conus = GOES17L1BRadiances("C", 1)
 goes_17_l1b_radiances_c02_conus = GOES17L1BRadiances("C", 2)
 goes_17_l1b_radiances_c03_conus = GOES17L1BRadiances("C", 3)
 goes_17_l1b_radiances_c04_conus = GOES17L1BRadiances("C", 4)
-goes_17_l1b_radiances_all_conus = GOES17L1BRadiances("C", list(range(16)))
+goes_17_l1b_radiances_rgb_conus = GOES17L1BRadiances("C", [1, 2, 3])
+goes_17_l1b_radiances_all_conus = GOES17L1BRadiances("C", list(range(1, 17)))
