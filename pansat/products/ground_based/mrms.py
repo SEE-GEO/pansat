@@ -28,16 +28,24 @@ from pansat.exceptions import NoAvailableProvider, MissingDependency
 
 class MRMSProduct(Product):
     """
-    MRMS radar-only instantaneous precipitation rates.
+    This class represents MRMS products.
     """
-
     def __init__(self, name, variable_name):
+        """
+        Create new MRMS product.
+
+        Args:
+            name: The name of the MRMS product as it appears in the file signature.
+            variable_name: The name to use for the data variable when opened as
+                  xarray Dataset.
+        """
         self.name = f"MRMS_{name}"
         self.variable_name = variable_name
         self.filename_regexp = re.compile(name + r"_00\.00_\d{8}-\d{6}.grib2\.?g?z?")
 
     @property
     def default_destination(self):
+        """Stores MRMS files in a folder called MRMS."""
         return Path("MRMS")
 
     def filename_to_date(self, filename):
@@ -131,4 +139,4 @@ class MRMSProduct(Product):
 
 mrms_precip_rate = MRMSProduct("PrecipRate", "precip_rate")
 mrms_radar_quality_index = MRMSProduct("RadarQualityIndex", "radar_quality_index")
-mrms_precip_type = MRMSProduct("PrecipFlag", "precip_flag")
+mrms_precip_flag = MRMSProduct("PrecipFlag", "precip_flag")
