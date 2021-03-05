@@ -3,8 +3,10 @@ This file contains tests for the GOES AWS provider.
 """
 
 from pansat.download.providers import GOESAWSProvider
-from pansat.products.satellite.goes import (goes_16_l1b_radiances_c01_conus,
-                                            goes_17_l1b_radiances_c01_conus)
+from pansat.products.satellite.goes import (
+    goes_16_l1b_radiances_c01_conus,
+    goes_17_l1b_radiances_c01_conus,
+)
 
 
 def test_list_files():
