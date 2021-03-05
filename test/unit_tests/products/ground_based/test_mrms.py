@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 from pansat.products.ground_based.mrms import (mrms_precip_rate,
-                                               mrms_precip_type,
+                                               mrms_precip_flag,
                                                mrms_radar_quality_index)
 
 _PRODUCTS = {
