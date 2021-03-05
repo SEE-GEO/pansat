@@ -65,12 +65,13 @@ class GOESAWSProvider(DiscreteProvider):
     def _get_keys(self, prefix):
 
         global _BUCKET_CACHE
+        cache_id = (prefix, self.product.series_index)
 
         bucket = self.bucket_name
         kwargs = {"Bucket": bucket, "Prefix": prefix}
 
         files = []
-        if not prefix in _BUCKET_CACHE:
+        if cache_id not in _BUCKET_CACHE:
             while True:
                 response = self.client.list_objects_v2(**kwargs)
                 files += [Path(obj["Key"]).name for obj in response["Contents"]]
@@ -78,8 +79,8 @@ class GOESAWSProvider(DiscreteProvider):
                     kwargs["ContinuationToken"] = response["NextContinuationToken"]
                 except KeyError:
                     break
-            _BUCKET_CACHE[prefix] = files
-        return _BUCKET_CACHE[prefix]
+            _BUCKET_CACHE[cache_id] = files
+        return _BUCKET_CACHE[cache_id]
 
     def _get_request_url(self, year, day, hour, filename):
         url = f"https://noaa-goes{self.product.series_index}.s3.amazonaws.com/"
