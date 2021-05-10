@@ -60,7 +60,7 @@ class MODISProduct(Product):
         return date
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
@@ -81,7 +81,7 @@ class MODISProduct(Product):
         return Path("MODIS")
 
     def __str__(self):
-        """ The full product name. """
+        """The full product name."""
         platform = "Terra"
         if self.product_name[:2] == "MY":
             platform = "Aqua"

@@ -71,7 +71,7 @@ class DardarProduct(Product):
         return datetime.strptime(filename, "%Y%j%H%M%S")
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
@@ -92,7 +92,7 @@ class DardarProduct(Product):
         return Path("Dardar") / Path(self.name)
 
     def __str__(self):
-        """ The full product name. """
+        """The full product name."""
         return "Dardar_" + self.name
 
     def download(self, start_time, end_time, destination=None, provider=None):

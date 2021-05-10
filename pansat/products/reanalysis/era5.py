@@ -107,7 +107,7 @@ class ERA5Product(Product):
         return datetime.strptime(filename, pattern)
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
@@ -128,7 +128,7 @@ class ERA5Product(Product):
         return Path("ERA5") / Path(self.name)
 
     def __str__(self):
-        """ The full product name. """
+        """The full product name."""
         return self.name
 
     def download(self, start, end, destination=None):
