@@ -13,13 +13,7 @@ import xarray
 
 import pansat.download.providers as providers
 from pansat.products.product import Product
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class GOESProduct(Product):
@@ -89,14 +83,14 @@ class GOESProduct(Product):
         return date
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find a provider for the" f" product {self.name}."
             )
         return available_providers[0]
@@ -110,7 +104,7 @@ class GOESProduct(Product):
         return Path(f"GOES-{self.series_index}") / Path(str(self))
 
     def __str__(self):
-        """ The full product name. """
+        """The full product name."""
         return f"GOES-{self.series_index}-ABI-L{self.level}-{self.name}{self.region}"
 
     def download(self, start_time, end_time, destination=None, provider=None):

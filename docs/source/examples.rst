@@ -17,6 +17,7 @@ Examples
    notebooks/products/goes.ipynb
    notebooks/products/igra.ipynb
    notebooks/products/opera.ipynb
+   notebooks/products/mrms.ipynb
 
 .. toctree::
    :maxdepth: 2

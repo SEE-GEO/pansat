@@ -14,13 +14,7 @@ import numpy as np
 import pansat.download.providers as providers
 from pansat.products.product import Product
 from pansat.products.product_description import ProductDescription
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class GPMProduct(Product):
@@ -42,7 +36,8 @@ class GPMProduct(Product):
         else:
             variant = ""
         self.filename_regexp = re.compile(
-            rf"{self.level}{variant}\.{self.platform}\.{self.sensor}\.{self.name}([\w-]*).(\d{{8}})-"
+            rf"{self.level}{variant}\.{self.platform}\.{self.sensor}"
+            rf"\.{self.name}([\w-]*).(\d{{8}})-"
             r"S(\d{6})-E(\d{6})\.(\w*)\.(\w*).HDF5"
         )
 
@@ -85,14 +80,14 @@ class GPMProduct(Product):
         return date
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find a provider for the" f" product {str(self)}."
             )
         return available_providers[0]

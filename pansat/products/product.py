@@ -46,4 +46,4 @@ class Product(ABC):
 
     @abstractmethod
     def __str__(self):
-        """ Should return a string representation of the product name. """
+        """Should return a string representation of the product name."""

@@ -19,3 +19,4 @@ Providers
    providers/goes_aws
    providers/laads_daac
    providers/noaa
+   providers/iowa_state

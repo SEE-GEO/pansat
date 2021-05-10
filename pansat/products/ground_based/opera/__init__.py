@@ -15,13 +15,7 @@ import pyproj
 import pansat.download.providers as providers
 from pansat.products.product import Product
 from pansat.products.product_description import ProductDescription
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class OperaProduct(Product):
@@ -79,14 +73,14 @@ class OperaProduct(Product):
         return date
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find a provider for the" f" product {self.name}."
             )
         return available_providers[0]

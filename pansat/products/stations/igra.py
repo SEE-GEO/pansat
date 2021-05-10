@@ -7,25 +7,19 @@ the global data product of radiosoundings: IGRA.
 
 
 """
-
 import re
 import os
 from datetime import datetime, date
+from dateutil.relativedelta import relativedelta
 from pathlib import Path
 from math import radians, cos, sin, asin, sqrt
 import zipfile
 
+import pandas as pd
+
 import pansat.download.providers as providers
 from pansat.products.product import Product
-import pandas as pd
-from dateutil.relativedelta import relativedelta
-
-
-class NoAvailableProviderError(Exception):
-    """
-    Exception indicating that no suitable provider could be found for
-    a product.
-    """
+from pansat.exceptions import NoAvailableProvider
 
 
 class IGRASoundings(Product):
@@ -156,7 +150,7 @@ class IGRASoundings(Product):
         return distance
 
     def find_nearest(self, lat, lon, locations):
-        """Find location of closest station to a given set of coordinates.  """
+        """Find location of closest station to a given set of coordinates."""
         distances = locations.apply(
             lambda row: self.dist(lat, lon, row["lat"], row["lon"]), axis=1
         )
@@ -186,14 +180,14 @@ class IGRASoundings(Product):
         return os.path.basename(filename)
 
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS
             if str(self) in p.get_available_products()
         ]
         if not available_providers:
-            raise NoAvailableProviderError(
+            raise NoAvailableProvider(
                 f"Could not find provider for the product {IGRASoundings.name}."
             )
         return available_providers[0]
@@ -207,7 +201,7 @@ class IGRASoundings(Product):
         return Path("IGRA") / Path(IGRASoundings.name)
 
     def __str__(self):
-        """ Get product name. """
+        """Get product name."""
         return IGRASoundings.name
 
     def get_filename(self, product_path):
