@@ -1,15 +1,18 @@
 from datetime import datetime
 
 import pytest
-from pansat.products.ground_based.mrms import (mrms_precip_rate,
-                                               mrms_precip_flag,
-                                               mrms_radar_quality_index)
+from pansat.products.ground_based.mrms import (
+    mrms_precip_rate,
+    mrms_precip_flag,
+    mrms_radar_quality_index,
+)
 
 _PRODUCTS = {
     "PrecipRate_00.00_20210101-020400.grib2.gz": mrms_precip_rate,
     "PrecipType_00.00_20210101-020400.grib2.gz": mrms_precip_flag,
     "RadarQualityIndex_00.00_20210101-020400.grib2.gz": mrms_radar_quality_index,
 }
+
 
 @pytest.mark.parametrize("filename", _PRODUCTS)
 def test_filename_to_date(filename):
@@ -26,7 +29,7 @@ def test_filename_to_date(filename):
     assert time.minute == 4
 
 
-#@pytest.mark.xfail(reason="Requires cfgrib package.")
+# @pytest.mark.xfail(reason="Requires cfgrib package.")
 @pytest.mark.parametrize("filename", _PRODUCTS)
 def test_download_and_open(tmp_path, filename):
     """

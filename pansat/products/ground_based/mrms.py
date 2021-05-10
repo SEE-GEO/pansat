@@ -26,10 +26,12 @@ from pansat.download import providers
 from pansat.products.product import Product
 from pansat.exceptions import NoAvailableProvider, MissingDependency
 
+
 class MRMSProduct(Product):
     """
     This class represents MRMS products.
     """
+
     def __init__(self, name, variable_name):
         """
         Create new MRMS product.

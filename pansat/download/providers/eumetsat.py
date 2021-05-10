@@ -117,7 +117,9 @@ class EUMETSATProvider(DataProvider):
 
         with requests.get(url, params=parameters) as r:
             datasets = r.json()
-        links = [f["properties"]["links"]["data"][0]["href"] for f in datasets["features"]]
+        links = [
+            f["properties"]["links"]["data"][0]["href"] for f in datasets["features"]
+        ]
         return links
 
     def download(self, start, end, destination):
