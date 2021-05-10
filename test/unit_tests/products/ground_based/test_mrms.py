@@ -7,7 +7,7 @@ from pansat.products.ground_based.mrms import (mrms_precip_rate,
 
 _PRODUCTS = {
     "PrecipRate_00.00_20210101-020400.grib2.gz": mrms_precip_rate,
-    "PrecipType_00.00_20210101-020400.grib2.gz": mrms_precip_type,
+    "PrecipType_00.00_20210101-020400.grib2.gz": mrms_precip_flag,
     "RadarQualityIndex_00.00_20210101-020400.grib2.gz": mrms_radar_quality_index,
 }
 

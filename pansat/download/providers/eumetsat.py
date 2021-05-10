@@ -28,7 +28,6 @@ def _retrieve_access_token(key, secret):
     b64 = base64.b64encode((key + ":" + secret).encode())
     header = "Authorization: Basic " + b64.decode()
     data = {"grant_type": "client_credentials"}
-    print(key, secret, header)
     url = "http://api.eumetsat.int/token"
 
     r = requests.post(
@@ -100,7 +99,6 @@ class EUMETSATProvider(DataProvider):
         super().__init__()
         self.product = product
 
-
     def get_available_products():
         return _PRODUCTS.keys()
 
@@ -124,6 +122,8 @@ class EUMETSATProvider(DataProvider):
 
     def download(self, start, end, destination):
         destination = Path(destination)
+
+        user, password = get_identity("EUMETSAT")
         token = AccessToken(user, password)
 
         links = self.get_files_in_range(start, end)
@@ -143,3 +143,5 @@ class EUMETSATProvider(DataProvider):
                 with open(dest, "wb") as f:
                     shutil.copyfileobj(r.raw, f)
                 downloads.append(dest)
+
+        return downloads
