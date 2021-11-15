@@ -59,9 +59,12 @@ class GesdiscProvider(DiscreteProvider):
     @classmethod
     def download_url(cls, url, destination):
         auth = accounts.get_identity("GES DISC")
-        r = requests.get(url, auth=auth)
+        response = requests.get(url, auth=auth)
+        url = response.url
+        response = requests.get(url, auth=auth)
+
         with open(destination, "wb") as f:
-            for chunk in r:
+            for chunk in response:
                 f.write(chunk)
 
     @property
