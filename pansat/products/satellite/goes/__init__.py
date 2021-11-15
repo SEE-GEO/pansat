@@ -180,7 +180,7 @@ goes_16_l1b_radiances_c01_conus = GOES16L1BRadiances("C", 1)
 goes_16_l1b_radiances_c02_conus = GOES16L1BRadiances("C", 2)
 goes_16_l1b_radiances_c03_conus = GOES16L1BRadiances("C", 3)
 goes_16_l1b_radiances_c04_conus = GOES16L1BRadiances("C", 4)
-goes_17_l1b_radiances_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
+goes_16_l1b_radiances_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
 goes_16_l1b_radiances_all_conus = GOES16L1BRadiances("C", list(range(16)))
 
 goes_17_l1b_radiances_c01_full_disk = GOES17L1BRadiances("F", 1)

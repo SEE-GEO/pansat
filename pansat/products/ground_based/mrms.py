@@ -135,8 +135,7 @@ class MRMSProduct(Product):
                 rmtree(temp)
         else:
             dataset = xr.load_dataset(filename, engine="cfgrib")
-
-        return dataset.rename({"paramId_0": self.variable_name})
+        return dataset.rename({"unknown": self.variable_name})
 
 
 mrms_precip_rate = MRMSProduct("PrecipRate", "precip_rate")
