@@ -193,7 +193,7 @@ def _parse_products():
             platform = description.properties["platform"]
             sensor = description.properties["sensor"]
             name = description.properties["name"]
-            version = int(description.properties["version"])
+            version = description.properties["version"]
             variant = description.properties["variant"]
             globals()[python_name] = GPMProduct(
                 level, platform, sensor, name, version, variant, description
