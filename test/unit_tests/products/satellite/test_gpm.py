@@ -71,7 +71,7 @@ def test_filename_to_date(product):
 @pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
 def test_download(tmp_path):
     """
-    Download CloudSat L1B file.
+    Download l2a_gprof_metopb_mhs file
     """
     product = gpm.l2a_gprof_metopb_mhs
     t_0 = datetime(2018, 6, 1, 10)
