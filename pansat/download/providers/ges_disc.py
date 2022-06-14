@@ -59,10 +59,23 @@ class GesdiscProvider(DiscreteProvider):
     @classmethod
     def download_url(cls, url, destination):
         auth = accounts.get_identity("GES DISC")
-        r = requests.get(url, auth=auth)
-        with open(destination, "wb") as f:
-            for chunk in r:
-                f.write(chunk)
+        # If only requests.get(url, auth=auth) is used, the requests library
+        # will search in ~/.netrc credentials for the machine
+        # urs.earthdata.nasa.gov, but `auth` is not used as the authorization
+        # is after a redirection
+        # The method below handles the authorization after a redirection
+        with requests.Session() as session:
+            # Set credentials
+            session.auth = auth
+
+            # Get data
+            redirect = session.get(url)
+            response = session.get(redirect.url)
+
+            # Write to disk
+            with open(destination, "wb") as f:
+                for chunk in response:
+                    f.write(chunk)
 
     @property
     def _request_string(self):

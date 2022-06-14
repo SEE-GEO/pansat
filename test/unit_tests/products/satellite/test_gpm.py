@@ -32,7 +32,7 @@ TEST_NAMES = {
         "2A.METOPB.MHS.GPROF2017v2.20161121" "-S104106-E122227.021676.V05C.HDF"
     ),
     str(gpm.l2b_gpm_cmb): (
-        "2B.GPM.DPRGMI.2HCSHv4-1.20161124-S113145-E130417.015571.V06A.HDF5"
+        "2B.GPM.DPRGMI.CORRA2022.20161124-S113145-E130417.015571.V07A.HDF5"
     ),
 }
 TEST_TIMES = {
@@ -71,7 +71,7 @@ def test_filename_to_date(product):
 @pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
 def test_download(tmp_path):
     """
-    Download CloudSat L1B file.
+    Download l2a_gprof_metopb_mhs file
     """
     product = gpm.l2a_gprof_metopb_mhs
     t_0 = datetime(2018, 6, 1, 10)
