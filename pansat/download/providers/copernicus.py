@@ -4,6 +4,8 @@ pansat.download.providers.copernicus
 
 This module provides the ``CopernicusProvider`` class to download data from the
 `Copernicus data store <https://cds.climate.copernicus.eu/cdsapp#!/home>`_.
+After creating an account, you need to install a key for the CDS API and the python library cdsapi
+following these steps: https://cds.climate.copernicus.eu/api-how-to
 """
 
 import logging
