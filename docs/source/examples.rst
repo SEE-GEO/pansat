@@ -23,4 +23,5 @@ Examples
    :maxdepth: 2
    :caption: Additional functionality
 
+   notebooks/products/account_manager.ipynb
    notebooks/products/catalogue.ipynb

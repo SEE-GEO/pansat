@@ -235,13 +235,22 @@ def add_identity(provider, user_name):
         provider(``str``): Name of the data provider class for which the user
             name is valid.
         user(``str``): User name for the data provider.
+                       ! Note that for Copernicus,you have to use the url from your $HOME/.cdsapirc
+                         For more info: https://cds.climate.copernicus.eu/api-how-to
     """
     if not _PANSAT_SECRET:
         authenticate()
-    print(
-        f"Please enter password for provider '{provider}' and username"
-        f" '{user_name}':"
-    )
+
+    if provider == "Copernicus":
+        print(
+            f"Please enter the key for provider '{provider}' with url"
+            f" '{user_name}':"
+        )
+    else:
+        print(
+            f"Please enter password for provider '{provider}' and username"
+            f" '{user_name}':"
+        )
     password = getpass.getpass()
     password_encrypted = encrypt(password)
     user_name_encrypted = encrypt(user_name)
