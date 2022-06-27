@@ -74,7 +74,8 @@ class GOESAWSProvider(DiscreteProvider):
         if cache_id not in _BUCKET_CACHE:
             while True:
                 response = self.client.list_objects_v2(**kwargs)
-                files += [Path(obj["Key"]).name for obj in response["Contents"]]
+                if "Contents" in response:
+                    files += [Path(obj["Key"]).name for obj in response["Contents"]]
                 try:
                     kwargs["ContinuationToken"] = response["NextContinuationToken"]
                 except KeyError:
