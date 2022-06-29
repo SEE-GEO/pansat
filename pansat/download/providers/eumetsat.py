@@ -149,9 +149,19 @@ class EUMETSATProvider(DataProvider):
         for link in data["links"]:
             identifier = link["title"]
             url = link["href"]
+<<<<<<< HEAD
             collections.append(Collection(identifier, url))
 
         return collections
+=======
+            print(identifier, url)
+            collections.append(Collection(identifier, url))
+
+        return collections
+
+
+
+>>>>>>> 18251ab (Updated Eumetsat provider.)
 
     def __init__(self, product):
         """
@@ -194,6 +204,7 @@ class EUMETSATProvider(DataProvider):
             "format": "json",
             "pi": product_id,
             "si": 0,
+<<<<<<< HEAD
             "c": self.page_size,
             "dtstart": start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "dtend": end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -219,6 +230,20 @@ class EUMETSATProvider(DataProvider):
                 links += map(get_link, datasets["features"])
             start_index += self.page_size
 
+=======
+            "dtstart": start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "dtend": end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+        }
+        url = self.base_url + f"/data/search-products/os"
+
+        print(url)
+        with requests.get(url, params=parameters) as r:
+            print(str(r))
+            datasets = r.json()
+        links = [
+            f["properties"]["links"]["data"][0]["href"] for f in datasets["features"]
+        ]
+>>>>>>> 18251ab (Updated Eumetsat provider.)
         return links
 
 

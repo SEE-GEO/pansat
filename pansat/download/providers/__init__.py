@@ -55,6 +55,6 @@ ALL_PROVIDERS = [
     HimawariAWSProvider,
     IowaStateProvider,
     EUMETSATProvider,
-    UciProvider
+    UciProvider,
     NOAANCEIProvider
 ]
