@@ -38,6 +38,7 @@ from pansat.download.providers.laads_daac import LAADSDAACProvider
 from pansat.download.providers.goes_aws import GOESAWSProvider
 from pansat.download.providers.iowa_state import IowaStateProvider
 from pansat.download.providers.eumetsat import EUMETSATProvider
+from pansat.download.providers.uci import UciProvider
 
 ALL_PROVIDERS = [
     CopernicusProvider,
@@ -49,4 +50,5 @@ ALL_PROVIDERS = [
     GOESAWSProvider,
     IowaStateProvider,
     EUMETSATProvider,
+    UciProvider
 ]
