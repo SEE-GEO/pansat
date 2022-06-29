@@ -57,18 +57,21 @@ class PersiannProduct(Product):
         bytes = gzip.open(filename).read()
         shape = (3000, 9000)
 
-        data = np.frombuffer(bytes, "i2").reshape(shape)
-        lons = np.linspace(0.02, 358.98, 9000)
-        lats = np.linspace(58.98, -58.98, 3000)
+        data = np.frombuffer(bytes, ">i2").reshape(shape)
+        lons = np.linspace(0.02, 359.98, 9000)
+        lats = np.linspace(59.98, -59.98, 3000)
 
         date = self.filename_to_date(filename)
+
+        data = data / 100
+        data[data < 0] = np.nan
 
         return xr.Dataset({
             "time": (("time",), [date]),
             "latitude": (("latitude",), lats),
             "longitude": (("longitude",), lons),
             "precipitation": (("time", "latitude", "longitude"),
-                              data[np.newaxis] / 100)
+                              data[np.newaxis])
         })
 
     def _get_provider(self):

@@ -38,7 +38,7 @@ class GPMProduct(Product):
         self.filename_regexp = re.compile(
             rf"{self.level}{variant}\.{self.platform}\.{self.sensor}"
             rf"\.{self.name}([\w-]*).(\d{{8}})-"
-            r"S(\d{6})-E(\d{6})\.(\w*)\.(\w*).HDF5"
+            r"S(\d{6})-E(\d{6})\.(\w*)\.((\w*)\.)?(HDF5|h5|nc|nc4)"
         )
 
     @property
@@ -74,8 +74,14 @@ class GPMProduct(Product):
             filename.
         """
         path = Path(filename)
+        print(filename, self.filename_regexp)
         match = self.filename_regexp.match(path.name)
-        date_string = match.group(2) + match.group(3)
+
+        # Some files of course have to follow a different convetion.
+        if match is None:
+            date_string = "20" + path.name.split("_")[2]
+        else:
+            date_string = match.group(2) + match.group(3)
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
         return date
 

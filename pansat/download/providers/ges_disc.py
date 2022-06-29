@@ -32,7 +32,7 @@ class GesdiscProvider(DiscreteProvider):
     """
 
     base_url = "https://gpm1.gesdisc.eosdis.nasa.gov"
-    file_pattern = re.compile('"[^"]*.HDF5"')
+    file_pattern = re.compile('"[^"]*.(?:HDF5|h5|nc|nc4)"')
 
     def __init__(self, product):
         """
@@ -83,6 +83,44 @@ class GesdiscProvider(DiscreteProvider):
         base_url = "https://gpm1.gesdisc.eosdis.nasa.gov/data/"
         return base_url + GPM_PRODUCTS[str(self.product)] + "/{year}/{day}/{filename}"
 
+    def get_files_by_year(self, year):
+        """
+        Return list of available files for a given day of a year.
+
+        Args:
+            year(``int``): The year for which to look up the files.
+
+        Return:
+            A list of strings containing the filenames that are available
+            for the given year.
+        """
+        request_string = self._request_string.format(year=year, day="", filename="")
+        auth = accounts.get_identity("GES DISC")
+        response = requests.get(request_string, auth=auth)
+        files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+        return [f[1:-1] for f in files]
+
+    def get_files_by_month(self, year, month):
+        """
+        Return list of available files for a given day of a year.
+
+        Args:
+            year(``int``): The year for which to look up the files.
+
+        Return:
+            A list of strings containing the filenames that are available
+            for the given year.
+        """
+        request_string = self._request_string.format(
+            year=year,
+            day=f"{month:02}",
+            filename=""
+        )
+        auth = accounts.get_identity("GES DISC")
+        response = requests.get(request_string, auth=auth)
+        files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+        return [f[1:-1] for f in files]
+
     def get_files_by_day(self, year, day):
         """
         Return list of available files for a given day of a year.
@@ -95,12 +133,23 @@ class GesdiscProvider(DiscreteProvider):
             A list of strings containing the filename that are available
             for the given day.
         """
+        month = (datetime.datetime(year=year, month=1, day=1) +
+                 datetime.timedelta(days=day)).month
         day = str(day)
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
+        print(request_string)
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+        print(files)
+        if len(files) == 0:
+            month = f"{month:02}"
+            request_string = self._request_string.format(year=year, day=month, filename="")
+            print(request_string)
+            response = requests.get(request_string, auth=auth)
+            files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+            print(files)
         return [f[1:-1] for f in files]
 
     def _download_with_redirect(self, url, destination):
@@ -111,7 +160,6 @@ class GesdiscProvider(DiscreteProvider):
             url(``str``): The URL of the file to retrieve.
             destination(``str``): Destination to store the data.
         """
-
         auth = accounts.get_identity("GES DISC")
         response = requests.get(url, auth=auth)
         url = response.url
@@ -134,6 +182,9 @@ class GesdiscProvider(DiscreteProvider):
         year = t.year
         day = t.strftime("%j")
         day = "0" * (3 - len(day)) + day
+        if self.product.variant in ["MO"]:
+            day = ""
+        if self.product.variant.startswith("DAY"):
+            day = f"{t.month:02}"
         url = self._request_string.format(year=year, day=day, filename=filename)
-
         self._download_with_redirect(url, destination)

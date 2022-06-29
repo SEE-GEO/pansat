@@ -31,6 +31,7 @@ def get_links(url):
     """
     if url not in _CACHE:
         _CACHE[url] = urlopen(url)
+    _CACHE[url] = urlopen(url)
     html = _CACHE[url]
     soup = BeautifulSoup(html)
     files = []
