@@ -20,7 +20,8 @@ from pansat.exceptions import CommunicationError
 _PRODUCTS = {
     "MSG_Seviri": "EO:EUM:DAT:MSG:HRSEVIRI",
     "MSG_Seviri_IO": "EO:EUM:DAT:MSG:HRSEVIRI-IODC",
-    "MHS_L1B": "EO:EUM:DAT:METOP:MHSL1"
+    "MHS_L1B": "EO:EUM:DAT:METOP:MHSL1",
+    "AVHRR_L1B": "EO:EUM:DAT:METOP:AVHRRL1",
 }
 
 
@@ -148,13 +149,9 @@ class EUMETSATProvider(DataProvider):
         for link in data["links"]:
             identifier = link["title"]
             url = link["href"]
-            print(identifier, url)
             collections.append(Collection(identifier, url))
 
         return collections
-
-
-
 
     def __init__(self, product):
         """
@@ -174,53 +171,85 @@ class EUMETSATProvider(DataProvider):
             )
         super().__init__()
         self.product = product
+        self.page_size = 100
+        self._token = None
+
+    @property
+    def token(self):
+        if self._token is None:
+            user, password = get_identity("EUMETSAT")
+            self._token = AccessToken(user, password)
+        if not self._token.valid:
+            user, password = get_identity("EUMETSAT")
+            self._token.renew(user, password)
+        return self._token
 
     def get_available_products():
         return _PRODUCTS.keys()
 
-    def get_files_in_range(self, start, end):
+    def get_files_in_range(self, start, end, bounding_box=None):
         product_id = _PRODUCTS[str(self.product)]
 
         parameters = {
             "format": "json",
             "pi": product_id,
             "si": 0,
+            "c": self.page_size,
             "dtstart": start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "dtend": end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }
+        if bounding_box is not None:
+            bb_str = ",".join(map(str, bounding_box))
+            parameters["bbox"] = bb_str
         url = self.base_url + f"/data/search-products/os"
 
-        print(url)
-        with requests.get(url, params=parameters) as r:
-            print(str(r))
-            datasets = r.json()
-        links = [
-            f["properties"]["links"]["data"][0]["href"] for f in datasets["features"]
-        ]
+        links = []
+
+        # Helper function to extract links from response data.
+        def get_link(feature):
+            return feature["properties"]["links"]["data"][0]["href"]
+
+        total_results = self.page_size
+        start_index = 0
+        while start_index < total_results:
+            parameters["si"] = start_index
+            with requests.get(url, params=parameters) as r:
+                datasets = r.json()
+                features = datasets["features"]
+                links += map(get_link, datasets["features"])
+            start_index += self.page_size
+
         return links
+
+
+    def download_file(self, link, destination):
+
+        destination = Path(destination)
+        if not destination.exists():
+            destination.mkdir(exist_ok=True, parents=True)
+
+        params = {"access_token": str(self.token)}
+        with requests.get(link, stream=True, params=params) as r:
+            if not r.ok:
+                raise CommunicationError(
+                    f"Downloading the file {link} from the EUMETSAT data "
+                    f"store failed token failed with the following"
+                    f"error:\n {r.text}."
+                )
+            filename = link.split("/")[-1]
+            dest = destination / (filename + ".zip")
+            with open(dest, "wb") as f:
+                shutil.copyfileobj(r.raw, f)
+        return dest
 
     def download(self, start, end, destination):
         destination = Path(destination)
 
-        user, password = get_identity("EUMETSAT")
-        token = AccessToken(user, password)
-
         links = self.get_files_in_range(start, end)
         downloads = []
 
-        for l in links:
-            params = {"access_token": str(token)}
-            with requests.get(l, stream=True, params=params) as r:
-                if not r.ok:
-                    raise CommunicationError(
-                        f"Downloading the file {l} from the EUMETSAT data "
-                        f"store failed token failed with the following"
-                        f"error:\n {r.text}."
-                    )
-                filename = l.split("/")[-1]
-                dest = destination / (filename + ".zip")
-                with open(dest, "wb") as f:
-                    shutil.copyfileobj(r.raw, f)
-                downloads.append(dest)
+        for link in links:
+            filename = self.download_file(link, destination)
+            downloads.append(filename)
 
         return downloads
