@@ -103,9 +103,7 @@ class PolygonROI:
     @property
     def lon_max(self):
         return self.points[:, 0].max()
-
-    @property
-    def lon_ur(self):
+@property def lon_ur(self):
         return self.points[:, 0].max()
 
     @property
@@ -128,7 +126,6 @@ class PolygonROI:
         """
         from shapely.geometry import Polygon
         return Polygon(self.points)
-
 
 def _get_lats_and_lons(data):
     """
