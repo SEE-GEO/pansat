@@ -316,7 +316,7 @@ class ProductDescription(ConfigParser):
                 data = np.squeeze(data)
             for index, dimension in enumerate(variable.dimensions):
                 coordinates[dimension] = np.arange(data.shape[index])
-                attrs = variable.get_attributes()
+            attrs = variable.get_attributes()
             variables[variable.name] = (variable.dimensions, data, attrs)
         for coordinate in self.coordinates:
             data = coordinate.get_data(file_handle, context)

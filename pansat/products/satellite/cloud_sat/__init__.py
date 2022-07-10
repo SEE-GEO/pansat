@@ -28,9 +28,12 @@ class CloudSatProduct(Product):
             product.
     """
 
-    def __init__(self, name, description):
-        self.name = name
+    def __init__(self, product_name, level, version, description):
+        self.product_name = product_name
+        self.level = level
+        self.version = version
         self._description = description
+        name = level.upper() + "-" + product_name.upper()
         self.filename_regexp = re.compile(
             r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P_R([\d]*)_E([\d]*)\.*"
         )
@@ -89,9 +92,13 @@ class CloudSatProduct(Product):
         """
         return Path("CloudSat") / Path(self.name)
 
+    @property
+    def name(self):
+        return f"CloudSat_{self.level}-{self.product_name}"
+
     def __str__(self):
         """The full product name."""
-        return "CloudSat_" + self.name
+        return f"CloudSat_{self.level}-{self.product_name}"
 
     def download(self, start_time, end_time, destination=None, provider=None):
         """
@@ -217,7 +224,9 @@ def _parse_products():
             description = ProductDescription(filename)
             python_name = filename.name.split(".")[0]
             product_name = description.name
-            globals()[python_name] = CloudSatProduct(product_name, description)
+            level = description.properties["level"]
+            version = description.properties["version"]
+            globals()[python_name] = CloudSatProduct(product_name, level, version, description)
 
 
 _parse_products()

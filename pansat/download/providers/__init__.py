@@ -31,7 +31,7 @@ Attributes:
 from pansat.download.providers.data_provider import DataProvider
 from pansat.download.providers.copernicus import CopernicusProvider
 from pansat.download.providers.icare import IcareProvider
-from pansat.download.providers.ges_disc import GesdiscProvider
+from pansat.download.providers.ges_disc import GesdiscProvider, Disc2Provider
 from pansat.download.providers.noaa import NOAAProvider
 from pansat.download.providers.meteo_france import GeoservicesProvider
 from pansat.download.providers.laads_daac import LAADSDAACProvider
@@ -40,11 +40,14 @@ from pansat.download.providers.himawari_aws import HimawariAWSProvider
 from pansat.download.providers.iowa_state import IowaStateProvider
 from pansat.download.providers.eumetsat import EUMETSATProvider
 from pansat.download.providers.uci import UciProvider
+from pansat.download.providers.noaa_ncei import NOAANCEIProvider
+
 
 ALL_PROVIDERS = [
     CopernicusProvider,
     IcareProvider,
     GesdiscProvider,
+    Disc2Provider,
     NOAAProvider,
     GeoservicesProvider,
     LAADSDAACProvider,
@@ -53,4 +56,5 @@ ALL_PROVIDERS = [
     IowaStateProvider,
     EUMETSATProvider,
     UciProvider
+    NOAANCEIProvider
 ]
