@@ -139,17 +139,13 @@ class GesdiscProvider(DiscreteProvider):
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
-        print(request_string)
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
-        print(files)
         if len(files) == 0:
             month = f"{month:02}"
             request_string = self._request_string.format(year=year, day=month, filename="")
-            print(request_string)
             response = requests.get(request_string, auth=auth)
             files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
-            print(files)
         return [f[1:-1] for f in files]
 
     def _download_with_redirect(self, url, destination):
@@ -188,3 +184,48 @@ class GesdiscProvider(DiscreteProvider):
             day = f"{t.month:02}"
         url = self._request_string.format(year=year, day=day, filename=filename)
         self._download_with_redirect(url, destination)
+
+
+class Disc2Provider(GesdiscProvider):
+    """
+    Dataprovider class for for products available from the
+    gpm1.gesdisc.eosdis.nasa.gov domain.
+    """
+
+    base_url = "https://disc2.gesdisc.eosdis.nasa.gov"
+    file_pattern = re.compile('"[^"]*.nc4"')
+
+    def __init__(self, product):
+        """
+        Create new GesDisc provider.
+
+        Args:
+            product: The product to download.
+        """
+        self.product_name = product.name
+        super().__init__(product)
+
+    @classmethod
+    def get_available_products(cls):
+        """
+        Return the names of products available from this data provider.
+
+        Return:
+            A list of strings containing the names of the products that can
+            be downloaded from this data provider.
+        """
+        return ["gpm_mergeir"]
+
+    @classmethod
+    def download_url(cls, url, destination):
+        auth = accounts.get_identity("GES DISC")
+        r = requests.get(url, auth=auth)
+        with open(destination, "wb") as f:
+            for chunk in r:
+                f.write(chunk)
+
+    @property
+    def _request_string(self):
+        """The URL containing the data files for the given product."""
+        base_url = "https://disc2.gesdisc.eosdis.nasa.gov"
+        return base_url + "/data/MERGED_IR/GPM_MERGIR.1" + "/{year}/{day}/{filename}"
