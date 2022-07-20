@@ -30,13 +30,13 @@ def get_links(url):
         the given URL.
     """
     if url not in _CACHE:
-        _CACHE[url] = urlopen(url)
-    _CACHE[url] = urlopen(url)
-    html = _CACHE[url]
-    soup = BeautifulSoup(html)
-    files = []
-    for link in soup.findAll('a'):
-        files.append(link.get('href'))
+        html = urlopen(url).read()
+        soup = BeautifulSoup(html, features="html.parser")
+        files = []
+        for link in soup.findAll('a'):
+            files.append(link.get('href'))
+        _CACHE[url] = files
+    files = _CACHE[url]
     return files
 
 
