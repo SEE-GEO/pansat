@@ -26,6 +26,8 @@ setuptools.setup(
         "pyproj",
         "appdirs",
         "boto3",
+        "paramiko",
+        "shapely"
     ],
     setup_requires=["pytest-runner"],
     tests_require=[

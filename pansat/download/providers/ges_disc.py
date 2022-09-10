@@ -14,6 +14,7 @@ import os
 import pathlib
 import re
 import tempfile
+import xml.etree.ElementTree as ET
 
 import requests
 
@@ -138,6 +139,7 @@ class GesdiscProvider(DiscreteProvider):
         day = str(day)
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
+        print(request_string)
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
@@ -184,6 +186,25 @@ class GesdiscProvider(DiscreteProvider):
             day = f"{t.month:02}"
         url = self._request_string.format(year=year, day=day, filename=filename)
         self._download_with_redirect(url, destination)
+
+    def download_metadata(self, filename):
+        """
+        Download metadata for given file.
+
+        Args:
+            filename(``str``): The name of the file to download.
+
+        Return:
+            The metadata in XML formaton
+        """
+        t = self.product.filename_to_date(filename)
+        year = t.year
+        day = t.strftime("%j")
+        day = "0" * (3 - len(day)) + day
+        url = self._request_string.format(year=year, day=day, filename=filename) + ".xml"
+
+        response = requests.get(url)
+        return ET.fromstring(response.text)
 
 
 class Disc2Provider(GesdiscProvider):

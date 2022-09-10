@@ -10,6 +10,7 @@ from abc import abstractmethod
 from datetime import timedelta
 from pathlib import Path
 from pansat.download.providers.data_provider import DataProvider
+from pansat.time import to_datetime
 import numpy as np
 
 
@@ -62,6 +63,9 @@ class DiscreteProvider(DataProvider):
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
+        start_time = to_datetime(start_time)
+        end_time = to_datetime(end_time)
+
         if not destination:
             destination = self.product.default_destination
         else:
@@ -100,11 +104,9 @@ class DiscreteProvider(DataProvider):
 
         """
         delta = timedelta(days=1)
-        time = start_time
-        files = []
 
-        year = time.year
-        day = int(time.strftime("%j"))
+        year = start_time.year
+        day = int(start_time.strftime("%j"))
         files_of_day = self.get_files_by_day(year, day)
         files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
         time_deltas_start = np.array(
@@ -115,15 +117,19 @@ class DiscreteProvider(DataProvider):
         )
         if ((len(time_deltas_start) == 0 or time_deltas_start.min() > 0)
             and start_inclusive):
-            previous_day = time - timedelta(days=1)
+            previous_day = start_time - timedelta(days=1)
             year = previous_day.year
             day = int(previous_day.strftime("%j"))
-            files_of_day = self.get_files_by_day(year, day)
-            files_of_day = sorted(files_of_day, key=self.product.filename_to_date)
+            files = self.get_files_by_day(year, day)
+            files_of_day = (sorted(files, key=self.product.filename_to_date)
+                            + files_of_day)
 
         #
         # Go over days within range an add all included files.
         #
+
+        time = start_time
+        files = []
 
         while (time - end_time).total_seconds() < 24 * 60 * 60:
             if time != start_time:
@@ -138,6 +144,7 @@ class DiscreteProvider(DataProvider):
                     for f in files_of_day
                 ]
             )
+
             indices = np.where(time_deltas_start > 0.0)[0]
             if len(indices) > 0:
                 start_index = indices[0]

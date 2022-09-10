@@ -8,6 +8,7 @@ PERSIANN suite or precipitation retrieval algorithms.
 from datetime import datetime, timedelta
 import gzip
 from pathlib import Path
+import re
 
 import numpy as np
 import xarray as xr
@@ -66,13 +67,14 @@ class PersiannProduct(Product):
         data = data / 100
         data[data < 0] = np.nan
 
-        return xr.Dataset({
+        dataset = xr.Dataset({
             "time": (("time",), [date]),
             "latitude": (("latitude",), lats),
             "longitude": (("longitude",), lons),
             "precipitation": (("time", "latitude", "longitude"),
                               data[np.newaxis])
         })
+        return dataset
 
     def _get_provider(self):
         """Find a provider that provides the product."""
@@ -125,6 +127,7 @@ class CCS(PersiannProduct):
     }
 
     def __init__(self, resolution=1):
+        self.filename_regexp = re.compile("rgccs1h(\d{7}).bin.gz")
         super().__init__(resolution=resolution)
 
     @property

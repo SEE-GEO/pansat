@@ -34,6 +34,11 @@ class SFTPConnection:
         self.host = host
         self.provider = provider
 
+        self.transport = None
+        self.sftp = None
+        self._connect()
+
+    def _connect(self):
         user_name, key = get_identity(self.provider)
         key = paramiko.RSAKey.from_private_key(open(key, "r"))
         self.transport = paramiko.Transport(self.host)
@@ -61,7 +66,16 @@ class SFTPConnection:
             destination: Path to the file to which to write
                 the results.
         """
-        self.connection.sftp.getfo(path, open(destination, "wb"))
+        self.sftp.getfo(path, open(destination, "wb"))
+
+    def ensure_connection(self):
+        """
+        Ensure that SSH connection is still alive.
+        """
+        try:
+            self.transport.send_ignore()
+        except EOFError:
+            self._connect()
 
     def __del__(self):
         """Close connection."""
@@ -100,8 +114,12 @@ class CloudSatDPCProvider(DiscreteProvider):
         Return:
             List of files available for the given day.
         """
+        self.connection = SFTPConnection(
+            "www.cloudsat.cira.colostate.edu", "CloudSatDPC"
+        )
         try:
             directory = f"/Data/{PRODUCTS[self.product.name]}/{year:04}/{day:03}/"
+            self.connection.ensure_connection()
             return self.connection.list_files(directory)
         except FileNotFoundError:
             return []
@@ -119,4 +137,5 @@ class CloudSatDPCProvider(DiscreteProvider):
         year = date.year
         day = (date - datetime(date.year, 1, 1)).days + 1
         path = f"/Data/{PRODUCTS[self.product.name]}/" f"{year:04}/{day:03}/{filename}"
+        self.connection.ensure_connection()
         self.connection.download(path, destination)

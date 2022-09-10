@@ -249,6 +249,7 @@ class ProductDescription(ConfigParser):
         self.coordinates = []
         self.variables = []
         self.attributes = []
+        self.callback = None
         self._name = ""
         self.read(filename)
         self._parse_config_file()
@@ -271,6 +272,8 @@ class ProductDescription(ConfigParser):
                 self.variables.append(Variable(section_name, section))
             elif section_type == "attribute":
                 self.attributes.append(Variable(section_name, section))
+            elif section_type == "callback":
+                self.callback = section.get("callback", None)
             else:
                 raise UnknownTypeError(
                     "Type should be one of ['dimension', "
@@ -310,6 +313,7 @@ class ProductDescription(ConfigParser):
         """
         variables = {}
         coordinates = {}
+        attributes = {}
         for variable in self.variables:
             data = variable.get_data(file_handle, context)
             if len(variable.dimensions) < len(data.shape):
@@ -324,7 +328,11 @@ class ProductDescription(ConfigParser):
                 data = np.squeeze(data)
             attrs = coordinate.get_attributes()
             coordinates[coordinate.name] = (coordinate.dimensions, data, attrs)
-        return variables, coordinates
+        for attribute in self.attributes:
+            value = attribute.get_data(file_handle, context)
+            attributes[attribute.name] = value
+
+        return variables, coordinates, attributes
 
     def to_xarray_dataset(self, file_handle, context=None):
         """
@@ -339,5 +347,13 @@ class ProductDescription(ConfigParser):
         """
         if not context:
             context = {}
-        variables, dimensions = self._get_data(file_handle, context)
-        return xarray.Dataset(variables, dimensions)
+        variables, dimensions, attributes = self._get_data(file_handle, context)
+        dataset = xarray.Dataset(data_vars=variables,
+                                 coords=dimensions,
+                                 attrs=attributes)
+
+        if self.callback is not None:
+            callback = context[self.callback]
+            callback(dataset, file_handle)
+
+        return dataset

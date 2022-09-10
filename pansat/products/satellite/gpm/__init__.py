@@ -7,9 +7,11 @@ GPM products.
 """
 import re
 from datetime import datetime
+from itertools import dropwhile
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 import pansat.download.providers as providers
 from pansat.products.product import Product
@@ -74,7 +76,6 @@ class GPMProduct(Product):
             filename.
         """
         path = Path(filename)
-        print(filename, self.filename_regexp)
         match = self.filename_regexp.match(path.name)
 
         # Some files of course have to follow a different convetion.
@@ -82,6 +83,20 @@ class GPMProduct(Product):
             date_string = "20" + path.name.split("_")[2]
         else:
             date_string = match.group(2) + match.group(3)
+        date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
+        return date
+
+    def filename_to_start_time(self, filename):
+        path = Path(filename)
+        match = self.filename_regexp.match(path.name)
+        date_string = match.group(2) + match.group(3)
+        date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
+        return date
+
+    def filename_to_end_time(self, filename):
+        path = Path(filename)
+        match = self.filename_regexp.match(path.name)
+        date_string = match.group(2) + match.group(4)
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
         return date
 
@@ -271,6 +286,7 @@ class GPMMergeIR():
         match = self.filename_regexp.match(path.name)
         date_string = match.group(1)
         date = datetime.strptime(date_string, "%Y%m%d%H")
+        self.variant = ""
         return date
 
     def _get_provider(self):
@@ -341,3 +357,108 @@ class GPMMergeIR():
 
 
 gpm_mergeir = GPMMergeIR()
+
+
+def _imerg_parse_time(seconds_since_1970):
+    """
+    Helper function to convert time from IMERG HDF5 files to
+    numpy datetime.
+    """
+    return (np.datetime64("1970-01-01T00:00:00") +
+            seconds_since_1970[:].astype("timedelta64[s]"))
+
+
+def _gpm_l1c_parse_time(scan_time_group):
+    """
+    Helper function to convert time from GPM L1C to
+    numpy datetime.
+    """
+    year = scan_time_group["Year"][:]
+    month = scan_time_group["Month"][:]
+    day = scan_time_group["DayOfMonth"][:]
+    hour = scan_time_group["Hour"][:]
+    minute = scan_time_group["Minute"][:]
+    second = scan_time_group["Second"][:]
+    milli_second = scan_time_group["MilliSecond"][:]
+
+    return pd.to_datetime(pd.DataFrame({
+        "year": year,
+        "month": month,
+        "day": day,
+        "hour": hour,
+        "minute": minute,
+        "second": second
+    }))
+    return scan_time
+
+
+def parse_l1c_header(dataset, file_handle):
+    """
+    Callback to parse header of GPM L1C file.
+
+    Args:
+        dataset: ``xarray.Dataset`` containing the data loaded from the file.
+        file_handle: File handle to the ``h5py`` ``File`` object.
+    """
+    attrs = {}
+    for attr in file_handle.attrs["FileHeader"].decode().split("\n"):
+        try:
+            key, value = attr.split("=")
+            attrs[key] = value[:-1]
+        # If we can't split it, it's not an attribute.
+        except ValueError:
+            pass
+    dataset.attrs.update(attrs)
+
+
+def parse_frequencies(field):
+    """
+    Callback to parse frequencies from GPM L1C files.
+
+    Args:
+        field: The h5py variable containing the brightness temperatures.
+    """
+    lines = field.attrs["LongName"].decode().split()
+    freqs = []
+    c = 1
+    c_name = f"{c})"
+
+    for w1, w2 in zip(lines[:-1], lines[1:]):
+        if w1 == c_name:
+            freqs.append(float(w2.split("+")[0]))
+            c += 1
+            c_name = f"{c})"
+    return np.array(freqs)
+
+
+def parse_offsets(field):
+    """
+    Callback to parse frequency-offsets from GPM L1C files.
+
+    Args:
+        field: The h5py variable containing the brightness temperatures.
+    """
+    lines = field.attrs["LongName"].decode().split()
+    lines.append("x")
+    lines.append("x")
+    offs = []
+    c = 1
+    c_name = f"{c})"
+    for w1, w2, w3, w4 in zip(lines[:-4], lines[1:-2], lines[2: -1], lines[3:]):
+        if w1 == c_name:
+            freq = w2.split("+")
+            if len(freq) > 1:
+                offs.append(float(freq[1][1:]))
+            elif w3.startswith("+"):
+                if w3 == "+/-":
+                    offs.append(float(w4))
+                elif w3.startswith("+/-"):
+                    offs.append(float(w3[3:]))
+                else:
+                    offs.append(float(w3[1:]))
+            else:
+                offs.append(0.0)
+            c += 1
+            c_name = f"{c})"
+
+    return np.array(offs)

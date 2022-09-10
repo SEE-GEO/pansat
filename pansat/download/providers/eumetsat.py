@@ -96,6 +96,9 @@ class AccessToken:
         """
         self.__init__(key, secret)
 
+    def ensure_valid(self):
+        if not self.valid:
+            self.renew()
 
 class Collection:
     """
@@ -216,6 +219,9 @@ class EUMETSATProvider(DataProvider):
         while start_index < total_results:
             parameters["si"] = start_index
             with requests.get(url, params=parameters) as r:
+
+                r.raise_for_status()
+
                 datasets = r.json()
                 features = datasets["features"]
                 links += map(get_link, datasets["features"])
@@ -246,7 +252,9 @@ class EUMETSATProvider(DataProvider):
         if not destination.exists():
             destination.mkdir(exist_ok=True, parents=True)
 
+        self.token.ensure_valid()
         params = {"access_token": str(self.token)}
+
         with requests.get(link, stream=True, params=params) as r:
             if not r.ok:
                 raise CommunicationError(

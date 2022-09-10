@@ -115,7 +115,12 @@ class NOAANCEIProvider(DiscreteProvider):
         url = f"{BASE_URL}/{NCEI_PRODUCTS[self.product.name]}/{year:04}/{month:02}/{filename}"
 
         response = requests.get(url)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
+            url = f"{BASE_URL}/{NCEI_PRODUCTS[self.product.name]}/{year:04}/{filename}"
+            response = requests.get(url)
+            response.raise_for_status()
 
         with open(destination, "wb") as output:
             for chunk in response:
