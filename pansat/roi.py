@@ -67,6 +67,68 @@ class ROI:
             )
         self._components[i] = val
 
+    def to_geometry(self):
+        """
+        Return representation of ROI as ``shapely.geometry.Polygon``.
+        """
+        from shapely.geometry import Polygon
+        return Polygon([
+            [self.lon_min, self.lat_min],
+            [self.lon_max, self.lat_min],
+            [self.lon_max, self.lat_max],
+            [self.lon_min, self.lat_max],
+        ])
+
+
+class PolygonROI:
+    def __init__(self, points):
+        self.points = points
+
+    @property
+    def lon_min(self):
+        return self.points[:, 0].min()
+
+    @property
+    def lon_ll(self):
+        return self.points[:, 0].min()
+
+    @property
+    def lat_min(self):
+        return self.points[:, 1].min()
+
+    @property
+    def lat_ll(self):
+        return self.points[:, 1].min()
+
+    @property
+    def lon_max(self):
+        return self.points[:, 0].max()
+
+    @property
+    def lon_ur(self):
+        return self.points[:, 0].max()
+
+    @property
+    def lat_max(self):
+        return self.points[:, 1].max()
+
+    @property
+    def lat_ur(self):
+        return self.points[:, 1].max()
+
+    def __iter__(self):
+        yield from self.points
+
+    def __repr__(self):
+        return f"PolyROI({self.points})"
+
+    def to_geometry(self):
+        """
+        Return representation of ROI as ``shapely.geometry.Polygon``.
+        """
+        from shapely.geometry import Polygon
+        return Polygon(self.points)
+
 
 def _get_lats_and_lons(data):
     """
