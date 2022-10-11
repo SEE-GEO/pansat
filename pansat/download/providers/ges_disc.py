@@ -33,7 +33,7 @@ class GesdiscProvider(DiscreteProvider):
     """
 
     base_url = "https://gpm1.gesdisc.eosdis.nasa.gov"
-    file_pattern = re.compile('"[^"]*.(?:HDF5|h5|nc|nc4)"')
+    file_pattern = re.compile('"[^"]*\.(?:HDF5|h5|nc|nc4)"')
 
     def __init__(self, product):
         """
@@ -139,7 +139,6 @@ class GesdiscProvider(DiscreteProvider):
         day = str(day)
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
-        print(request_string)
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
