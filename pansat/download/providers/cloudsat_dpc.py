@@ -13,8 +13,10 @@ from pansat.download.accounts import get_identity
 from pansat.download.providers.discrete_provider import DiscreteProvider
 
 
-PRODUCTS = {"CloudSat_2C-ICE": "2C-ICE.P1_R05"}
-
+PRODUCTS = {
+    "CloudSat_2C-ICE": "2C-ICE.P1_R05",
+    "CloudSat_2B-CLDCLASS": "2B-CLDCLASS.P1_R05"
+}
 
 ######################################################################
 # SFTP Connection
