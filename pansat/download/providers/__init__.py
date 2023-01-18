@@ -44,6 +44,7 @@ from pansat.download.providers.uci import UciProvider
 =======
 >>>>>>> 456b7b4 (Added CloudSat DPC provider and updated CloudSat products to include 2C-ICE.)
 from pansat.download.providers.noaa_ncei import NOAANCEIProvider
+from pansat.download.providers.cloudnet import CloudnetProvider
 
 
 ALL_PROVIDERS = [
@@ -59,5 +60,6 @@ ALL_PROVIDERS = [
     IowaStateProvider,
     EUMETSATProvider,
     UciProvider,
-    NOAANCEIProvider
+    NOAANCEIProvider,
+    CloudnetProvider
 ]

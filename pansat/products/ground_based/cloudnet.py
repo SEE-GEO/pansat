@@ -7,15 +7,29 @@ from pansat.products.product import Product
 from pansat.download import providers
 
 
-class CloudNetProduct(Product):
+class CloudnetProduct(Product):
     """
+    A Cloudnet product.
     """
-    def __init__(self, product_name, description):
+    def __init__(self, product_name, description, location=None):
+        """
+        product_name: The name of the product.
+
+
+
+        """
         self.product_name = product_name
         self._description = description
-        self.filename_regexp = re.compile(
-            rf"(\d{{8}})_([\w-]*)_{self.product_name}[-\w]*.nc"
-        )
+        self.location = location
+
+        if location is not None:
+            self.filename_regexp = re.compile(
+                rf"(\d{{8}})_{location}_[-\w\d]*.nc"
+            )
+        else:
+            self.filename_regexp = re.compile(
+                rf"(\d{{8}})_([\w-]*)_[-\w\d]*.nc"
+            )
 
     @property
     def description(self):
@@ -39,7 +53,7 @@ class CloudNetProduct(Product):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a GPM product.
+            filename(``str``): Filename of a Cloudnet product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
@@ -48,12 +62,13 @@ class CloudNetProduct(Product):
         parts = filename.split("/")
         if len(parts) > 1:
             filename = parts[-1]
-        print(rf"(\d{{8}})_\w*_{self.product_name}[-\w]*.nc")
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
+
         date_string = match.group(1)
         date = datetime.strptime(date_string, "%Y%m%d")
         return date
+
 
     def _get_provider(self):
         """ Find a provider that provides the product. """
@@ -64,19 +79,19 @@ class CloudNetProduct(Product):
         ]
         if not available_providers:
             raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {self.name}."
+                f"Could not find a provider for the" f" product {self}."
             )
         return available_providers[0]
 
     @property
     def default_destination(self):
         """
-        The default location for CloudNet products is cloudnet/<product_name>
+        The default location for Cloudnet products is cloudnet/<product_name>
         """
         return Path("cloudnet") / Path(self.product_name)
 
     def __str__(self):
-        s = f"CloudNet_{self.product_name}"
+        s = f"Cloudnet_{self.product_name}"
         return s
 
     def download(self, start_time, end_time, destination=None, provider=None):
@@ -108,9 +123,10 @@ class CloudNetProduct(Product):
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The GPM file to open.
+            filename(``pathlib.Path`` or ``str``): The Cloudnet file to open.
         """
         return xr.load_dataset(filename)
 
 
-l2_iwc = CloudNetProduct("iwc", "IWC calculated from Z-T method.")
+l2_iwc = CloudnetProduct("iwc", "IWC calculated from Z-T method.")
+l1_radar = CloudnetProduct("radar", "L1b radar data.")
