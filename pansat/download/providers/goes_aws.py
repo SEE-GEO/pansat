@@ -25,6 +25,9 @@ GOES_AWS_PRODUCTS = [
     "GOES-17-ABI-L1b-RadC",
     "GOES-17-ABI-L1b-RadF",
     "GOES-17-ABI-L1b-RadM",
+    "GOES-18-ABI-L1b-RadC",
+    "GOES-18-ABI-L1b-RadF",
+    "GOES-18-ABI-L1b-RadM",
 ]
 
 _BUCKET_CACHE = {}
