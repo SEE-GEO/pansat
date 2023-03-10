@@ -180,15 +180,23 @@ class Variable:
         self.description = config_dict.get("description", "")
         self.callback = config_dict.get("callback", [])
 
-    def get_attributes(self):
+    def get_attributes(self, file_handle):
         """
         Get dict of xarray attributes containing unit and description.
         """
         attributes = {}
+        field = getattr(file_handle, self.field_name)
+        if hasattr(field, "attrs"):
+            for key, value in field.attrs.items():
+                if isinstance(value, bytes):
+                    value = value.decode()
+                attributes[key] = value
+
         if self.unit:
             attributes["unit"] = self.unit
         if self.description:
             attributes["description"] = self.description
+
         return attributes
 
     def get_data(self, file_handle, context):
@@ -320,13 +328,13 @@ class ProductDescription(ConfigParser):
                 data = np.squeeze(data)
             for index, dimension in enumerate(variable.dimensions):
                 coordinates[dimension] = np.arange(data.shape[index])
-            attrs = variable.get_attributes()
+            attrs = variable.get_attributes(file_handle)
             variables[variable.name] = (variable.dimensions, data, attrs)
         for coordinate in self.coordinates:
             data = coordinate.get_data(file_handle, context)
             if len(coordinate.dimensions) < len(data.shape):
                 data = np.squeeze(data)
-            attrs = coordinate.get_attributes()
+            attrs = coordinate.get_attributes(file_handle)
             coordinates[coordinate.name] = (coordinate.dimensions, data, attrs)
         for attribute in self.attributes:
             value = attribute.get_data(file_handle, context)
