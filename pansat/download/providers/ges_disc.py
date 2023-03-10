@@ -141,6 +141,7 @@ class GesdiscProvider(DiscreteProvider):
         request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
+        print(auth, response)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         if len(files) == 0:
             month = f"{month:02}"
@@ -158,13 +159,13 @@ class GesdiscProvider(DiscreteProvider):
             destination(``str``): Destination to store the data.
         """
         auth = accounts.get_identity("GES DISC")
-        response = requests.get(url, auth=auth)
-        url = response.url
-        response = requests.get(url, auth=auth)
 
-        with open(destination, "wb") as f:
-            for chunk in response:
-                f.write(chunk)
+        with requests.Session() as session:
+            response = session.get(url)
+            response = session.get(response.url, auth=auth, stream=True)
+            with open(destination, "wb") as f:
+                for chunk in response:
+                    f.write(chunk)
 
     def download_file(self, filename, destination):
         """
