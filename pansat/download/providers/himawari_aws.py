@@ -79,9 +79,9 @@ class HimawariAWSProvider(DiscreteProvider):
             _BUCKET_CACHE[cache_id] = files
         return _BUCKET_CACHE[cache_id]
 
-    def _get_request_url(self, year, day, hour, filename):
+    def _get_request_url(self, year, month, day, hour, minute, filename):
         url = f"https://noaa-himawari8.s3.amazonaws.com/"
-        url += f"{self.product_name}/{year}/{day}/{hour:02}/{filename}"
+        url += f"{self.product_name}/{year:02}/{month:02}/{day:02}/{hour:02}{minute:02}/{filename}"
         return url
 
     def get_files_by_day(self, year, day):
@@ -112,9 +112,11 @@ class HimawariAWSProvider(DiscreteProvider):
         """
         t = self.product.filename_to_date(filename)
         year = t.year
-        day = t.strftime("%j")
+        month = t.month
+        day = t.day
         hour = t.hour
-        request_string = self._get_request_url(year, day, hour, filename)
+        minute = t.minute
+        request_string = self._get_request_url(year, month, day, hour, minute, filename)
         r = requests.get(request_string)
         with open(destination, "wb") as f:
             for chunk in r:
