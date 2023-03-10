@@ -141,7 +141,6 @@ class GesdiscProvider(DiscreteProvider):
         request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
-        print(auth, response)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         if len(files) == 0:
             month = f"{month:02}"
