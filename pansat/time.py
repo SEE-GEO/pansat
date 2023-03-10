@@ -16,7 +16,7 @@ def to_datetime(time):
     if isinstance(time, datetime):
         return time
     try:
-        return pd.Timestamp(time).to_pydatetime()
+        return pd.to_datetime(time).to_pydatetime()
     except ValueError:
         raise ValueError(
             "Could not convert '%s' to datetime object."
@@ -30,7 +30,7 @@ def to_datetime64(time):
     if isinstance(time, np.ndarray) and time.dtype == np.datetime64:
         return time
     try:
-        return pd.Timestamp(time).to_datetime64()
+        return pd.to_datetime(time).to_datetime64()
     except ValueError:
         raise ValueError(
             "Could not convert '%s' to datetime object."
