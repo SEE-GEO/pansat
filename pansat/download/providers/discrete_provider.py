@@ -131,6 +131,7 @@ class DiscreteProvider(DataProvider):
         time = start_time
         files = []
 
+
         while (time - end_time).total_seconds() < 24 * 60 * 60:
             if time != start_time:
                 year = time.year
@@ -145,7 +146,7 @@ class DiscreteProvider(DataProvider):
                 ]
             )
 
-            indices = np.where(time_deltas_start > 0.0)[0]
+            indices = np.where(time_deltas_start >= 0.0)[0]
             if len(indices) > 0:
                 start_index = indices[0]
             else:
