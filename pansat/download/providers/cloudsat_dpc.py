@@ -98,11 +98,22 @@ class CloudSatDPCProvider(DiscreteProvider):
     def __init__(self, product):
         super().__init__(product)
         self.product = product
-        self.connection = SFTPConnection(
-            "www.cloudsat.cira.colostate.edu", "CloudSatDPC"
-        )
+        self._connection = None
 
-    def get_available_products(self):
+    @property
+    def connection(self):
+        if self._connection is None:
+            self._connection = SFTPConnection(
+                "www.cloudsat.cira.colostate.edu", "CloudSatDPC"
+            )
+        return self._connection
+
+    @connection.setter
+    def connection(self, con):
+        self._connection = con
+
+    @staticmethod
+    def get_available_products():
         return list(PRODUCTS.keys())
 
     def get_files_by_day(self, year, day):
@@ -120,10 +131,10 @@ class CloudSatDPCProvider(DiscreteProvider):
             "www.cloudsat.cira.colostate.edu", "CloudSatDPC"
         )
         try:
-            directory = f"/Data/{PRODUCTS[self.product.name]}/{year:04}/{day:03}/"
+            directory = f"/Data/{PRODUCTS[self.product.name]}/{year:04}/{day:03}"
             self.connection.ensure_connection()
             return self.connection.list_files(directory)
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             return []
 
     def download_file(self, filename, destination):

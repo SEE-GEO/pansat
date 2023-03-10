@@ -42,7 +42,8 @@ class CloudnetProvider(DiscreteProvider):
 
     def download_file(self, filename, destination):
 
-        date, site, *_ = filename.split("_")
+        filename = Path(filename)
+        date, site, *_ = filename.name.split("_")
         payload = {
             "product": self.product.product_name,
             "site": site,
