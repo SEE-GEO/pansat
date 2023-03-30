@@ -28,14 +28,22 @@ class DardarProduct(Product):
             product.
     """
 
-    def __init__(self, name, description):
+    def __init__(self, name, description, version):
         self.name = name
         self._description = description
-        self.filename_regexp = re.compile(
-            # DARDAR-CLOUD_v2.1.1_2014015035336_41054.hdf
-            name.replace("_", "-")
-            + r"_v[\d]\.[\d]\.[\d]_[\d]*_[\d]*\.*"
-        )
+        self.version = version
+        if self.version < 3:
+            self.filename_regexp = re.compile(
+                # DARDAR-CLOUD_v2.1.1_2014015035336_41054.hdf
+                name.replace("_", "-")
+                + r"_v[\d]\.[\d]\.[\d]_[\d]*_[\d]*\.*"
+            )
+        else:
+            self.filename_regexp = re.compile(
+                # DARDAR-CLOUD_v2.1.1_2014015035336_41054.hdf
+                name.replace("_", "-")
+                + r"_[\d]*_[\d]*_\w\d-\d\d.*"
+            )
 
     @property
     def description(self):
@@ -67,7 +75,10 @@ class DardarProduct(Product):
             filename.
         """
         filename = os.path.basename(filename)
-        filename = filename.split("_")[2]
+        if self.version < 3:
+            filename = filename.split("_")[2]
+        else:
+            filename = filename.split("_")[1]
         return datetime.strptime(filename, "%Y%j%H%M%S")
 
     def _get_provider(self):
@@ -140,7 +151,8 @@ def _parse_products():
             description = ProductDescription(filename)
             python_name = filename.name.split(".")[0]
             product_name = description.name
-            globals()[python_name] = DardarProduct(product_name, description)
+            version = float(description.properties["version"])
+            globals()[python_name] = DardarProduct(product_name, description, version)
 
 
 _parse_products()

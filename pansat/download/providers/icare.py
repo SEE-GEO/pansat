@@ -29,8 +29,7 @@ ICARE_PRODUCTS = {
     "Calipso_01kmCLay": ["SPACEBORNE", "CALIOP", "01kmCLay"],
     "Calipso_05kmAPro": ["SPACEBORNE", "CALIOP", "05kmAPro"],
     "Calipso_CAL_LID_L1": ["SPACEBORNE", "CALIOP", "CAL_LID_L1.C3"],
-    "Dardar_DARDAR-CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR-CLOUD"],
-    "Dardar_DARDAR_CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR_CLOUD"],
+    "Dardar_DARDAR_CLOUD": ["SPACEBORNE", "CLOUDSAT", "DARDAR-CLOUD.v3.00"],
     #"MODIS_Terra_MOD021KM": ["SPACEBORNE", "MODIS", "MOD021KM.061"],
     #"MODIS_Terra_MOD03": ["SPACEBORNE", "MODIS", "MOD03.061"],
     #"MODIS_Aqua_MYD021KM": ["SPACEBORNE", "MODIS", "MYD021KM.061"],
@@ -88,15 +87,11 @@ class IcareProvider(DiscreteProvider):
                 ftp.login(user=user, passwd=password)
                 try:
                     ftp.cwd(path)
+                    listing = ftp.nlst()
+                    listing = [item_type(l) for l in listing]
                 except:
-                    raise Exception(
-                        "Can't find product folder "
-                        + path
-                        + "on the ICARE ftp server. Are you sure this is"
-                        "a ICARE multi sensor product?"
-                    )
-                listing = ftp.nlst()
-            listing = [item_type(l) for l in listing]
+                    listing = []
+
             self.cache[path] = listing
         return self.cache[path]
 
@@ -121,7 +116,7 @@ class IcareProvider(DiscreteProvider):
         date = datetime.strptime(str(year) + str(day_str), "%Y%j")
         path = "/".join([self.product_path, str(year), date.strftime("%Y_%m_%d")])
         listing = self._ftp_listing_to_list(path, str)
-        files = [name for name in listing if name[-3:] == "hdf"]
+        files = [name for name in listing if self.product.matches(name)]
         return files
 
     def download_file(self, filename, destination):
