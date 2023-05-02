@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 
+
 def to_datetime(time):
     """
     Try to convert a given time to a datetime object.
@@ -35,3 +36,19 @@ def to_datetime64(time):
         raise ValueError(
             "Could not convert '%s' to datetime object."
         )
+
+
+@dataclass
+class TimeRange:
+    """
+    A time range defining the temporal extent of a dataset.
+
+    The time range is represented by the 'start' and 'end' attributes
+    of the class representing the start and end of the time range covered
+    by a given data filee.
+
+    If the temporal extent of a data file cannot be deduced from the
+    filename alone or it is not known, the 'end' attribute can be 'None'.
+    """
+    start: np.datetime64
+    end: np.datetime64 = None

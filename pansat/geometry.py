@@ -19,7 +19,7 @@ def parse_point(xml_point):
     return [lon, lat]
 
 
-def parse_polygon(xml_polygon):
+def parse_polygon_xml(xml_polygon):
     """
     Parse polygon from XML file.
     """
@@ -36,7 +36,7 @@ def parse_polygon(xml_polygon):
     return make_valid(Polygon(points))
 
 
-def parse_swath(meta_data):
+def parse_swath_xml(meta_data):
     """
     Parse shapes describing a satellite swath from metadata.
 
@@ -61,3 +61,89 @@ def parse_swath(meta_data):
             polygons[ind] = poly.union(poly_2)
 
     return make_valid(MultiPolygon(polygons))
+
+
+def handle_poles(polygons):
+    """
+    Handle poles in a sequence of Polygons representing a swath from
+    a polar orbiting satellite.
+
+    The 2D representation of satellite observations breaks down along
+    the poles. This function checks whether the observations extend
+    outside of +/- 70 degree latitude and if so simply add a polygon
+    covering all of the polar regions.
+
+    Args:
+        polygons: A list of shapely polygons.
+
+    Return:
+        The list of polygons with offending Polygons replaced.
+    """
+    for ind in range(len(polygons)):
+        poly = polygons[ind]
+        points = np.array(poly.convex_hull.exterior.coords)
+        if any(points[:, 1] > 70):
+            poly_2 = Polygon([[-180, 75], [180, 75], [180, 90], [-180, 90]])
+            polygons[ind] = poly.union(poly_2)
+        if any(points[:, 1] < -70):
+            poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
+            polygons[ind] = poly.union(poly_2)
+
+    return polygons
+
+
+def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
+    """
+    Parse a swath as a 'shapely.Geometry'.
+
+    Args:
+        lons: A 2D array holding the longitude coordinates of the given
+            observations.
+        lats: A 2D array hodling the latitude coordinates of the
+            observations.
+
+    Return:
+        A shapely geometry representing the observations.
+    """
+    n_i = lons.shape[0]
+    n_j = lons.shape[1]
+    d_i = n_i // m
+    d_j = n_j // n
+    ind_i = 0
+
+    polys = []
+
+    while ind_i < lons.shape[0]:
+        ind_j = 0
+        while ind_j < lons.shape[1]:
+            lon_0_0 = lons[ind_i, ind_j]
+            lat_0_0 = lats[ind_i, ind_j]
+            lon_0_1 = lons[ind_i, min(ind_j + d_j, n_j - 1)]
+            lat_0_1 = lats[ind_i, min(ind_j + d_j, n_j - 1)]
+            lon_1_1 = lons[
+                min(ind_i + d_i, n_i - 1),
+                min(ind_j + d_j, n_j - 1)
+            ]
+            lat_1_1 = lats[
+                min(ind_i + d_i, n_i - 1),
+                min(ind_j + d_j, n_j - 1)
+            ]
+            lon_1_0 = lons[min(ind_i + d_i, n_i - 1), ind_j]
+            lat_1_0 = lats[min(ind_i + d_i, n_i - 1), ind_j]
+
+            polys.append(Polygon([
+                [lon_0_0, lat_0_0],
+                [lon_0_1, lat_0_1],
+                [lon_1_1, lat_1_1],
+                [lon_1_0, lat_1_0],
+                [lon_0_0, lat_0_0],
+            ]))
+            ind_j += d_j
+        ind_i += d_i
+    polys = handle_poles(polys)
+    return MultiPolygon(polys)
+
+
+
+
+
