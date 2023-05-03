@@ -1,19 +1,45 @@
-from pansat.download.providers.cloudnet import CloudNetProvider
+from pansat.download.providers.cloudnet import CloudnetProvider
+from pansat.products.ground_based.cloudnet import (
+    CloudnetProduct,
+    l1_radar,
+    l2_iwc
+)
 
 import xarray as xr
 
 
 def test_download(tmpdir):
     """
-    Test download of specific CloudNet file.
+    Test discovery and of Cloudnet files.
     """
-    url = (
-        'https://cloudnet.fmi.fi/api/download/product/b61aaa18'
-        '-ac82-4f76-8b87-5da24dde928e/20201001_palaiseau_iwc-Z-T-method.nc'
-    )
-    provider = CloudNetProvider("iwc")
-    provider.download_file(url, tmpdir)
+    product = CloudnetProduct("iwc", "", "palaiseau")
+    provider = CloudnetProvider(product)
+    files = provider.get_files_by_day(2020, 1)
+    assert len(files) == 1
 
-    filename = url.split("/")[-1]
-    data = xr.load_dataset(tmpdir / filename)
-    assert "iwc" in data.variables
+    product = CloudnetProduct("iwc", "")
+    provider = CloudnetProvider(product)
+    files = provider.get_files_by_day(2020, 1)
+    assert len(files) == 8
+
+
+def test_filenames():
+    """
+    Ensures that the matching of filenames works.
+    """
+    radar_files = [
+        "20230503_palaiseau_basta.nc",
+        "20230503_norunda_rpg-fmcw-94.nc"
+    ]
+    for filename in radar_files:
+        assert l1_radar.matches(filename)
+
+    product = CloudnetProduct("iwc", "", "palaiseau")
+    assert product.matches(radar_files[0])
+    assert not product.matches(radar_files[1])
+
+    iwc_files = [
+        "20230503_norunda_iwc-Z-T-method.nc"
+    ]
+    for filename in iwc_files:
+        assert l2_iwc.matches(filename)

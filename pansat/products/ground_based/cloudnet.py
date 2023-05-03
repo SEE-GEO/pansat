@@ -1,3 +1,11 @@
+"""
+pansat.products.ground_based
+============================
+
+This module defines products provided by Cloudnet. The official
+data portal for CloudNet is available
+`here <https://cloudnet.fmi.fi/>`_.
+"""
 from datetime import datetime
 from pathlib import Path
 import re
@@ -9,14 +17,23 @@ from pansat.download import providers
 
 class CloudnetProduct(Product):
     """
-    A Cloudnet product.
+    This class represents all Cloudnet products. Since Cloudnet data
+    is derived from specific stations a product can have an associated
+    location in which case only data of the product collected at the
+    given location is represetned by the product.
     """
-    def __init__(self, product_name, description, location=None):
+    def __init__(
+            self,
+            product_name,
+            description,
+            location=None
+    ):
         """
-        product_name: The name of the product.
-
-
-
+        Args:
+            product_name: The name of the product.
+            description: A string describing the product.
+            location: An optional string specifying the a specific
+                 Cloudnet location.
         """
         self.product_name = product_name
         self._description = description
@@ -91,7 +108,7 @@ class CloudnetProduct(Product):
         return Path("cloudnet") / Path(self.product_name)
 
     def __str__(self):
-        s = f"Cloudnet_{self.product_name}"
+        s = f"ground_based::Cloudnet::{self.product_name}"
         return s
 
     def download(self, start_time, end_time, destination=None, provider=None):
