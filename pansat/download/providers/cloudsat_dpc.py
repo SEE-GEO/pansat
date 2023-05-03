@@ -5,9 +5,34 @@ pansat.download.providers.cloudsat_dpc
 This module defines a provider for the CloudSat DPC SFTP server. To use this
  provider you need to setup your CloudSat DPC account
 at https://www.cloudsat.cira.colostate.edu/data-products/2c-ice.
+
+Setup
+`````
+
+The CloudSatDPC provider provides access to the SFTP servers of the
+ CloudSat DPC. To use it, you need to add a public SSH key to your
+account at the DPC website. To connect to the SFTP server,
+``pansat`` needs access to the corresponding private key. Therefore,
+you will have to add
+ 1. your SFTP username and
+ 2. the SSH private key corresponding to the public key you
+    have uploaded to the DPC website
+as username and password in your pansat identities file.
+
+The private key can be provided either as a path pointing to a
+ local file, or by directly storing the base-64 encoded key
+as the password.
+
+.. warning::
+   Make sure to create a separate SSH key pair for this purpose.
+   Do not use the same keys that you are using for other
+   purposes as you cannot expect them to be save when added to
+   pansat.
 """
 from datetime import datetime
+from io import StringIO
 import paramiko
+from pathlib import Path
 
 from pansat.download.accounts import get_identity
 from pansat.download.providers.discrete_provider import DiscreteProvider
@@ -27,7 +52,6 @@ class SFTPConnection:
     """
     Helper class that manages the lifetime of a paramiko SFTP connection.
     """
-
     def __init__(self, host, provider):
         """
         Open connection to host. Credentials are obtained from the pansat
@@ -42,7 +66,17 @@ class SFTPConnection:
 
     def _connect(self):
         user_name, key = get_identity(self.provider)
-        key = paramiko.RSAKey.from_private_key(open(key, "r"))
+
+        if not Path(key).exists():
+            key_buffer = StringIO()
+            key_buffer.write("-----BEGIN OPENSSH PRIVATE KEY-----\n")
+            key_buffer.write(key + "\n")
+            key_buffer.write("-----END OPENSSH PRIVATE KEY-----\n")
+        else:
+            with open(key, "r") as key_file:
+                key_buffer = StringIO(key_file.read())
+        key_buffer.seek(0)
+        key = paramiko.RSAKey.from_private_key(key_buffer)
         self.transport = paramiko.Transport(self.host)
         self.transport.connect(username=user_name, pkey=key)
         self.sftp = paramiko.SFTPClient.from_transport(self.transport)
@@ -95,13 +129,21 @@ class SFTPConnection:
 
 
 class CloudSatDPCProvider(DiscreteProvider):
+    """
+    Data provider class for the CloudSat DPC SFTP server.
+    """
     def __init__(self, product):
+        """
+        Args:
+            product: The pansat product to download.
+        """
         super().__init__(product)
         self.product = product
         self._connection = None
 
     @property
     def connection(self):
+        """ SFTP connection object to the data server."""
         if self._connection is None:
             self._connection = SFTPConnection(
                 "www.cloudsat.cira.colostate.edu", "CloudSatDPC"
