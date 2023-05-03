@@ -11,6 +11,7 @@ import numpy as np
 import xarray as xr
 
 from pansat.time import to_datetime64
+from pansat.file_record import FileRecord
 
 
 class Catalog:
@@ -100,4 +101,28 @@ class Catalog:
             datasets.append(dataset)
 
         return xr.concat(datasets, dim=dimension)
+
+
+def find_files(
+        product: "pansat.products.Prodcut",
+        path: Path
+):
+    """
+    Find files of a given product.
+
+    Args:
+        product: A pansat product representing the product to find.
+        path: A 'pathlib.Path' object pointing to a folder containing
+            local files.
+
+    Return:
+        A list of file records pointing to the found files.
+    """
+    files = []
+    for file_path in sorted(list(Path(path).glob("**/*"))):
+        if product.matches(file_path.name):
+            files.append(
+                FileRecord(product, file_path)
+            )
+    return files
 
