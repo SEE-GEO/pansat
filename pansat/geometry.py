@@ -53,10 +53,10 @@ def parse_swath_xml(meta_data):
     for ind in range(len(polygons)):
         poly = polygons[ind]
         points = np.array(poly.convex_hull.exterior.coords)
-        if any(points[:, 1] > 70):
+        if any(points[:, 1] > 60):
             poly_2 = Polygon([[-180, 75], [180, 75], [180, 90], [-180, 90]])
             polygons[ind] = poly.union(poly_2)
-        if any(points[:, 1] < -70):
+        if any(points[:, 1] < -60):
             poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
             polygons[ind] = poly.union(poly_2)
 
@@ -81,15 +81,18 @@ def handle_poles(polygons):
     """
     for ind in range(len(polygons)):
         poly = polygons[ind]
-        points = np.array(poly.convex_hull.exterior.coords)
+        points = np.stack(poly.exterior.coords.xy, -1)
         if any(points[:, 1] > 70):
             poly_2 = Polygon([[-180, 75], [180, 75], [180, 90], [-180, 90]])
-            polygons[ind] = poly.union(poly_2)
+            polygons[ind] = poly_2
         if any(points[:, 1] < -70):
             poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
-            polygons[ind] = poly.union(poly_2)
+            polygons[ind] = poly_2
 
-    return polygons
+    poly = polygons[0]
+    for other in polygons[1:]:
+        poly = poly.union(other)
+    return poly
 
 
 def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
@@ -140,8 +143,8 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
             ]))
             ind_j += d_j
         ind_i += d_i
-    polys = handle_poles(polys)
-    return MultiPolygon(polys)
+    poly = handle_poles(polys)
+    return make_valid(poly)
 
 
 
