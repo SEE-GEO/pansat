@@ -17,6 +17,8 @@ import pansat.download.providers as providers
 from pansat.products.product import Product
 from pansat.products.product_description import ProductDescription
 from pansat.exceptions import NoAvailableProvider
+from pansat.formats.hdf5 import HDF5File
+from pansat import geometry
 
 
 class GPMProduct(Product):
@@ -100,6 +102,33 @@ class GPMProduct(Product):
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
         return date
 
+    def get_spatial_coverage(self, rec):
+        """
+        Create geometry representing the spatial coverage of a data file.
+
+        Args:
+            rec: A 'FileRecord' object pointing to a data file.
+
+        Return:
+            A geometry object representing the the spatial coverage.
+        """
+        if rec.local_path is not None and rec.local_path.exists():
+            with HDF5File(str(rec.local_path), "r") as input_data:
+                lats = input_data["S1/Latitude"][:]
+                lons = input_data["S1/Longitude"][:]
+                valid = np.where(np.any(lons >= -180, 0))[0]
+                left = valid[0]
+                right = valid[-1]
+                return geometry.parse_swath(
+                    lons[:, left:right],
+                    lats[:, left:right]
+                )
+        raise ValueError(
+            "A NetcdfProduct needs a local file to determine temporal coverage"
+            " but the 'local_path' attribute of the provided file record "
+            "does not point to an existing file."
+        )
+
     def _get_provider(self):
         """Find a provider that provides the product."""
         available_providers = [
@@ -162,9 +191,8 @@ class GPMProduct(Product):
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
         from pansat.formats.hdf5 import HDF5File
-
-        file_handle = HDF5File(filename, "r")
-        return self.description.to_xarray_dataset(file_handle, globals())
+        with HDF5File(filename, "r") as file_handle:
+            return self.description.to_xarray_dataset(file_handle, globals())
 
 
 def _extract_scantime(scantime_group):
