@@ -73,7 +73,8 @@ class IowaStateProvider(DiscreteProvider):
         date = datetime(year=year, month=1, day=1) + timedelta(days=day - 1)
         url = self.get_url(date)
         with requests.get(url) as r:
-            return list(set(self.product.filename_regexp.findall(r.text)))
+            files_unique = set(self.product.filename_regexp.findall(r.text))
+            return sorted(list(files_unique))
 
     def download_file(self, filename, destination):
         """
