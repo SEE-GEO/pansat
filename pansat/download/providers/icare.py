@@ -8,8 +8,14 @@ class for downloading data from the
 """
 from datetime import datetime
 from ftplib import FTP
+import logging
+
 from pansat.download.providers.discrete_provider import DiscreteProvider
 from pansat.download.accounts import get_identity
+
+
+LOGGER = logging.getLogger(__name__)
+
 
 ICARE_PRODUCTS = {
     "CloudSat_1B-CPR": ["SPACEBORNE", "CLOUDSAT", "1B-CPR"],
@@ -30,11 +36,11 @@ ICARE_PRODUCTS = {
     "Calipso_05kmAPro": ["SPACEBORNE", "CALIOP", "05kmAPro"],
     "Calipso_CAL_LID_L1": ["SPACEBORNE", "CALIOP", "CAL_LID_L1.C3"],
     "Dardar_DARDAR_CLOUD": ["SPACEBORNE", "CLOUDSAT", "DARDAR-CLOUD.v3.00"],
-    #"MODIS_Terra_MOD021KM": ["SPACEBORNE", "MODIS", "MOD021KM.061"],
-    #"MODIS_Terra_MOD03": ["SPACEBORNE", "MODIS", "MOD03.061"],
-    #"MODIS_Aqua_MYD021KM": ["SPACEBORNE", "MODIS", "MYD021KM.061"],
-    #"MODIS_Aqua_MYD03": ["SPACEBORNE", "MODIS", "MYD03.061"],
-    #"MODIS_Aqua_MYD35_l2": ["SPACEBORNE", "MODIS", "MYD35_L2.061"],
+    "MODIS_Terra_MOD021KM": ["SPACEBORNE", "MODIS", "MOD021KM.061"],
+    "MODIS_Terra_MOD03": ["SPACEBORNE", "MODIS", "MOD03.061"],
+    "MODIS_Aqua_MYD021KM": ["SPACEBORNE", "MODIS", "MYD021KM.061"],
+    "MODIS_Aqua_MYD03": ["SPACEBORNE", "MODIS", "MYD03.061"],
+    "MODIS_Aqua_MYD35_l2": ["SPACEBORNE", "MODIS", "MYD35_L2.061"],
 }
 
 
@@ -90,6 +96,10 @@ class IcareProvider(DiscreteProvider):
                     listing = ftp.nlst()
                     listing = [item_type(l) for l in listing]
                 except:
+                    LOGGER.exception(
+                        "An error was encountered when listing files on "
+                        "ICARE ftp server."
+                    )
                     listing = []
 
             self.cache[path] = listing
@@ -111,12 +121,22 @@ class IcareProvider(DiscreteProvider):
         Return:
             List of the filenames of this product on the given day.
         """
+        LOGGER.info(
+            "Retrieving files for product %s on day %s of year %s.",
+            self.product,
+            year,
+            day
+        )
         day_str = str(day)
         day_str = "0" * (3 - len(day_str)) + day_str
         date = datetime.strptime(str(year) + str(day_str), "%Y%j")
         path = "/".join([self.product_path, str(year), date.strftime("%Y_%m_%d")])
         listing = self._ftp_listing_to_list(path, str)
         files = [name for name in listing if self.product.matches(name)]
+        LOGGER.info(
+            "Found %s files.",
+            len(files)
+        )
         return files
 
     def download_file(self, filename, destination):
