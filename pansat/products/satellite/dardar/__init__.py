@@ -36,13 +36,13 @@ class DardarProduct(Product):
             self.filename_regexp = re.compile(
                 # DARDAR-CLOUD_v2.1.1_2014015035336_41054.hdf
                 name.replace("_", "-")
-                + r"_v[\d]\.[\d]\.[\d]_[\d]*_[\d]*\.*"
+                + r"_v[\d]\.[\d]\.[\d]_[\d]*_[\d]*\.hdf"
             )
         else:
             self.filename_regexp = re.compile(
-                # DARDAR-CLOUD_v2.1.1_2014015035336_41054.hdf
+                # DARDAR-CLOUD_2009001003637_14252_V3-00.nc
                 name.replace("_", "-")
-                + r"_[\d]*_[\d]*_\w\d-\d\d.*"
+                + r"_[\d]*_[\d]*_V\d-\d\d.nc"
             )
 
     @property
