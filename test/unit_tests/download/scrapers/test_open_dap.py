@@ -46,7 +46,7 @@ def test_extract_gpm_products():
     """
     url = (
         "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L1C/"
-        "GPM_1CGPMGMI_R.05/2014/063/contents.html"
+        "GPM_1CGPMGMI_R.07/2014/063/contents.html"
     )
     response = open_dap.retrieve_page(url)
     results = open_dap.extract_gpm_products(response.text)
