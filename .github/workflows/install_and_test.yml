@@ -20,7 +20,7 @@ jobs:
                 use-only-tar-bz2: true
       - name: Install and test
         shell: bash -l {0}
-        run: mamba install --quiet --yes --file conda-requirements.txt
+        run: mamba install --quiet --yes --file conda-requirements.txt &&
              pytest test/unit_tests
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
