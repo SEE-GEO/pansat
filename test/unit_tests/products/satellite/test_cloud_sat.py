@@ -69,3 +69,18 @@ def test_cloud_class_masks():
     assert cloud_sat._cloud_scenario_to_algorithm_flag(data) == 0
     assert cloud_sat._cloud_scenario_to_quality_flag(data) == 1
     assert cloud_sat._cloud_scenario_to_precipitation_flag(data) == 0
+
+
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+#@pytest.mark.usefixtures("test_identities")
+def test_download_rain_profile():
+    """
+    Download CloudSat rain profile.
+    """
+    product = cloud_sat.l2c_rain_profile
+    t_0 = datetime(2018, 6, 1, 10)
+    t_1 = datetime(2018, 6, 1, 12)
+    files = product.download(t_0, t_1)
+
+    if HAS_HDF:
+        product.open(files[0])
