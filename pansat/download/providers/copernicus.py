@@ -228,7 +228,7 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    LOGGER.info(destination, "%s already exists.")
+                    LOGGER.info("%s already exists.", out)
                     files.append(out)
                 else:
                     request_dict = {
@@ -381,7 +381,7 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    LOGGER.info(out, "%s already exists.")
+                    LOGGER.info("%s already exists.", out)
                     files.append(out)
                 else:
                     request_dict = {
