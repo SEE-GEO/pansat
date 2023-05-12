@@ -39,7 +39,10 @@ from pansat.download.providers.goes_aws import GOESAWSProvider
 from pansat.download.providers.himawari_aws import HimawariAWSProvider
 from pansat.download.providers.iowa_state import IowaStateProvider
 from pansat.download.providers.eumetsat import EUMETSATProvider
+<<<<<<< HEAD
 from pansat.download.providers.uci import UciProvider
+=======
+>>>>>>> 456b7b4 (Added CloudSat DPC provider and updated CloudSat products to include 2C-ICE.)
 from pansat.download.providers.noaa_ncei import NOAANCEIProvider
 
 
