@@ -126,5 +126,4 @@ class MHSProduct(Product):
         file_handle = HDF5File(filename, "r")
         return self.description.to_xarray_dataset(file_handle, globals())
 
-
 mhs_l1b = MHSProduct()
