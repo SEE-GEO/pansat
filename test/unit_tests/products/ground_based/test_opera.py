@@ -53,7 +53,7 @@ def test_grids():
     assert np.isclose(lons.max(), 57.7779)
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@pytest.mark.skip(reason="Product outdated.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
     """
