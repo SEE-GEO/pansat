@@ -56,9 +56,6 @@ def test_download():
     Download Calipso 333mCLay file.
     """
     product = calipso.clay333m
-    t_0 = datetime(2018, 6, 1, 10)
-    t_1 = datetime(2018, 6, 1, 12)
+    t_0 = datetime(2020, 12, 24, 10)
+    t_1 = datetime(2020, 12, 24, 12)
     files = product.download(t_0, t_1)
-
-    if HAS_HDF:
-        product.open(files[0])

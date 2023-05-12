@@ -43,7 +43,6 @@ def test_matches(product):
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
-@pytest.mark.xfail
 def test_download():
     """
     Download CloudSat L1B file.
