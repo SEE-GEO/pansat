@@ -11,13 +11,14 @@ import requests
 from pansat.download.providers.discrete_provider import DiscreteProvider
 
 
-FILE_URL = 'https://cloudnet.fmi.fi/api/files'
+FILE_URL = "https://cloudnet.fmi.fi/api/files"
 
 
 class CloudnetProvider(DiscreteProvider):
     """
     Provider class to download data from the cloudnet API.
     """
+
     @classmethod
     def get_available_products(cls):
         return [
@@ -39,16 +40,14 @@ class CloudnetProvider(DiscreteProvider):
         date = datetime.strptime(f"{year}{day:03}", "%Y%j")
         payload = {
             "product": self.product.product_name,
-            "date": date.strftime("%Y-%m-%d")
+            "date": date.strftime("%Y-%m-%d"),
         }
         if self.product.location is not None:
             payload["site"] = self.product.location
         response = requests.get(FILE_URL, payload)
         response.raise_for_status()
         files = [res["downloadUrl"].split("/")[-1] for res in response.json()]
-        return [
-            filename for filename in files if self.product.matches(filename)
-        ]
+        return [filename for filename in files if self.product.matches(filename)]
 
     def download_file(self, filename, destination):
         """
@@ -64,7 +63,7 @@ class CloudnetProvider(DiscreteProvider):
         payload = {
             "product": self.product.product_name,
             "site": site,
-            "date": f"{date[:4]}-{date[4:6]}-{date[6:]}"
+            "date": f"{date[:4]}-{date[4:6]}-{date[6:]}",
         }
         files = requests.get(FILE_URL, payload).json()
 

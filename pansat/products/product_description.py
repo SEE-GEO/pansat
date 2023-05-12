@@ -356,9 +356,9 @@ class ProductDescription(ConfigParser):
         if not context:
             context = {}
         variables, dimensions, attributes = self._get_data(file_handle, context)
-        dataset = xarray.Dataset(data_vars=variables,
-                                 coords=dimensions,
-                                 attrs=attributes)
+        dataset = xarray.Dataset(
+            data_vars=variables, coords=dimensions, attrs=attributes
+        )
 
         if self.callback is not None:
             callback = context[self.callback]

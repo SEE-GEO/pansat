@@ -53,14 +53,17 @@ def _retrieve_access_token(key, secret):
         )
     return req.json()
 
+
 ###############################################################################
 # Access Token
 ###############################################################################
+
 
 class AccessToken:
     """
     This class represents an AccessToken for the EUMETSAT data store.
     """
+
     def __init__(self, key, secret):
         """
         Obtain access token.
@@ -100,10 +103,12 @@ class AccessToken:
         if not self.valid:
             self.renew()
 
+
 class Collection:
     """
     Helper dataset for parsing collections.
     """
+
     def __init__(self, identifier, url):
         """
         Retrieve info for collection.
@@ -125,7 +130,6 @@ class Collection:
             return f"Collection({self.collection_id}, {self.title})"
 
 
-
 class EUMETSATProvider(DataProvider):
     """
     Base class for data products available from the EUMETSAT data store.
@@ -133,10 +137,9 @@ class EUMETSATProvider(DataProvider):
 
     base_url = "https://api.eumetsat.int"
 
-
     @staticmethod
     def get_collections():
-        #b64 = base64.b64encode((key + ":" + secret).encode())
+        # b64 = base64.b64encode((key + ":" + secret).encode())
         url = "https://api.eumetsat.int/data/browse/collections"
         req = requests.get(
             url,
@@ -154,9 +157,7 @@ class EUMETSATProvider(DataProvider):
             url = link["href"]
             collections.append(Collection(identifier, url))
 
-
         return collections
-
 
     def __init__(self, product):
         """
@@ -244,7 +245,6 @@ class EUMETSATProvider(DataProvider):
             start_index += self.page_size
 
         return links
-
 
     def download_file(self, link, destination):
 

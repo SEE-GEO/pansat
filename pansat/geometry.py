@@ -24,7 +24,7 @@ def parse_polygon_xml(xml_polygon):
     Parse polygon from XML file.
     """
     boundary = xml_polygon[0]
-    points =  np.array(list(map(parse_point, boundary.getchildren())))
+    points = np.array(list(map(parse_point, boundary.getchildren())))
     dlons = points[:, 0] - points[0, 0]
     indices = np.where(np.abs(dlons) > 180)[0]
     for ind in indices:
@@ -123,30 +123,23 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
             lat_0_0 = lats[ind_i, ind_j]
             lon_0_1 = lons[ind_i, min(ind_j + d_j, n_j - 1)]
             lat_0_1 = lats[ind_i, min(ind_j + d_j, n_j - 1)]
-            lon_1_1 = lons[
-                min(ind_i + d_i, n_i - 1),
-                min(ind_j + d_j, n_j - 1)
-            ]
-            lat_1_1 = lats[
-                min(ind_i + d_i, n_i - 1),
-                min(ind_j + d_j, n_j - 1)
-            ]
+            lon_1_1 = lons[min(ind_i + d_i, n_i - 1), min(ind_j + d_j, n_j - 1)]
+            lat_1_1 = lats[min(ind_i + d_i, n_i - 1), min(ind_j + d_j, n_j - 1)]
             lon_1_0 = lons[min(ind_i + d_i, n_i - 1), ind_j]
             lat_1_0 = lats[min(ind_i + d_i, n_i - 1), ind_j]
 
-            polys.append(Polygon([
-                [lon_0_0, lat_0_0],
-                [lon_0_1, lat_0_1],
-                [lon_1_1, lat_1_1],
-                [lon_1_0, lat_1_0],
-                [lon_0_0, lat_0_0],
-            ]))
+            polys.append(
+                Polygon(
+                    [
+                        [lon_0_0, lat_0_0],
+                        [lon_0_1, lat_0_1],
+                        [lon_1_1, lat_1_1],
+                        [lon_1_0, lat_1_0],
+                        [lon_0_0, lat_0_0],
+                    ]
+                )
+            )
             ind_j += d_j
         ind_i += d_i
     poly = handle_poles(polys)
     return make_valid(poly)
-
-
-
-
-

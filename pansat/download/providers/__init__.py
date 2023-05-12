@@ -60,5 +60,5 @@ ALL_PROVIDERS = [
     UciProvider,
     NOAANCEIProvider,
     CloudnetProvider,
-    CloudSatDPCProvider
+    CloudSatDPCProvider,
 ]

@@ -2,6 +2,7 @@ import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
 
+
 def parse_point(xml_point):
     """
     Parse point from XML file.
@@ -10,12 +11,13 @@ def parse_point(xml_point):
     lat = float(xml_point[1].text)
     return [lon, lat]
 
+
 def parse_polygon(xml_polygon):
     """
     Parse polygon from XML file.
     """
     boundary = xml_polygon[0]
-    points =  np.array(list(map(parse_point, boundary.getchildren())))
+    points = np.array(list(map(parse_point, boundary.getchildren())))
     dlons = points[:, 0] - points[0, 0]
     indices = np.where(np.abs(dlons) > 180)[0]
     for ind in indices:
@@ -25,6 +27,7 @@ def parse_polygon(xml_polygon):
             points[ind, 0] += 360
 
     return make_valid(Polygon(points))
+
 
 def parse_swath(meta_data):
     """
@@ -51,8 +54,6 @@ def parse_swath(meta_data):
             polygons[ind] = poly.union(poly_2)
 
     return make_valid(MultiPolygon(polygons))
-
-
 
 
 def reshape_polygon(multi_polygon):

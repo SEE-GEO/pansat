@@ -15,6 +15,7 @@ class FileRecord:
     A file record represents a data file of a given product that is either
     available locally or remotely.
     """
+
     product: "pansat.products.Product"
     filename: str
     local_path: Path = None
@@ -22,9 +23,7 @@ class FileRecord:
 
     @staticmethod
     def from_remote(
-            product: "pansat.products.Product",
-            remote_path: str,
-            filename: str
+        product: "pansat.products.Product", remote_path: str, filename: str
     ):
         """
         Create file record from a remote file.
@@ -43,11 +42,7 @@ class FileRecord:
         rec.filename = filename
         return rec
 
-    def __init__(
-            self,
-            product,
-            local_path
-            ):
+    def __init__(self, product, local_path):
         """
         Create file record from product and local file path.
 

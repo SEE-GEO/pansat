@@ -15,6 +15,7 @@ class GridsatProduct:
     """
     Class for NOAA GridSat GOES and CONUS products.
     """
+
     def __init__(self, variant):
         """
         Args:
@@ -32,11 +33,9 @@ class GridsatProduct:
         """
         parts = filename.split(".")
         year, month, day, hour_min = parts[2:6]
-        return datetime(int(year),
-                        int(month),
-                        int(day),
-                        int(hour_min[:2]),
-                        int(hour_min[2:]))
+        return datetime(
+            int(year), int(month), int(day), int(hour_min[:2]), int(hour_min[2:])
+        )
 
     @property
     def name(self):
@@ -96,6 +95,7 @@ class GridsatB1(GridsatProduct):
     """
     Specialized class for the GridSat CDR.
     """
+
     def __init__(self):
         """Create product."""
         super().__init__("b1")
@@ -110,13 +110,9 @@ class GridsatB1(GridsatProduct):
         """
         parts = filename.split(".")
         year, month, day, hour = parts[1:5]
-        return datetime(int(year),
-                        int(month),
-                        int(day),
-                        int(hour))
+        return datetime(int(year), int(month), int(day), int(hour))
 
 
 gridsat_goes = GridsatProduct("goes")
 gridsat_conus = GridsatProduct(("conus"))
 gridsat_b1 = GridsatB1()
-

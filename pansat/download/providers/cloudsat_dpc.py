@@ -41,7 +41,7 @@ from pansat.download.providers.discrete_provider import DiscreteProvider
 PRODUCTS = {
     "CloudSat_2C-ICE": "2C-ICE.P1_R05",
     "CloudSat_2B-CLDCLASS": "2B-CLDCLASS.P1_R05",
-    "CloudSat_2C-RAIN PROFILE": "2C-RAIN-PROFILE.P1_R05"
+    "CloudSat_2C-RAIN PROFILE": "2C-RAIN-PROFILE.P1_R05",
 }
 
 ######################################################################
@@ -53,6 +53,7 @@ class SFTPConnection:
     """
     Helper class that manages the lifetime of a paramiko SFTP connection.
     """
+
     def __init__(self, host, provider):
         """
         Open connection to host. Credentials are obtained from the pansat
@@ -133,6 +134,7 @@ class CloudSatDPCProvider(DiscreteProvider):
     """
     Data provider class for the CloudSat DPC SFTP server.
     """
+
     def __init__(self, product):
         """
         Args:
@@ -144,7 +146,7 @@ class CloudSatDPCProvider(DiscreteProvider):
 
     @property
     def connection(self):
-        """ SFTP connection object to the data server."""
+        """SFTP connection object to the data server."""
         if self._connection is None:
             self._connection = SFTPConnection(
                 "www.cloudsat.cira.colostate.edu", "CloudSatDPC"

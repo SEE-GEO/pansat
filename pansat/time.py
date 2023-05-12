@@ -19,9 +19,7 @@ def to_datetime(time):
     try:
         return pd.to_datetime(time).to_pydatetime()
     except ValueError:
-        raise ValueError(
-            "Could not convert '%s' to datetime object."
-        )
+        raise ValueError("Could not convert '%s' to datetime object.")
 
 
 def to_datetime64(time):
@@ -33,9 +31,7 @@ def to_datetime64(time):
     try:
         return pd.to_datetime(time).to_datetime64()
     except ValueError:
-        raise ValueError(
-            "Could not convert '%s' to datetime object."
-        )
+        raise ValueError("Could not convert '%s' to datetime object.")
 
 
 @dataclass
@@ -50,5 +46,6 @@ class TimeRange:
     If the temporal extent of a data file cannot be deduced from the
     filename alone or it is not known, the 'end' attribute can be 'None'.
     """
+
     start: np.datetime64
     end: np.datetime64 = None
