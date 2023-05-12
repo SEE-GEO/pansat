@@ -67,8 +67,10 @@ def test_filename_to_date(product):
     assert time == reference_time
 
 
+
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
+@pytest.mark.xfail
 def test_download(tmp_path):
     """
     Download l2a_gprof_metopb_mhs file

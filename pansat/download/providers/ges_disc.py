@@ -10,6 +10,7 @@ Reference
 """
 import datetime
 import json
+import logging
 import os
 import pathlib
 import re
@@ -24,6 +25,9 @@ from pansat.download.providers.discrete_provider import DiscreteProvider
 _DATA_FOLDER = pathlib.Path(__file__).parent / "data"
 with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
     GPM_PRODUCTS = json.load(file)
+
+
+LOGGER = logging.getLogger(__file__)
 
 
 class GesdiscProvider(DiscreteProvider):
@@ -162,6 +166,7 @@ class GesdiscProvider(DiscreteProvider):
         with requests.Session() as session:
             response = session.get(url)
             response = session.get(response.url, auth=auth, stream=True)
+            response.raise_for_status()
             with open(destination, "wb") as f:
                 for chunk in response:
                     f.write(chunk)
@@ -212,6 +217,11 @@ class Disc2Provider(GesdiscProvider):
     gpm1.gesdisc.eosdis.nasa.gov domain.
     """
 
+    URLS = {
+        "gpm_mergeir": "/data/MERGED_IR/GPM_MERGIR.1",
+        "gpm_1c_trmm_tmi": "/data/TRMM_L1/GPM_1CTRMMTMI.07"
+    }
+
     base_url = "https://disc2.gesdisc.eosdis.nasa.gov"
     file_pattern = re.compile('"[^"]*.nc4"')
 
@@ -234,7 +244,7 @@ class Disc2Provider(GesdiscProvider):
             A list of strings containing the names of the products that can
             be downloaded from this data provider.
         """
-        return ["gpm_mergeir"]
+        return list(cls.URLS.keys())
 
     @classmethod
     def download_url(cls, url, destination):
@@ -248,4 +258,6 @@ class Disc2Provider(GesdiscProvider):
     def _request_string(self):
         """The URL containing the data files for the given product."""
         base_url = "https://disc2.gesdisc.eosdis.nasa.gov"
-        return base_url + "/data/MERGED_IR/GPM_MERGIR.1" + "/{year}/{day}/{filename}"
+        print("PROD :: ", self.product_name)
+        part = Disc2Provider.URLS[self.product_name.lower()]
+        return base_url + part + "/{year}/{day}/{filename}"

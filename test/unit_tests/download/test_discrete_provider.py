@@ -30,7 +30,8 @@ def test_files_in_range():
     t0 = datetime(2018, 1, 14, 0, 42)
     t1 = datetime(2018, 1, 14, 0, 52)
 
-    files = provider.get_files_in_range(t0, t1)
+    files = provider.get_files_in_range(t0, t1, False)
+    print(files)
     assert modis_terra_1km.filename_to_date(files[0]).minute > 42
     assert len(files) == 2
 
@@ -89,5 +90,5 @@ def test_last_file_of_day_included():
     provider = IcareProvider(dardar_cloud)
     t_0 = datetime(2006, 6, 20, 22, 30)
     t_1 = datetime(2006, 6, 21, 0, 0)
-    files = provider.get_files_in_range(t_0, t_1)
+    files = provider.get_files_in_range(t_0, t_1, False)
     assert len(files) == 1
