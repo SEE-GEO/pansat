@@ -182,10 +182,7 @@ class CopernicusProvider(DataProvider):
             client = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == "global":
-                area = ""
-                domain = ""
-            else:
+            if self.product.domain != "global":
                 # change to requested order of coordinate values
                 dom = np.array(
                     [
@@ -197,6 +194,8 @@ class CopernicusProvider(DataProvider):
                 ).astype(str)
                 area = "/".join(dom)
                 domain = "-".join(np.array(self.product.domain).astype(str))
+            else:
+                domain = ''
 
             dates, years = self.get_timesteps_monthly(start, end)
             # container to save list of downloaded files
@@ -229,18 +228,19 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    LOGGER.info("%s already exists.", out)
+                    LOGGER.info(destination, "%s already exists.")
                     files.append(out)
                 else:
-                    if "pressure" in self.product.name:
-                        client.retrieve(
-                            self.product.name,
-                            {
+                    request_dict = {
                                 "product_type": "monthly_averaged_reanalysis",
                                 "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "pressure_level": [
+                        "variable": self.product.variables,
+                                "year": year,
+                                "month": month,
+                                "time": hour}
+                    # add pressure levels if pressure product is desired
+                    if "pressure" in self.product.name:
+                        request_dict['pressure_level']= [
                                     "1",
                                     "2",
                                     "3",
@@ -277,27 +277,14 @@ class CopernicusProvider(DataProvider):
                                     "925",
                                     "950",
                                     "975",
-                                    "1000",
-                                ],
-                                "year": year,
-                                "month": month,
-                                "time": hour,
-                            },
-                            out,
-                        )
+                                    "1000"]
+                    # add area is subdomain is set
+                    if domain != '':
+                        request_dict['area'] = area
 
-                    else:
-                        client.retrieve(
-                            self.product.name,
-                            {
-                                "product_type": "monthly_averaged_reanalysis",
-                                "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "year": year,
-                                "month": month,
-                                "time": hour,
-                            },
+                    # retrieve data 
+                    client.retrieve(
+                            self.product.name, request_dict,
                             out,
                         )
 
@@ -330,10 +317,7 @@ class CopernicusProvider(DataProvider):
             client = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == "global":
-                area = ""
-                domain = ""
-            else:
+            if self.product.domain != "global":
                 # change to requested order of coordinate values
                 dom = np.array(
                     [
@@ -345,6 +329,8 @@ class CopernicusProvider(DataProvider):
                 ).astype(str)
                 area = "/".join(dom)
                 domain = "-".join(np.array(self.product.domain).astype(str))
+            else:
+                domain = ''
 
             dates = self.get_timesteps_hourly(start, end)
 
@@ -395,18 +381,21 @@ class CopernicusProvider(DataProvider):
 
                 # only download if file not already already exists
                 if os.path.exists(out):
-                    LOGGER.info("%s already exists.", out)
+                    LOGGER.info(out, "%s already exists.")
                     files.append(out)
                 else:
-                    if "pressure" in self.product.name:
-                        client.retrieve(
-                            self.product.name,
-                            {
+                    request_dict = {
                                 "product_type": download_key,
                                 "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "pressure_level": [
+                        "variable": self.product.variables,
+                                "year": year,
+                                "month": month,
+                                "day": day,
+                                "time": hour,
+                            }
+                    # add pressure levels if pressure product is desired
+                    if "pressure" in self.product.name:
+                        request_dict['pressure_level']= [
                                     "1",
                                     "2",
                                     "3",
@@ -443,29 +432,14 @@ class CopernicusProvider(DataProvider):
                                     "925",
                                     "950",
                                     "975",
-                                    "1000",
-                                ],
-                                "year": year,
-                                "month": month,
-                                "day": day,
-                                "time": hour,
-                            },
-                            out,
-                        )
+                                    "1000"]
+                    # add area if subdomain is set 
+                    if domain != '':
+                        request_dict['area'] = area
 
-                    else:
-                        client.retrieve(
-                            self.product.name,
-                            {
-                                "product_type": download_key,
-                                "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "year": year,
-                                "month": month,
-                                "day": day,
-                                "time": hour,
-                            },
+                    # retrieve data 
+                    client.retrieve(
+                            self.product.name, request_dict,
                             out,
                         )
 
