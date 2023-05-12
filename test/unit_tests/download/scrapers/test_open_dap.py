@@ -31,7 +31,7 @@ def test_map_pages():
     """
     url = (
         "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L1C/"
-        "GPM_1CF10SSMI.06/1990/344"
+        "GPM_1CF10SSMI.07/1990/344"
     )
     results = open_dap.map_pages(open_dap.extract_gpm_products, url)
     assert len(results) == 1
