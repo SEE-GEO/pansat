@@ -10,7 +10,7 @@ import pytest
 from pansat.products.satellite.persiann import CCS, PDIRNow
 
 
-@pytest.mask.slow
+@pytest.mark.slow
 def test_ccs(tmp_path):
     """
     Test downloading and opening of PERSIANN CCS files.
@@ -27,7 +27,7 @@ def test_ccs(tmp_path):
     assert "longitude" in data.dims
 
 
-@pytest.mask.slow
+@pytest.mark.slow
 def test_pdirnow(tmp_path):
     """
     Test downloading and opening of PERSIANN CCS files.
