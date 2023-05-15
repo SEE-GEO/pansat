@@ -95,8 +95,12 @@ class LAADSDAACProvider(DiscreteProvider):
         request_string = self._request_string.format(
             year=year, day=day, filename=filename
         )
+
         auth = accounts.get_identity("GES DISC")
-        r = requests.get(request_string, auth=auth)
+        response = requests.get(request_string, auth=auth)
+        url = response.url
+        response = requests.get(url, auth=auth)
+
         with open(destination, "wb") as f:
-            for chunk in r:
+            for chunk in response:
                 f.write(chunk)

@@ -4,14 +4,24 @@ jobs:
   install_and_test_job:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python: [3.7, 3.8, 3.9]
+        os: [ubuntu-latest, macos-latest]
+        python: [3.9, 3.10]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - name: Setup
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: ${{ matrix.python }}
-      - run: python setup.py test
+                miniforge-version: latest
+                miniforge-variant: mambaforge
+                channel-priority: strict
+                channels: conda-forge
+                show-channel-urls: true
+                use-only-tar-bz2: true
+      - name: Install and test
+        shell: bash -l {0}
+        run: mamba install --quiet --yes --file conda-requirements.txt &&
+             pip install -e . &&
+             pytest -m "not slow" test/unit_tests
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}

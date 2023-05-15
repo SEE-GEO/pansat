@@ -43,6 +43,7 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
         accs.get_identity("provider")
 
 
+@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_add_identity_file(monkeypatch, tmpdir):
     """

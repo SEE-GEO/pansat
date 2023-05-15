@@ -187,6 +187,13 @@ class HDF4File:
             vdata = object.__getattribute__(self, "vdata")
             if name in vdata:
                 return vdata[name]
+
+            print(name, self.scientific_dataset)
+            try:
+                return getattr(self.scientific_dataset, name)
+            except AttributeError:
+                pass
+
             raise error
 
     def __repr__(self):

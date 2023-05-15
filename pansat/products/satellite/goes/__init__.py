@@ -163,11 +163,20 @@ class GOES16L1BRadiances(GOESProduct):
 
 class GOES17L1BRadiances(GOESProduct):
     """
-    Class representing GOES17 L1 radiance products.
+    Class representing GOES 17 L1 radiance products.
     """
 
     def __init__(self, region, channel):
         super().__init__(17, "1b", "Rad", region, channel)
+
+
+class GOES18L1BRadiances(GOESProduct):
+    """
+    Class representing GOES 18 L1 radiance products.
+    """
+
+    def __init__(self, region, channel):
+        super().__init__(18, "1b", "Rad", region, channel)
 
 
 goes_16_l1b_radiances_c01_full_disk = GOES16L1BRadiances("F", 1)
@@ -195,3 +204,16 @@ goes_17_l1b_radiances_c03_conus = GOES17L1BRadiances("C", 3)
 goes_17_l1b_radiances_c04_conus = GOES17L1BRadiances("C", 4)
 goes_17_l1b_radiances_rgb_conus = GOES17L1BRadiances("C", [1, 2, 3])
 goes_17_l1b_radiances_all_conus = GOES17L1BRadiances("C", list(range(1, 17)))
+
+goes_18_l1b_radiances_c01_full_disk = GOES18L1BRadiances("F", 1)
+goes_18_l1b_radiances_c02_full_disk = GOES18L1BRadiances("F", 2)
+goes_18_l1b_radiances_c03_full_disk = GOES18L1BRadiances("F", 3)
+goes_18_l1b_radiances_c04_full_disk = GOES18L1BRadiances("F", 4)
+goes_18_l1b_radiances_rgb_full_disk = GOES18L1BRadiances("F", [1, 2, 3])
+goes_18_l1b_radiances_all_full_disk = GOES18L1BRadiances("F", list(range(1, 17)))
+goes_18_l1b_radiances_c01_conus = GOES18L1BRadiances("C", 1)
+goes_18_l1b_radiances_c02_conus = GOES18L1BRadiances("C", 2)
+goes_18_l1b_radiances_c03_conus = GOES18L1BRadiances("C", 3)
+goes_18_l1b_radiances_c04_conus = GOES18L1BRadiances("C", 4)
+goes_18_l1b_radiances_rgb_conus = GOES18L1BRadiances("C", [1, 2, 3])
+goes_18_l1b_radiances_all_conus = GOES18L1BRadiances("C", list(range(1, 17)))

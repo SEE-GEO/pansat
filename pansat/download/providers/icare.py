@@ -8,8 +8,14 @@ class for downloading data from the
 """
 from datetime import datetime
 from ftplib import FTP
+import logging
+
 from pansat.download.providers.discrete_provider import DiscreteProvider
 from pansat.download.accounts import get_identity
+
+
+LOGGER = logging.getLogger(__name__)
+
 
 ICARE_PRODUCTS = {
     "CloudSat_1B-CPR": ["SPACEBORNE", "CLOUDSAT", "1B-CPR"],
@@ -22,7 +28,6 @@ ICARE_PRODUCTS = {
     "CloudSat_2B-GEOPROF": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF"],
     "CloudSat_2B-GEOPROF-LIDAR": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
     "CloudSat_2B-TAU": ["SPACEBORNE", "CLOUDSAT", "2B-TAU"],
-    "CloudSat_2C-ICE": ["SPACEBORNE", "CLOUDSAT", "2B-ICE"],
     "CloudSat_2C-PRECIP-COLUMN": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
     "CloudSat_2C-RAIN-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
     "CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
@@ -30,8 +35,7 @@ ICARE_PRODUCTS = {
     "Calipso_01kmCLay": ["SPACEBORNE", "CALIOP", "01kmCLay"],
     "Calipso_05kmAPro": ["SPACEBORNE", "CALIOP", "05kmAPro"],
     "Calipso_CAL_LID_L1": ["SPACEBORNE", "CALIOP", "CAL_LID_L1.C3"],
-    "Dardar_DARDAR-CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR-CLOUD"],
-    "Dardar_DARDAR_CLOUD": ["SPACEBORNE", "MULTI_SENSOR", "DARDAR_CLOUD"],
+    "Dardar_DARDAR_CLOUD": ["SPACEBORNE", "CLOUDSAT", "DARDAR-CLOUD.v3.00"],
     "MODIS_Terra_MOD021KM": ["SPACEBORNE", "MODIS", "MOD021KM.061"],
     "MODIS_Terra_MOD03": ["SPACEBORNE", "MODIS", "MOD03.061"],
     "MODIS_Aqua_MYD021KM": ["SPACEBORNE", "MODIS", "MYD021KM.061"],
@@ -89,15 +93,15 @@ class IcareProvider(DiscreteProvider):
                 ftp.login(user=user, passwd=password)
                 try:
                     ftp.cwd(path)
+                    listing = ftp.nlst()
+                    listing = [item_type(l) for l in listing]
                 except:
-                    raise Exception(
-                        "Can't find product folder "
-                        + path
-                        + "on the ICARE ftp server. Are you sure this is"
-                        "a ICARE multi sensor product?"
+                    LOGGER.exception(
+                        "An error was encountered when listing files on "
+                        "ICARE ftp server."
                     )
-                listing = ftp.nlst()
-            listing = [item_type(l) for l in listing]
+                    listing = []
+
             self.cache[path] = listing
         return self.cache[path]
 
@@ -117,12 +121,19 @@ class IcareProvider(DiscreteProvider):
         Return:
             List of the filenames of this product on the given day.
         """
+        LOGGER.info(
+            "Retrieving files for product %s on day %s of year %s.",
+            self.product,
+            year,
+            day,
+        )
         day_str = str(day)
         day_str = "0" * (3 - len(day_str)) + day_str
         date = datetime.strptime(str(year) + str(day_str), "%Y%j")
         path = "/".join([self.product_path, str(year), date.strftime("%Y_%m_%d")])
         listing = self._ftp_listing_to_list(path, str)
-        files = [name for name in listing if name[-3:] == "hdf"]
+        files = [name for name in listing if self.product.matches(name)]
+        LOGGER.info("Found %s files.", len(files))
         return files
 
     def download_file(self, filename, destination):
