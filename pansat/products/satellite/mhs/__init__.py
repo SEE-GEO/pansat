@@ -128,4 +128,4 @@ class MHSProduct(Product):
         return self.description.to_xarray_dataset(file_handle, globals())
 
 
-mhs_l1b = MHSProduct()
+l1b_mhs = MHSProduct()
