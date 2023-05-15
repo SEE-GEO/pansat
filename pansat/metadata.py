@@ -57,7 +57,6 @@ def parse_swath(meta_data):
 
 
 def reshape_polygon(multi_polygon):
-
     to_centroid = lambda x: np.array(x.centroid())
     centroids = map()
     polys = multi_polygon.geoms

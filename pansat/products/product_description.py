@@ -290,7 +290,6 @@ class ProductDescription(ConfigParser):
                 )
 
     def _parse_properties(self, section_name, section):
-
         if "name" not in section:
             raise MissingFieldError(
                 "No field 'name' in section for dimensions" f" {section_name}"

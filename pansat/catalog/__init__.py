@@ -85,7 +85,6 @@ class Catalog:
             load_callback = self.product.open
 
         for ind in indices:
-
             dataset = load_callback(self.files[ind])
             if dimension not in dataset.dims:
                 dataset = dataset.expand_dims("time")
