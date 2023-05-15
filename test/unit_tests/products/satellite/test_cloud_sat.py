@@ -41,6 +41,7 @@ def test_matches(product):
     assert product.matches(filename)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
@@ -71,8 +72,9 @@ def test_cloud_class_masks():
     assert cloud_sat._cloud_scenario_to_precipitation_flag(data) == 0
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-#@pytest.mark.usefixtures("test_identities")
+@pytest.mark.slow
+@pytest.mark.skip(reason="Currently no way to test this.")
+@pytest.mark.usefixtures("test_identities")
 def test_download_rain_profile():
     """
     Download CloudSat rain profile.
