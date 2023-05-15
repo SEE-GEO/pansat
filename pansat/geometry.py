@@ -10,6 +10,7 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
 from shapely.ops import unary_union
 
+
 def parse_point(xml_point):
     """
     Parse point from XML file.
