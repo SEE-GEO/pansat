@@ -7,7 +7,9 @@ import numpy as np
 import pytest
 import pansat.products.satellite.cloud_sat as cloud_sat
 
-TEST_NAMES = {"CloudSat_1B-CPR": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf"}
+TEST_NAMES = {
+    "CloudSat_1B-CPR": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf"
+}
 TEST_TIMES = {"CloudSat_1B-CPR": datetime(2018, 5, 23, 00, 41, 15)}
 PRODUCTS = [cloud_sat.l1b_cpr]
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ

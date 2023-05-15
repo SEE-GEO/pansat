@@ -8,7 +8,7 @@ of data files using geometrical objects.
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
-
+from shapely.ops import unary_union
 
 def parse_point(xml_point):
     """
@@ -24,7 +24,7 @@ def parse_polygon_xml(xml_polygon):
     Parse polygon from XML file.
     """
     boundary = xml_polygon[0]
-    points = np.array(list(map(parse_point, boundary.getchildren())))
+    points = np.array(list(map(parse_point, boundary)))
     dlons = points[:, 0] - points[0, 0]
     indices = np.where(np.abs(dlons) > 180)[0]
     for ind in indices:
@@ -49,18 +49,24 @@ def parse_swath_xml(meta_data):
     sdc = meta_data.find("SpatialDomainContainer")
     hsdc = sdc.find("HorizontalSpatialDomainContainer")
 
-    polygons = list(map(parse_polygon, hsdc.getchildren()))
+    polygons = list(map(parse_polygon_xml, hsdc))
+    new_polygons = []
+    poles = []
+
     for ind in range(len(polygons)):
         poly = polygons[ind]
         points = np.array(poly.convex_hull.exterior.coords)
-        if any(points[:, 1] > 60):
-            poly_2 = Polygon([[-180, 75], [180, 75], [180, 90], [-180, 90]])
-            polygons[ind] = poly.union(poly_2)
-        if any(points[:, 1] < -60):
-            poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
-            polygons[ind] = poly.union(poly_2)
+        if any(points[:, 1] > 85):
+            pole = Polygon([[-180, 70], [180, 70], [180, 90], [-180, 90]])
+            poles.append(pole)
+        elif any(points[:, 1] < -85):
+            pole = Polygon([[-180, -70], [180, -70], [180, -90], [-180, -90]])
+            poles.append(pole)
+        else:
+            new_polygons.append(poly)
 
-    return make_valid(MultiPolygon(polygons))
+    multi = unary_union(new_polygons + poles)
+    return multi
 
 
 def handle_poles(polygons):

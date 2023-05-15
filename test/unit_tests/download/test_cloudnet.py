@@ -1,9 +1,5 @@
 from pansat.download.providers.cloudnet import CloudnetProvider
-from pansat.products.ground_based.cloudnet import (
-    CloudnetProduct,
-    l1_radar,
-    l2_iwc
-)
+from pansat.products.ground_based.cloudnet import CloudnetProduct, l1_radar, l2_iwc
 
 import xarray as xr
 
@@ -27,10 +23,7 @@ def test_filenames():
     """
     Ensures that the matching of filenames works.
     """
-    radar_files = [
-        "20230503_palaiseau_basta.nc",
-        "20230503_norunda_rpg-fmcw-94.nc"
-    ]
+    radar_files = ["20230503_palaiseau_basta.nc", "20230503_norunda_rpg-fmcw-94.nc"]
     for filename in radar_files:
         assert l1_radar.matches(filename)
 
@@ -38,8 +31,6 @@ def test_filenames():
     assert product.matches(radar_files[0])
     assert not product.matches(radar_files[1])
 
-    iwc_files = [
-        "20230503_norunda_iwc-Z-T-method.nc"
-    ]
+    iwc_files = ["20230503_norunda_iwc-Z-T-method.nc"]
     for filename in iwc_files:
         assert l2_iwc.matches(filename)

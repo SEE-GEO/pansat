@@ -28,11 +28,7 @@ def test_get_available_files():
     assert len(files) > 0
 
     roi = (0, 0, 10, 10)
-    files_roi = provider.get_files_in_range(
-        start_time,
-        end_time,
-        bounding_box=roi
-    )
+    files_roi = provider.get_files_in_range(start_time, end_time, bounding_box=roi)
     assert len(files_roi) > 0
     assert len(files_roi) < len(files)
 

@@ -6,7 +6,8 @@ from pathlib import Path
 
 import numpy as np
 
-from pansat.products.satellite.persiann import (CCS, PDIRNow)
+from pansat.products.satellite.persiann import CCS, PDIRNow
+
 
 def test_ccs(tmp_path):
     """
@@ -22,6 +23,7 @@ def test_ccs(tmp_path):
     data = product.open(files[0])
     assert "latitude" in data.dims
     assert "longitude" in data.dims
+
 
 def test_pdirnow(tmp_path):
     """
