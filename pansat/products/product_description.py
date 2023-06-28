@@ -199,7 +199,7 @@ class Variable:
 
         return attributes
 
-    def get_data(self, file_handle, context):
+    def get_data(self, file_handle, context, slc=None):
         """
         Get data for variable from file_handle.
 
@@ -212,12 +212,15 @@ class Variable:
         Args:
              file_handle: Object providing access to a product file.
              context: Namespace in which to lookup the callback function.
+             slc: A slice object to subset the loaded data.
         """
         if self.callback:
             callback = context[self.callback]
             data = callback(getattr(file_handle, self.field_name))
         else:
-            data = getattr(file_handle, self.field_name)[:]
+            if slc is None:
+                slc = slice(0, None)
+            data = getattr(file_handle, self.field_name)[slc]
         return data
 
     def __repr__(self):
@@ -259,6 +262,8 @@ class ProductDescription(ConfigParser):
         self.attributes = []
         self.callback = None
         self._name = ""
+        self.latitude_coordinate = None
+        self.longitude_coordinate = None
         self.read(filename)
         self._parse_config_file()
 
@@ -276,6 +281,12 @@ class ProductDescription(ConfigParser):
                 self.dimensions.append(Dimension(section_name, section))
             elif section_type == "coordinate":
                 self.coordinates.append(Variable(section_name, section))
+            elif section_type == "latitude_coordinate":
+                self.coordinates.append(Variable(section_name, section))
+                self.latitude_coordinate = self.coordinates[-1]
+            elif section_type == "longitude_coordinate":
+                self.coordinates.append(Variable(section_name, section))
+                self.longitude_coordinate = self.coordinates[-1]
             elif section_type == "variable":
                 self.variables.append(Variable(section_name, section))
             elif section_type == "attribute":
@@ -285,8 +296,8 @@ class ProductDescription(ConfigParser):
             else:
                 raise UnknownTypeError(
                     "Type should be one of ['dimension', "
-                    "'coordinate', 'variable'] but is "
-                    f"'{section_type}'."
+                    "'coordinate', 'variable', 'latitude_coordinate', "
+                    f"'longitude_coordinate'] but is '{section_type}'."
                 )
 
     def _parse_properties(self, section_name, section):
@@ -364,3 +375,26 @@ class ProductDescription(ConfigParser):
             callback(dataset, file_handle)
 
         return dataset
+
+    def load_lonlats(self, file_handle, slc):
+        """
+        Load longitude and latitude coordinates from a file.
+
+        Args:
+            file_hanlde: File handle pointing to the file from which to load
+                longitude and latitude coordinates.
+            slc: A slice object to subset the loaded coodinates.
+
+        Return:
+            A tuple ``(lons, lats)`` containing the loaded longitude and
+            latitude coordinates as numpy arrays.
+        """
+        if self.latitude_coordinate is None or self.longitude_coordinate is None:
+            raise ValueError(
+                "Product description needs 'latitude_coordinate' and "
+                "'latitude_coordinate' fields to extract latitude and "
+                " coordinates."
+            )
+        lons = self.longitude_coordinate.get_data(file_handle, None, slc)
+        lats = self.latitude_coordinate.get_data(file_handle, None, slc)
+        return lons, lats
