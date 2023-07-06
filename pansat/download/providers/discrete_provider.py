@@ -7,11 +7,18 @@ providers where available cannot be determined a priori but need to be looked
 up on a per-day basis.
 """
 from abc import abstractmethod
-from datetime import timedelta
+from calendar import monthrange, isleap
+from datetime import datetime, timedelta
 from pathlib import Path
-from pansat.download.providers.data_provider import DataProvider
-from pansat.time import to_datetime
+from typing import Optional
+
 import numpy as np
+
+import pansat
+from pansat.download.providers.data_provider import DataProvider
+from pansat.file_record import FileRecord
+from pansat.geometry import Geometry
+from pansat.time import to_datetime, Time, TimeRange
 
 
 class DiscreteProvider(DataProvider):
@@ -100,7 +107,7 @@ class DiscreteProvider(DataProvider):
 
         Returns:
 
-            List of filename that include the specified time range.
+            List of filenames that include the specified time range.
 
         """
         delta = timedelta(days=1)
@@ -210,3 +217,286 @@ class DiscreteProvider(DataProvider):
         if files_negative:
             return list(files_negative)[-1]
         return files_sorted[0]
+
+
+class DiscreteProviderBase(DataProvider):
+    """
+    The DiscreteProvider class acts as a template class for discrete data
+    providers, which lookup files on a per-day basis. It only requires a
+    ``get_files_by_day`` and the ``download_file`` function to be implemented
+    and the extends the functionality to match the general DataProvider
+    interface.
+    """
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def get_time_step(self, time):
+        """
+        The time step between consecutive, discrete time slots.
+        """
+        pass
+
+    @abstractmethod
+    def download_file(self, file_record, destination):
+        """
+        Download file from data provider.
+
+        Args:
+            filename(``str``): The name of the file to download.
+            destination(``str`` or ``pathlib.Path``): path to directory where
+                the downloaded files should be stored.
+        """
+
+    @abstractmethod
+    def find_files(self, product, time):
+        """
+        Find all files available at a given time.
+
+        Args:
+            product: A 'pansat.Product' object representing the product to
+                 download.
+            time: The time for to return available files.
+
+        Return:
+            A list of 'pansat.FileRecords' specifying the available
+            files.
+        """
+
+
+    def download(self, time_range, roi=None, destination=None):
+        """
+        This method downloads data for a given time range from respective the
+        data provider.
+
+        Args:
+            time_range(``datetime.datetime``): Time range object specifying the
+                time range for which to download files.
+            roi: If given only files whose geographical coverage overlaps with
+                the given geometry will be downloaded.
+            destination(``str`` or ``pathlib.Path``): path to directory where
+                the downloaded files should be stored.
+        """
+        start_time = to_datetime(start_time)
+        end_time = to_datetime(end_time)
+
+        if not destination:
+            destination = self.product.default_destination
+        else:
+            destination = Path(destination)
+        destination.mkdir(parents=True, exist_ok=True)
+
+        files = self.get_files_in_range(start_time, end_time)
+        if len(files) == 0:
+            files = self.get_files_in_range(start_time, end_time, True)
+
+        downloaded = []
+        for f in files:
+            path = destination / f
+            self.download_file(f, path)
+            downloaded.append(path)
+        return downloaded
+
+    def find_files_in_range(self, product, time_range):
+        """
+        Get all files within time range.
+
+        Retrieves a list of product files that include the specified
+        time range.
+
+        Args:
+
+            time_range: Time range object specifying the time range for
+                which to download files.
+
+        Returns:
+
+            List of filename that include the specified time range.
+        """
+        time = to_datetime(time_range.start)
+        time -= self.get_time_step(time)
+
+        files = []
+        while time <= time_range.end:
+            recs = self.find_files(time)
+            for rec in recs:
+                tr_f = product.get_temporal_coverage(rec)
+                if tr_f.covers(time_range):
+                    files.append(rec)
+            time += self.get_time_step(time)
+        return files
+
+
+def find_files_in_range(
+        product,
+        time_range,
+        find_files_fun,
+        get_time_step_fun
+):
+    """
+    Get all files within time range.
+
+    Retrieves a list of product files that include the specified
+    time range.
+
+    Args:
+
+        time_range: Time range object specifying the time range for
+            which to download files.
+
+    Returns:
+
+        List of filename that include the specified time range.
+    """
+    time = to_datetime(time_range.start)
+    time -= get_time_step_fun(time)
+    end = time_range.end + get_time_step_fun(time)
+
+    files = []
+    while time <= end:
+        recs = find_files_fun(product, time)
+        for rec in recs:
+            tr_f = product.get_temporal_coverage(rec)
+            if tr_f.covers(time_range):
+                files.append(rec)
+        time += get_time_step_fun(time)
+    return files
+
+
+class DiscreteProviderDay():
+    """
+    This provider class provides helper functions for data providers
+    which organize available files by days.
+    """
+    @abstractmethod
+    def find_files_by_day(
+            self,
+            time: Time,
+            roi: Optional[Geometry] = None
+    ) -> list[FileRecord]:
+        """
+        Compile a list of file records available for a given day.
+
+        Args:
+            time: A time object specifying the day for which to return
+            roi: If given, return only files covering the region represented
+                by the given geometry object.
+
+        Return:
+            A list of file records identifying the files available at this
+            day.
+        """
+        pass
+
+    def get_time_step(self, *args):
+        return timedelta(days=1)
+
+    def find_files(
+            self,
+            product: "pansat.Product",
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ) -> list[FileRecord]:
+        """
+        Compile a list of file records available for a given time range.
+
+        Args:
+            time_range: A time range object specifying the time range for
+                which to find files.
+            roi: If given, return only files covering the region represented
+                by the given geometry object.
+
+        Return:
+            A list of file records identifying the files available at this
+            day.
+        """
+        return find_files_in_range(
+            product,
+            time_range,
+            self.find_files_by_day,
+            self.get_time_step
+        )
+
+
+class DiscreteProviderMonth(DiscreteProviderBase):
+    """
+    A discrete provider which organizes files by months.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def get_time_step(self, time: datetime) -> timedelta:
+        days = monthrange(time.year, time.month)[-1]
+        return timedelta(days=days)
+
+    @abstractmethod
+    def find_files_by_month(self, time: datetime) -> list[FileRecord]:
+        pass
+
+    def find_files(
+            self,
+            product: "pansat.Product",
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ) -> list[FileRecord]:
+        """
+        Compile a list of file records available for a given time range.
+
+        Args:
+            time_range: A time range object specifying the time range for
+                which to find files.
+            roi: If given, return only files covering the region represented
+                by the given geometry object.
+
+        Return:
+            A list of file records identifying the files available at this
+            day.
+        """
+        return find_files_in_range(
+            product,
+            time_range,
+            self.find_files_by_month,
+            lambda time: DiscreteProviderMonth.get_time_step(self, time)
+        )
+
+
+class DiscreteProviderYear(DiscreteProviderBase):
+    """
+    A discrete provider which organizes files by years.
+    """
+    def __init__(self):
+        super().__init__()
+
+    def get_time_step(self, time: datetime) -> timedelta:
+        days = 365 + isleap(time.year)
+        return timedelta(days=days)
+
+    @abstractmethod
+    def find_files_by_year(self, time):
+        pass
+
+    def find_files(
+            self,
+            product: "pansat.Product",
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ) -> list[FileRecord]:
+        """
+        Compile a list of file records available for a given time range.
+
+        Args:
+            time_range: A time range object specifying the time range for
+                which to find files.
+            roi: If given, return only files covering the region represented
+                by the given geometry object.
+
+        Return:
+            A list of file records identifying the files available at this
+            day.
+        """
+        return find_files_in_range(
+            product,
+            time_range,
+            self.find_files_by_year,
+            lambda time: DiscreteProviderYear.get_time_step(self, time)
+        )

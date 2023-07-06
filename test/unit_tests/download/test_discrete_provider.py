@@ -1,94 +1,233 @@
-"""
+ """
 This file contains tests for the discrete provider base class.
 """
+from calendar import monthrange
+from datetime import datetime, timedelta
 import os
+from pathlib import Path
+
 import pytest
 
-from datetime import datetime
 from pansat.download.providers import IcareProvider
 from pansat.products.satellite.modis import modis_terra_1km
 from pansat.products.satellite.dardar import dardar_cloud
+from pansat.products.example import get_filename, example_product_hdf4
+from pansat.time import TimeRange, to_datetime
+from pansat.file_record import FileRecord
+from pansat.download.providers.discrete_provider import (
+    DiscreteProviderDay,
+    DiscreteProviderMonth,
+    DiscreteProviderYear
+)
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.usefixtures("test_identities")
-def test_files_in_range():
+class TestProviderDay(
+        DiscreteProviderDay
+):
     """
-    Test that the expected number of files in given range is
-    returned.
-
-    - Checks that list is sorted by start time.
-    - Checks that only files starting after the start time are
-      returned when start_inclusive is false.
-    - Checks that right file is included when start_inclusive is true.
-    - Checks that this works across day boundaries.
+    Dummy provider to test the DiscreteProvider functionality.
     """
-    provider = IcareProvider(modis_terra_1km)
-    t0 = datetime(2018, 1, 14, 0, 42)
-    t1 = datetime(2018, 1, 14, 0, 52)
+    def find_files_by_day(self, time):
+        """
+        Return list of hourly filenames.
 
-    files = provider.get_files_in_range(t0, t1, False)
-    print(files)
-    assert modis_terra_1km.filename_to_date(files[0]).minute > 42
+        Args:
+            time: An arbitrary time within the day for which to return
+                the available files.
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        start = datetime(time.year, time.month, time.day)
+        end = start + timedelta(days=1)
+        time = start
+
+        recs = []
+
+        while time < end:
+            filename = get_filename(
+                time,
+                time + timedelta(hours=1),
+                suffix="hdf"
+            )
+            recs.append(FileRecord.from_remote(
+                example_product_hdf4,
+                self,
+                Path("remote") / filename,
+                filename
+            ))
+            time += timedelta(hours=1)
+        return recs
+
+
+class TestProviderMonth(
+        DiscreteProviderMonth
+):
+    def find_files_by_month(self, time):
+        """
+        Return list of daily files within a month.
+
+        Args:
+            time: An arbitrary time within the month for which to return
+                the available files.
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        start = datetime(time.year, time.month, 1)
+        days = monthrange(time.year, time.month)[-1]
+        end = start + timedelta(days=days)
+        time = start
+
+        recs = []
+
+        while time < end:
+            filename = get_filename(
+                time,
+                time + timedelta(days=1),
+                suffix="hdf"
+            )
+            print(filename)
+            recs.append(FileRecord.from_remote(
+                example_product_hdf4,
+                self,
+                Path("remote") / filename,
+                filename
+            ))
+            time += timedelta(days=1)
+        return recs
+
+    def download_file(self):
+        pass
+
+    def get_available_products(self):
+        return []
+
+
+class TestProviderYear(
+        DiscreteProviderYear
+):
+    def find_files_by_year(self, time):
+        """
+        Return list of daily files within a year.
+
+        Args:
+            time: An arbitrary time within the year for which to return
+                the available files.
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        start = datetime(time.year, 1, 1)
+        end = datetime(time.year + 1, 1, 1)
+        time = start
+
+        recs = []
+
+        while time < end:
+            dom = monthrange(time.year, time.month)[-1]
+            filename = get_filename(
+                time,
+                time + timedelta(days=dom),
+                suffix="hdf"
+            )
+            recs.append(FileRecord.from_remote(
+                example_product_hdf4,
+                self,
+                Path("remote") / filename,
+                filename
+            ))
+            time += timedelta(days=dom)
+        return recs
+
+    def download_file(self):
+        pass
+
+    def get_available_products(self):
+        return []
+
+
+def test_files_in_range_day():
+    """
+    Test discrete provider functionality for files organized by
+    day.
+    """
+    provider = TestProviderDay()
+    t_0 = datetime(2018, 1, 14, 0, 42)
+    t_1 = datetime(2018, 1, 14, 0, 42)
+    t_range = TimeRange(t_0, t_1)
+
+    files = provider.find_files(
+        example_product_hdf4,
+        t_range
+    )
+    assert len(files) == 1
+
+    t_0 = datetime(2018, 1, 14, 23, 55)
+    t_1 = datetime(2018, 1, 15, 0, 5)
+    t_range = TimeRange(t_0, t_1)
+
+    files = provider.find_files(
+        example_product_hdf4,
+        t_range
+    )
     assert len(files) == 2
 
-    files_sorted = sorted(files, key=modis_terra_1km.filename_to_date)
-    assert files_sorted == files
 
-    files = provider.get_files_in_range(t0, t1, True)
-    assert len(files) == 3
-    assert modis_terra_1km.filename_to_date(files[0]).minute == 40
+def test_files_in_range_month():
+    """
+    Test discrete provider functionality for files organized by
+    months.
+    """
+    provider = TestProviderMonth()
+    t_0 = datetime(2018, 1, 14, 0, 42)
+    t_1 = datetime(2018, 1, 14, 0, 42)
+    t_range = TimeRange(t_0, t_1)
 
-    t0 = datetime(2018, 1, 14, 0, 1)
-    t1 = datetime(2018, 1, 14, 0, 2)
-    files = provider.get_files_in_range(t0, t1, False)
-    assert len(files) == 0
-
-    t0 = datetime(2018, 1, 14, 0, 1)
-    t1 = datetime(2018, 1, 14, 0, 2)
-    files = provider.get_files_in_range(t0, t1, True)
+    files = provider.find_files(
+        example_product_hdf4,
+        t_range
+    )
     assert len(files) == 1
 
-    t0 = datetime(2018, 1, 13, 23, 59)
-    t1 = datetime(2018, 1, 14, 0, 6)
-    files = provider.get_files_in_range(t0, t1, False)
-    assert len(files) == 3
+    t_0 = datetime(2018, 1, 14, 23, 55)
+    t_1 = datetime(2018, 1, 15, 0, 5)
+    t_range = TimeRange(t_0, t_1)
 
+    files = provider.find_files(
+        example_product_hdf4,
+        t_range
+    )
+    assert len(files) == 2
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.usefixtures("test_identities")
-def test_get_file_by_date():
+def test_files_in_range_year():
     """
-    Test that get file by date returns the closes file in time that starts
-    before the given time
+    Test discrete provider functionality for files organized by
+    months.
     """
-    provider = IcareProvider(modis_terra_1km)
+    provider = TestProviderYear()
+    t_0 = datetime(2018, 1, 14, 0, 42)
+    t_1 = datetime(2018, 1, 14, 0, 42)
+    t_range = TimeRange(t_0, t_1)
 
-    t = datetime(2018, 1, 14, 0, 42)
-    file = provider.get_file_by_date(t)
-    assert modis_terra_1km.filename_to_date(file).minute == 40
-
-    t = datetime(2018, 1, 14, 0, 0, 0)
-    file = provider.get_file_by_date(t)
-    assert modis_terra_1km.filename_to_date(file).minute == 0
-
-
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-@pytest.mark.usefixtures("test_identities")
-def test_last_file_of_day_included():
-    """
-    This test ensure that the last file of each day is included. This test
-    covers a bug reported, which caused the discrete provider to miss the
-    last file of each day.
-    """
-    from pansat.download.providers import IcareProvider
-    from datetime import datetime
-
-    provider = IcareProvider(dardar_cloud)
-    t_0 = datetime(2006, 6, 20, 22, 30)
-    t_1 = datetime(2006, 6, 21, 0, 0)
-    files = provider.get_files_in_range(t_0, t_1, False)
+    files = provider.find_files(
+        example_product_hdf4,
+        t_range
+    )
     assert len(files) == 1
+
+    t_0 = datetime(2018, 1, 31, 23, 55)
+    t_1 = datetime(2018, 2, 1, 0, 5)
+    t_range = TimeRange(t_0, t_1)
+
+    files = provider.find_files(
+        example_product_hdf4,
+        t_range
+    )
+    assert len(files) == 2

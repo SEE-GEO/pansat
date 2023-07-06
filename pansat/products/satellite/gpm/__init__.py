@@ -6,7 +6,8 @@ This module defines the GPM product class, which is used to represent all
 GPM products.
 """
 import re
-from datetime import datetime
+from calendar import monthrange
+from datetime import datetime, timedelta
 from itertools import dropwhile
 from pathlib import Path
 from traceback import print_exc
@@ -31,7 +32,6 @@ class GPMProduct(Product, products.Product):
     """
     Base class representing GPM products.
     """
-
     def __init__(
             self,
             level,
@@ -50,12 +50,18 @@ class GPMProduct(Product, products.Product):
         self.variant = variant.lower()
         self._description = description
         if self.variant:
-            variant = "-" + self.variant
+            variant = "-" + self.variant.upper()
         else:
             variant = ""
+
+        level = level.upper()
+        platform = platform.upper()
+        sensor = sensor.upper()
+        algorithm = algorithm.upper()
+
         self.filename_regexp = re.compile(
-            rf"{self.level}{variant}\.{self.platform}\.{self.sensor}"
-            rf"\.{self.algorithm}([\w-]*).(\d{{8}})-"
+            rf"{level}{variant}\.{platform}\.{sensor}"
+            rf"\.{algorithm}([\w-]*).(\d{{8}})-"
             r"S(\d{6})-E(\d{6})\.(\w*)\.((\w*)\.)?(HDF5|h5|nc|nc4)"
         )
 
@@ -75,12 +81,18 @@ class GPMProduct(Product, products.Product):
         module = Path(__file__).parent
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace('/', ".")
+        algo = self.algorithm.replace("-", "")
+        lvl = self.level
+        sensor = self.sensor
+        version = self.version
+        pltfrm = self.platform
+
         if self.variant == "":
-            name = f"l{self.level}_{self.algorithm}_{self.platform}_{self.sensor}_v{self.version}"
+            name = f"l{lvl}_{algo}_{pltfrm}_{sensor}_v{version}"
         else:
+            variant = self.variant
             name = (
-                f"l{self.level}_{self.algorithm}_{self.variant}_{self.platform}_{self.sensor}"
-                f"_{self.version}"
+                f"l{lvl}_{variant}_{algo}_{pltfrm}_{sensor}_v{version}"
             )
         return ".".join([prefix , name])
 
@@ -130,6 +142,10 @@ class GPMProduct(Product, products.Product):
         fmt = "%Y%m%d%H%M%S"
         start = datetime.strptime(date + start, fmt)
         end = datetime.strptime(date + end, fmt)
+        if self.variant.startswith("mo"):
+            end += timedelta(days=monthrange(start.year, start.month)[-1] - 1)
+        if end < start:
+            end += timedelta(days=1)
         return TimeRange(start, end)
 
     def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
@@ -337,7 +353,7 @@ l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "npp", "atms", "07a")
 ################################################################################
 
 
-class GPMMergeIR:
+class GPMMergedIR:
     """
     The GPM merged IR product.
     """
@@ -345,6 +361,10 @@ class GPMMergeIR:
     def __init__(self):
         pattern = r"merg_(\d{10,10})_4km-pixel.nc"
         self.filename_regexp = re.compile(pattern)
+
+    @property
+    def name(self):
+        return "satellite.gpm.merged_ir"
 
     def matches(self, filename):
         """
@@ -359,51 +379,32 @@ class GPMMergeIR:
         """
         return self.filename_regexp.match(filename)
 
-    def filename_to_date(self, filename):
+    def get_temporal_coverage(self, rec):
         """
-        Extract timestamp from filename.
-
-        Args:
-            filename(``str``): Filename of a GPM product.
-
-        Returns:
-            ``datetime`` object representing the timestamp of the
-            filename.
+        GPM merged IR files cover 1h.
         """
-        path = Path(filename)
-        match = self.filename_regexp.match(path.name)
-        date_string = match.group(1)
-        date = datetime.strptime(date_string, "%Y%m%d%H")
-        self.variant = ""
-        return date
+        match = self.filename_regexp.match(rec.filename)
+        date = datetime.strptime(match.group(1), "%Y%m%d%H")
+        start_time = date
+        end_time = date + timedelta(hours=1)
+        return TimeRange(start_time, end_time)
 
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {str(self)}."
-            )
-        return available_providers[0]
+    def get_spatial_coverage(self, *args):
+        """
+        The GPM merged IR product has fixed coverage covering all longitudes
+        and latitude -60 to 60.
+        """
+        return LonLatRect(-180, -90, 180, 90)
+
 
     @property
     def default_destination(self):
         """
-        The default destination for GPM product is
+        The default destination for GPM products is
         ``GPM/<product_name>``>
         """
-        return Path("GPM") / Path(self.name)
+        return Path("gpm") / "merged_ir"
 
-    @property
-    def name(self):
-        return "gpm_mergeir"
-
-    def __str__(self):
-        return self.name
 
     def download(self, start_time, end_time, destination=None, provider=None):
         """
@@ -430,20 +431,17 @@ class GPMMergeIR:
 
         return provider.download(start_time, end_time, destination)
 
-    def open(self, filename):
+    def open(self, path):
         """
         Open file as xarray dataset.
 
         Args:
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
-        from pansat.formats.hdf5 import HDF5File
-
-        file_handle = HDF5File(filename, "r")
-        return self.description.to_xarray_dataset(file_handle, globals())
+        xr.load_dataset(path)
 
 
-gpm_mergeir = GPMMergeIR()
+merged_ir = GPMMergedIR()
 
 
 def _imerg_parse_time(seconds_since_1970):
