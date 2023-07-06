@@ -83,9 +83,9 @@ to xarray Datasets, whereas coordinates are mapped to coordinates.
 Reference
 ---------
 """
-
 from configparser import ConfigParser
 import json
+from pathlib import Path
 
 import numpy as np
 import xarray
@@ -254,7 +254,7 @@ class ProductDescription(ConfigParser):
         attribute: List of the attribute-type data in the data product.
     """
 
-    def __init__(self, filename):
+    def __init__(self, ini_file):
         super().__init__()
         self.dimensions = []
         self.coordinates = []
@@ -264,7 +264,10 @@ class ProductDescription(ConfigParser):
         self._name = ""
         self.latitude_coordinate = None
         self.longitude_coordinate = None
-        self.read(filename)
+        try:
+            self.read(ini_file)
+        except OSError:
+            self.read_string(ini_file)
         self._parse_config_file()
 
     def _parse_config_file(self):
@@ -302,10 +305,10 @@ class ProductDescription(ConfigParser):
 
     def _parse_properties(self, section_name, section):
         if "name" not in section:
-            raise MissingFieldError(
-                "No field 'name' in section for dimensions" f" {section_name}"
-            )
-        self._name = section["name"]
+            name = section_name
+        else:
+            name = section["name"]
+        self._name = name
         self.properties = section
 
     @property

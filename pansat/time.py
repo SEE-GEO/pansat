@@ -41,11 +41,45 @@ class TimeRange:
 
     The time range is represented by the 'start' and 'end' attributes
     of the class representing the start and end of the time range covered
-    by a given data filee.
+    by a given data file.
 
     If the temporal extent of a data file cannot be deduced from the
     filename alone or it is not known, the 'end' attribute can be 'None'.
     """
-
     start: np.datetime64
     end: np.datetime64 = None
+
+    def __init__(self, start, end):
+        """
+        Create a time range from a given start and end time.
+
+        Args:
+            start: The start time of the time range as a string, Python
+                datetime object or a numpy.datetime64 object.
+            end: The end time of the time range as a string, Python
+                datetime object or a numpy.datetime64 object.
+        """
+        self.start = to_datetime(start)
+        self.end = to_datetime(end)
+
+    def covers(self, time):
+        """
+        Determins wether time range covers a certain time.
+
+        Args:
+            time: The time to to check.
+
+        Return:
+            'True' if the 'time' lies within the time range represented by
+            this object. 'False' otherwise.
+        """
+        time = to_datetime(time)
+        return (time >= self.start) and (time <= self.end)
+
+
+    def __iter__(self):
+        """
+        Iterate over start and end of the time range.
+        """
+        yield self.start
+        yield self.end

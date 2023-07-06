@@ -16,14 +16,18 @@ class FileRecord:
     available locally or remotely.
     """
 
-    product: "pansat.products.Product"
     filename: str
     local_path: Path = None
+    product: "pansat.Product" = None
+    provider: "pansat.DataProvider" = None
     remote_path: str = None
 
     @staticmethod
     def from_remote(
-        product: "pansat.products.Product", remote_path: str, filename: str
+        product: "pansat.Product",
+        provider: "pansat.DataProvider",
+        remote_path: str = None,
+        filename: str = None
     ):
         """
         Create file record from a remote file.
@@ -40,9 +44,10 @@ class FileRecord:
         rec = FileRecord(product, None)
         rec.remote_path = remote_path
         rec.filename = filename
+        rec.provider = provider
         return rec
 
-    def __init__(self, product, local_path):
+    def __init__(self, local_path, product=None):
         """
         Create file record from product and local file path.
 
@@ -50,8 +55,7 @@ class FileRecord:
             product: A pansat product representing the data product.
             local_path: The local path of the file.
         """
-        self.product = product
         local_path = Path(local_path)
-        self.filename = local_path.name
         self.local_path = local_path
-        self.remote_path = None
+        self.filename = local_path.name
+        self.product = product

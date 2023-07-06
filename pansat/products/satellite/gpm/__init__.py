@@ -9,11 +9,17 @@ import re
 from datetime import datetime
 from itertools import dropwhile
 from pathlib import Path
+from traceback import print_exc
+import warnings
 
 import numpy as np
 import pandas as pd
 
+import pansat
+from pansat import products
 import pansat.download.providers as providers
+from pansat.file_record import FileRecord
+from pansat.time import TimeRange
 from pansat.products.product import Product
 from pansat.products.product_description import ProductDescription
 from pansat.exceptions import NoAvailableProvider
@@ -21,27 +27,35 @@ from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
 
-class GPMProduct(Product):
+class GPMProduct(Product, products.Product):
     """
     Base class representing GPM products.
     """
 
-    def __init__(self, level, platform, sensor, name, version, variant, description):
-        self.level = level
-        self.platform = platform
-        self.sensor = sensor
-        self.name = name
-        self.version = version
-        self.variant = variant
+    def __init__(
+            self,
+            level,
+            platform,
+            sensor,
+            algorithm,
+            version,
+            variant,
+            description
+    ):
+        self.level = level.lower()
+        self.platform = platform.lower()
+        self.sensor = sensor.lower()
+        self.algorithm = algorithm.lower()
+        self.version = version.lower()
+        self.variant = variant.lower()
         self._description = description
-
         if self.variant:
             variant = "-" + self.variant
         else:
             variant = ""
         self.filename_regexp = re.compile(
             rf"{self.level}{variant}\.{self.platform}\.{self.sensor}"
-            rf"\.{self.name}([\w-]*).(\d{{8}})-"
+            rf"\.{self.algorithm}([\w-]*).(\d{{8}})-"
             r"S(\d{6})-E(\d{6})\.(\w*)\.((\w*)\.)?(HDF5|h5|nc|nc4)"
         )
 
@@ -52,6 +66,23 @@ class GPMProduct(Product):
     @property
     def description(self):
         return self._description
+
+    @property
+    def name(self):
+        """
+        The product name that uniquely identifies the product within pansat.
+        """
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace('/', ".")
+        if self.variant == "":
+            name = f"l{self.level}_{self.algorithm}_{self.platform}_{self.sensor}_v{self.version}"
+        else:
+            name = (
+                f"l{self.level}_{self.algorithm}_{self.variant}_{self.platform}_{self.sensor}"
+                f"_{self.version}"
+            )
+        return ".".join([prefix , name])
 
     def matches(self, filename):
         """
@@ -88,6 +119,36 @@ class GPMProduct(Product):
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
         return date
 
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        Implements interface to extract temporal coverage of file.
+        """
+        match = self.filename_regexp.match(rec.filename)
+        date = match[2]
+        start = match[3]
+        end = match[4]
+        fmt = "%Y%m%d%H%M%S"
+        start = datetime.strptime(date + start, fmt)
+        end = datetime.strptime(date + end, fmt)
+        return TimeRange(start, end)
+
+    def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
+        """
+        Implements interface to extract spatial coverage of file.
+        """
+        if rec.local_path is None:
+            raise ValueError(
+                "This products reuqires a local file is to determine "
+                " the spatial coverage."
+            )
+
+        with HDF5File(rec.local_path, "r") as file_handle:
+            lons, lats = self.description.load_lonlats(
+                file_handle, slice(0, None, 1)
+            )
+        poly = geometry.parse_swath(lons, lats, m=10, n=1)
+        return geometry.ShapelyGeometry(poly)
+
     def filename_to_start_time(self, filename):
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
@@ -101,30 +162,6 @@ class GPMProduct(Product):
         date_string = match.group(2) + match.group(4)
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
         return date
-
-    def get_spatial_coverage(self, rec):
-        """
-        Create geometry representing the spatial coverage of a data file.
-
-        Args:
-            rec: A 'FileRecord' object pointing to a data file.
-
-        Return:
-            A geometry object representing the the spatial coverage.
-        """
-        if rec.local_path is not None and rec.local_path.exists():
-            with HDF5File(str(rec.local_path), "r") as input_data:
-                lats = input_data["S1/Latitude"][:]
-                lons = input_data["S1/Longitude"][:]
-                valid = np.where(np.any(lons >= -180, 0))[0]
-                left = valid[0]
-                right = valid[-1]
-                return geometry.parse_swath(lons[:, left:right], lats[:, left:right])
-        raise ValueError(
-            "A NetcdfProduct needs a local file to determine temporal coverage"
-            " but the 'local_path' attribute of the provided file record "
-            "does not point to an existing file."
-        )
 
     def _get_provider(self):
         """Find a provider that provides the product."""
@@ -145,7 +182,7 @@ class GPMProduct(Product):
         The default destination for GPM product is
         ``GPM/<product_name>``>
         """
-        return Path("GPM") / Path(self.name)
+        return Path("gpm") / self.level / self.platform / self.sensor
 
     def __str__(self):
         if self.variant:
@@ -197,7 +234,8 @@ def _extract_scantime(scantime_group):
     """
     Extract scan time as numpy object.
 
-    This function is use
+    This function is used to extract the scantime from GPM files as
+    an array of numpy.datetime64 objects.
 
     Args:
          scantime_group: The HDF5 group containing the scantime data.
@@ -233,17 +271,28 @@ def _extract_scantime(scantime_group):
 def _parse_products():
     module_path = Path(__file__).parent
     for filename in module_path.iterdir():
-        if filename.match("*.ini") and filename.name != "gprof.ini":
-            description = ProductDescription(filename)
-            python_name = filename.name.split(".")[0]
-            level = description.properties["level"]
-            platform = description.properties["platform"]
-            sensor = description.properties["sensor"]
-            name = description.properties["name"]
-            version = int(description.properties["version"])
-            variant = description.properties["variant"]
-            globals()[python_name] = GPMProduct(
-                level, platform, sensor, name, version, variant, description
+        try:
+            if filename.match("*.ini") and filename.name != "gprof.ini":
+                description = ProductDescription(filename)
+                python_name = description.properties.name
+                level = description.properties["level"]
+                platform = description.properties["platform"]
+                sensor = description.properties["sensor"]
+                algorithm = description.properties["algorithm"]
+                version = description.properties["version"]
+                variant = description.properties["variant"]
+
+                product = GPMProduct(
+                    level, platform, sensor, algorithm, version, variant, description
+                )
+                globals()[python_name] = product
+                if "alias" in description.properties:
+                    alias = description.properties["alias"]
+                    globals()[alias] = product
+        except Exception:
+            warnings.warn(
+                "Error encountered while trying to parse "
+                f"the product file '{filename}': \n {print_exc()}",
             )
 
 
@@ -259,15 +308,28 @@ class GPROFProduct(GPMProduct):
     Specialization of GPM product for GPROF products, which all have the same
     data format.
     """
-
-    def __init__(self, platform, sensor, version, variant=""):
+    def __init__(self, gprof_algorithm, platform, sensor, version, variant=""):
         module_path = Path(__file__).parent
         description = ProductDescription(module_path / "gprof.ini")
-        super().__init__("2A", platform, sensor, "GPROF", version, variant, description)
+        super().__init__(
+            "2A",
+            platform,
+            sensor,
+            gprof_algorithm,
+            version,
+            variant,
+            description
+        )
 
 
-l2a_gprof_gpm_gmi = GPROFProduct("GPM", "GMI", 5)
-l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)
+l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07a")
+l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "mhs", "07a")
+l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "mhs", "07a")
+l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "metopa", "mhs", "07a")
+l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "metopb", "mhs", "07a")
+l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "metopc", "mhs", "07a")
+l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "atms", "07a")
+l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "npp", "atms", "07a")
 
 
 ################################################################################

@@ -4,7 +4,7 @@ pansat.products
 
 The ``products`` module provides functionality for handling supported data products.
 """
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 
 import xarray as xr
@@ -38,6 +38,15 @@ class Product(ABC):
     This class defines the essential functionality that a product must
     implement to be used inside the pansat framework.
     """
+
+    @abstractproperty
+    def default_destination(self):
+        """
+        A relative directory to use to store files from this product
+        to.
+        """
+        pass
+
 
     @abstractmethod
     def matches(self, path: Path) -> bool:
@@ -99,6 +108,28 @@ class Product(ABC):
             An 'xarray.Dataset' that contains the data of the provided file.
         """
         pass
+
+    def download(
+            self,
+            start_time,
+            end_time=None,
+            destination=None
+    ):
+        if end_time is None:
+            end_time = start_time
+
+        if destination is None:
+
+
+        t_range = TimeRange(start_time, end_time)
+        for provider in ALL_PROVIDERS:
+            if provider.provides(self):
+                provider.download(
+                    t_range,
+
+
+                )
+
 
 
 class NetcdfProduct(ABC):

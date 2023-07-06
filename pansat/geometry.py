@@ -5,10 +5,14 @@ pansat.geometry
 The pansat geometry provides functions to represent the spatial coverage
 of data files using geometrical objects.
 """
+from abc import ABC, abstractmethod
+
 import numpy as np
+import shapely
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
 from shapely.ops import unary_union
+from shapely.validation import make_valid
 
 
 def parse_point(xml_point):
@@ -89,16 +93,19 @@ def handle_poles(polygons):
     for ind in range(len(polygons)):
         poly = polygons[ind]
         points = np.stack(poly.exterior.coords.xy, -1)
-        if any(points[:, 1] > 70):
+        if any(points[:, 1] > 75):
             poly_2 = Polygon([[-180, 75], [180, 75], [180, 90], [-180, 90]])
             polygons[ind] = poly_2
-        if any(points[:, 1] < -70):
+        if any(points[:, 1] < -75):
             poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
             polygons[ind] = poly_2
 
-    poly = polygons[0]
+    if len(polygons) == 0:
+        return Polygon()
+
+    poly = make_valid(polygons[0])
     for other in polygons[1:]:
-        poly = poly.union(other)
+        poly = poly.union(make_valid(other))
     return poly
 
 
@@ -135,18 +142,114 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
             lon_1_0 = lons[min(ind_i + d_i, n_i - 1), ind_j]
             lat_1_0 = lats[min(ind_i + d_i, n_i - 1), ind_j]
 
-            polys.append(
-                Polygon(
-                    [
-                        [lon_0_0, lat_0_0],
-                        [lon_0_1, lat_0_1],
-                        [lon_1_1, lat_1_1],
-                        [lon_1_0, lat_1_0],
-                        [lon_0_0, lat_0_0],
-                    ]
+            d_lon = max([
+                abs(lon_0_0 - lon_0_1),
+                abs(lon_0_1 - lon_1_1),
+                abs(lon_1_1 - lon_1_0),
+                abs(lon_1_0 - lon_0_0)
+            ])
+            if d_lon < 240:
+                polys.append(
+                    Polygon(
+                        [
+                            [lon_0_0, lat_0_0],
+                            [lon_0_1, lat_0_1],
+                            [lon_1_1, lat_1_1],
+                            [lon_1_0, lat_1_0],
+                            [lon_0_0, lat_0_0],
+                        ]
+                    )
                 )
-            )
+            else:
+                polys.append(
+                    Polygon(
+                        [
+                            [lon_0_0 % 360, lat_0_0],
+                            [lon_0_1 % 360, lat_0_1],
+                            [lon_1_1 % 360, lat_1_1],
+                            [lon_1_0 % 360, lat_1_0],
+                            [lon_0_0 % 360, lat_0_0],
+                        ]
+                    )
+                )
+                polys.append(
+                    Polygon(
+                        [
+                            [lon_0_0 % 360 - 360, lat_0_0],
+                            [lon_0_1 % 360 - 360, lat_0_1],
+                            [lon_1_1 % 360 - 360, lat_1_1],
+                            [lon_1_0 % 360 - 360, lat_1_0],
+                            [lon_0_0 % 360 - 360, lat_0_0],
+                        ]
+                    )
+                )
+
             ind_j += d_j
         ind_i += d_i
     poly = handle_poles(polys)
     return make_valid(poly)
+
+
+class Geometry(ABC):
+    """
+    Generic interface for objects representation the spatial coverage
+    of product files.
+    """
+    @abstractmethod
+    def covers(self, other: "Geometry") -> bool:
+        pass
+
+    @abstractmethod
+    def to_shapely(self):
+        pass
+
+
+class ShapelyGeometry(Geometry):
+    """
+    A geometry class that internally uses a shapely.Geometry
+    """
+    def __init__(self, geometry):
+        """
+        Args: A shapely geometry object.
+        """
+        self.geometry = geometry
+
+    def covers(self, other: Geometry) -> bool:
+        return self.geometry.covers(other.to_shapely())
+
+    def to_shapely(self):
+        return self.geometry
+
+
+class LonLatRect(ShapelyGeometry):
+    """
+    A rectangular domain in latitude and longitude coordinates.
+    """
+    def __init__(self, lon_min, lat_min, lon_max, lat_max):
+        """
+        Args:
+            lon_min: Longitude coord. of the lower left corner of the domain.
+            lat_min: Latitude coord. of the lower left corner of the domain.
+            lon_max: Longitude coord. of the upper right corner of the domain.
+            lat_max: Latitude coord. of the upper right corner of the domain.
+        """
+        self.lon_min = lon_min
+        self.lat_min = lat_min
+        self.lon_max = lon_max
+        self.lat_max = lat_max
+        super().__init__(shapely.box(lon_min, lat_min, lon_max, lat_max))
+
+    def __repr__(self):
+        return (
+            f"LonLatRect(lon_min={self.lon_min}, lat_min={self.lat_min}, "
+            f"lon_max={self.lon_max}, lat_max={self.lat_max})"
+        )
+
+
+
+class SatelliteSwath(ShapelyGeometry):
+    """
+    A satellite swath represented unsing a shapely geometry.
+    """
+    def __init__(self, geometry):
+        super().__init__(geometry)
