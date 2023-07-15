@@ -5,14 +5,83 @@ pansat.catalog
 The ``catalog`` module provides functionality to organize, parse and
  list local and remote files.
 """
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
 import geopandas
 
-from pansat.time import to_datetime64
+from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
+from pansat.products import Product
+
+
+
+def _get_index_data(product, path):
+    """
+    Extracts index data from a single path.
+
+    Args:
+        product: A 'pansat.Product' object representing the data product
+            that is being indexed.
+        path: A path pointing to a data file of that product.
+
+    Return:
+        A tuple ``(start_time, end_time, local_path, geom)`` containing
+        the start and end time, the path of the file as sting and
+        ``geom`` a geometry representing the spatial coverage of the file.
+    """
+    if product.matches(path.name) is None:
+        return None
+
+    rec = FileRecord(path)
+    start_time, end_time = product.get_temporal_coverage(rec)
+    geom = product.get_spatial_coverage(rec).to_shapely()
+    local_path = str(path)
+
+    return start_time, end_time, local_path, geom
+
+
+def _pandas_to_file_record(
+        product,
+        data
+):
+    """
+    Converts a pandas dataframe of file indices into a list
+    of file records.
+
+    Args:
+        product: The 'pansat.Product' object representing the
+            product.
+        data: A pandas dataframe containing a selection of
+            data file indices.
+
+    Return:
+        A list of file records pointing to the files in 'data'.
+    """
+    recs = []
+
+    if "local_path" in data.columns:
+        for row in data.itertuples():
+            local_path = row.local_path
+            recs.append(FileRecord(local_path, product))
+    elif "remote_path" in data.columns:
+        for row in data.itertuples():
+            remote_path = row.remote_path
+            filename = row.filename
+            recs.append(FileRecord.from_remote(
+                product,
+                None,
+                remote_path,
+                filename
+            ))
+    else:
+        raise ValueError(
+            "Index data must provide either a 'local_path' column or "
+            " a 'remote_path' column."
+        )
+    return recs
 
 
 class Index:
@@ -32,15 +101,12 @@ class Index:
         """
         data = geopandas.read_parquet(path)
         product_name = path.stem
-        parts = product_name.split(".")
-        module_name = "pansat.products." + ".".join(parts[:-1])
-        module = importlib.import_module(module_name)
-        product = getattr(module, parts[-1])
+        product = Product.get_product(product_name)
         return cls(product, data)
 
 
     @classmethod
-    def index(self, product, files):
+    def index(cls, product, files, n_processes=None):
         """
         Index data files.
 
@@ -52,29 +118,46 @@ class Index:
         Return:
            An Index object containing an index of all files.
         """
-        self.product = product
-
         geoms = []
         start_times = []
         end_times = []
         local_paths = []
 
-        for path in files:
-            if product.matches(path.name) is None:
-                continue
+        if n_processes is None:
+            for path in files:
 
-            rec = FileRecord(path)
-            start_time, end_time = product.get_temporal_coverage(rec)
-            start_times.append(start_time)
-            end_times.append(end_time)
-            geoms.append(product.get_spatial_coverage(rec).to_shapely())
-            local_paths.append(str(path))
+                index_data = _get_index_data(product, path)
+                if index_data is None:
+                    continue
+                start_time, end_time, local_path, geom = index_data
+                start_times.append(start_time)
+                end_times.append(end_time)
+                local_paths.append(str(path))
+                geoms.append(geom)
+        else:
+            pool = ProcessPoolExecutor(
+                max_workers=n_processes
+            )
+            tasks = []
+            for path in files:
+                tasks.append(pool.submit(_get_index_data, product, path))
+
+            for task in as_completed(tasks):
+                index_data = task.result()
+                if index_data is None:
+                    continue
+                start_time, end_time, local_path, geom = index_data
+                print(local_path)
+                start_times.append(start_time)
+                end_times.append(end_time)
+                local_paths.append(str(path))
+                geoms.append(geom)
 
         data = geopandas.GeoDataFrame(
             data={
                 "start_time": start_times,
                 "end_time": end_times,
-                "local_paths": local_paths
+                "local_path": local_paths
             },
             geometry=geoms
         )
@@ -103,27 +186,65 @@ class Index:
         data = pd.merge([self.data, other.data], how="outer")
         return Index(product, data)
 
+    def __repr__(self):
+        return (
+            f"<Index of '{self.product.name}' containing "
+            f"{self.data.start_time.size} entries>"
+        )
 
-    def find(self, time_range=None, location=None):
+
+
+    def find_files(self, time_range=None, roi=None):
+        """
+        Find entries in Index within given time range and location.
+        """
+        if time_range is None and roi is None:
+            return _pandas_to_file_record(
+                self.product,
+                self.data
+            )
 
         if time_range is None:
             selected = self.data
         else:
             if not isinstance(time_range, TimeRange):
                 time_range = TimeRange(time_range, time_range)
-            selected = (
-                (self.data.start_time <= time_range.end_time) *
-                (self.data.end_time >= time_range.start_time)
+            selected = self.data.loc[
+                (self.data.start_time <= time_range.end) *
+                (self.data.end_time >= time_range.start)
+            ]
+
+        if roi is None:
+            return _pandas_to_file_record(
+                self.product,
+                selected
             )
 
-        if location is None:
-            return selected
-
-        roi = location.to_shapely()
+        roi = roi.to_shapely()
         indices = selected.intersects(roi)
 
-        return selected.loc(indices)
+        return _pandas_to_file_record(
+            self.product,
+            selected.loc[indices]
+        )
 
+    def save(self, path):
+        """
+        Save an index.
+
+        Args:
+            path: Path to a directory to which to save the index.
+
+        Return:
+            A 'Path' object pointing to the saved index.
+        """
+        if not path.is_dir():
+            raise ValueError(
+                "'path' must point to a directory."
+            )
+        output_file = path / f"{self.product.name}.idx"
+        data = self.data.to_parquet(output_file)
+        return output_file
 
 
 
@@ -211,6 +332,7 @@ class Catalog:
             datasets.append(dataset)
 
         return xr.concat(datasets, dim=dimension)
+
 
 
 def find_files(product: "pansat.products.Prodcut", path: Path):
