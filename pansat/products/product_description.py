@@ -264,6 +264,7 @@ class ProductDescription(ConfigParser):
         self._name = ""
         self.latitude_coordinate = None
         self.longitude_coordinate = None
+        self.time_coordinate = None
         try:
             self.read(ini_file)
         except OSError:
@@ -290,6 +291,9 @@ class ProductDescription(ConfigParser):
             elif section_type == "longitude_coordinate":
                 self.coordinates.append(Variable(section_name, section))
                 self.longitude_coordinate = self.coordinates[-1]
+            elif section_type == "time_coordinate":
+                self.coordinates.append(Variable(section_name, section))
+                self.time_coordinate = self.coordinates[-1]
             elif section_type == "variable":
                 self.variables.append(Variable(section_name, section))
             elif section_type == "attribute":

@@ -9,6 +9,7 @@ from pathlib import Path
 import requests
 
 from pansat.download.providers.discrete_provider import DiscreteProvider
+from pansat.file_record import FileRecord
 
 
 FILE_URL = "https://cloudnet.fmi.fi/api/files"
@@ -46,19 +47,28 @@ class CloudnetProvider(DiscreteProvider):
             payload["site"] = self.product.location
         response = requests.get(FILE_URL, payload)
         response.raise_for_status()
-        files = [res["downloadUrl"].split("/")[-1] for res in response.json()]
-        return [filename for filename in files if self.product.matches(filename)]
+        urls = [res["downloadUrl"] for res in response.json()]
+        filenames = [url.split("/")[-1] for url in urls]
+        frecs = [
+            FileRecord.from_remote(
+                self.product,
+                self,
+                url,
+                filename
+            ) for url, filename in zip(urls, filenames)
+        ]
+        return frecs
 
-    def download_file(self, filename, destination):
+    def download_file(self, file_record, destination):
         """
         Download a file.
 
         Args:
-            filename: The name of the file.
+            file_record: File record specifying the file to download.
             destination: Path to the file to which to write the
                  downloaded data.
         """
-        filename = Path(filename)
+        filename = file_record.filename
         date, site, *_ = filename.name.split("_")
         payload = {
             "product": self.product.product_name,
@@ -69,5 +79,6 @@ class CloudnetProvider(DiscreteProvider):
 
         url = files[0]["downloadUrl"]
         response = requests.get(url)
+        response.raise_for_status()
         with open(destination, "wb") as output:
             output.write(response.content)

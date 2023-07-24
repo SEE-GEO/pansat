@@ -14,7 +14,7 @@ import geopandas
 
 from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
-from pansat.products import Product
+from pansat.products import Product, Granule, GranuleProduct
 
 
 
@@ -33,14 +33,18 @@ def _get_index_data(product, path):
         ``geom`` a geometry representing the spatial coverage of the file.
     """
     if product.matches(path.name) is None:
-        return None
+        return []
 
     rec = FileRecord(path)
+
+    if isinstance(product, GranuleProduct):
+        return product.get_granules(rec)
+
     start_time, end_time = product.get_temporal_coverage(rec)
     geom = product.get_spatial_coverage(rec).to_shapely()
     local_path = str(path)
 
-    return start_time, end_time, local_path, geom
+    return [Granule(rec, TimeRange(start_time, end_time), geom)]
 
 
 def _pandas_to_file_record(
@@ -127,13 +131,12 @@ class Index:
             for path in files:
 
                 index_data = _get_index_data(product, path)
-                if index_data is None:
-                    continue
-                start_time, end_time, local_path, geom = index_data
-                start_times.append(start_time)
-                end_times.append(end_time)
-                local_paths.append(str(path))
-                geoms.append(geom)
+
+                for granule in index_data:
+                    start_times.append(granule.time_range.start)
+                    end_times.append(granule.time_range.end)
+                    local_paths.append(str(granule.file_record.local_path))
+                    geoms.append(granule.geometry)
         else:
             pool = ProcessPoolExecutor(
                 max_workers=n_processes

@@ -10,7 +10,11 @@ import pytest
 from pansat.products.example import (
     write_hdf4_product_data,
     write_hdf5_product_data,
-    EXAMPLE_PRODUCT_DESCRIPTION
+    write_hdf4_granule_product_data,
+    write_hdf5_granule_product_data,
+    EXAMPLE_PRODUCT_DESCRIPTION,
+    EXAMPLE_GRANULE_PRODUCT_DESCRIPTION
+
 )
 from pansat.products.example import write_hdf5_product_data
 
@@ -93,6 +97,59 @@ PRODUCT_DATA = [
         ),
         pytest.param(
             'hdf5_product_data',
+            marks=pytest.mark.skipif(
+                not HAS_HDF5,
+                reason="HDF5 library not available."
+            )
+        ),
+]
+
+
+@pytest.fixture()
+def granule_product_description(tmp_path):
+    """
+    Populates a temporary path with the granule product description file.
+    """
+    with open(tmp_path / "product.ini", "w") as descr:
+        descr.write(EXAMPLE_GRANULE_PRODUCT_DESCRIPTION)
+    yield tmp_path
+
+
+@pytest.fixture()
+def hdf4_granule_product_data(granule_product_description):
+    """
+    Populates a temporary directory with a product description and test
+    files in HDF4 format.
+    """
+    tmp_path = granule_product_description
+    remote_path = tmp_path / "remote"
+    remote_path.mkdir(exist_ok=True)
+    write_hdf4_granule_product_data(remote_path)
+    yield tmp_path
+
+
+@pytest.fixture()
+def hdf5_granule_product_data(granule_product_description):
+    """
+    Populates a temporary directory with the granule product descriptionu
+    and test files in HDF5 format.
+    """
+    tmp_path = granule_product_description
+    remote_path = tmp_path / "remote"
+    remote_path.mkdir(exist_ok=True)
+    write_hdf5_granule_product_data(remote_path)
+    yield tmp_path
+
+GRANULE_PRODUCT_DATA = [
+        pytest.param(
+            'hdf4_granule_product_data',
+            marks=pytest.mark.skipif(
+                not HAS_HDF4,
+                reason="HDF4 library not available."
+            )
+        ),
+        pytest.param(
+            'hdf5_granule_product_data',
             marks=pytest.mark.skipif(
                 not HAS_HDF5,
                 reason="HDF5 library not available."

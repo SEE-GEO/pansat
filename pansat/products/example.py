@@ -14,8 +14,9 @@ import xarray as xr
 
 from pansat.file_record import FileRecord
 from pansat.geometry import Geometry, LonLatRect
-from pansat.time import TimeRange
+from pansat.time import TimeRange, to_datetime, to_datetime64
 from pansat.products.product_description import ProductDescription
+from pansat.products import Product, Granule, GranuleProduct
 
 ######################################################################
 # Product description
@@ -93,7 +94,7 @@ def get_filename(
         "{lon_max:+07.2f}_{lat_max:+07.2f}.{suffix}"
     )
     start_time = to_datetime(start_time).strftime("%Y%m%d%H%M%S")
-    end_time = to_datetime(start_time).strftime("%Y%m%d%H%M%S")
+    end_time = to_datetime(end_time).strftime("%Y%m%d%H%M%S")
     return filename_pattern.format(
         start_time=start_time,
         end_time=end_time,
@@ -198,7 +199,7 @@ def write_hdf5_product_data(path):
             lat_min=lats.min(),
             lon_max=lons.max(),
             lat_max=lats.max(),
-            suffix=suffix
+            suffix="h5"
         )
         file_path = path / filename
         output_file = File(file_path, "w")
@@ -229,14 +230,15 @@ def write_hdf5_product_data(path):
     return files
 
 
-class ExampleProduct:
-    def __init__(self, suffix):
+class ExampleProduct(Product):
+    def __init__(self, name, suffix):
         """
         Create an instance of an example product object.
 
         Args:
             suffix: The file suffix of the data files.
         """
+        self._name = name
         self.filename_regex = re.compile(
             r"data_file_"
             r"(?P<start_date>\d{14})_"
@@ -250,8 +252,17 @@ class ExampleProduct:
         self.product_description = ProductDescription(
             EXAMPLE_PRODUCT_DESCRIPTION
         )
+        super().__init__()
 
-    def match(self, path):
+    @property
+    def name(self):
+        return "example." + self._name
+
+    @property
+    def default_destination(self):
+        return Path("example")
+
+    def matches(self, path):
         """
         Determine if given path points to a product data file.
         """
@@ -265,10 +276,15 @@ class ExampleProduct:
         Args:
             rec:
         """
-        match = self.filename_regex.match(rec.name)
+        match = self.filename_regex.match(rec.filename)
+        if match is None:
+            raise ValueError(
+                f"Filename {rec.filename} does not match the expected "
+                "filename pattern."
+            )
         date_fmt = "%Y%m%d%H%M%S"
-        start_date = datetime.strptime(date_fmt, match.groups("start_date"))
-        end_date = datetime.strptime(date_fmt, match.groups("end_date"))
+        start_date = datetime.strptime(match.group("start_date"), date_fmt)
+        end_date = datetime.strptime(match.group("end_date"), date_fmt)
         return TimeRange(start_date, end_date)
 
     def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
@@ -291,7 +307,332 @@ class ExampleProduct:
         return self.description.to_xarray_dataset(file_handle)
 
 
-example_product_hdf4 = ExampleProduct(suffix="hdf")
-example_product_hdf5 = ExampleProduct(suffix="h5")
+hdf4_product = ExampleProduct(
+    "hdf4_product",
+    suffix="hdf"
+)
+
+hdf5_product = ExampleProduct(
+    "hdf5_product",
+    suffix="h5"
+)
+
+######################################################################
+# Granule product
+######################################################################
 
 
+EXAMPLE_GRANULE_PRODUCT_DESCRIPTION = """
+[test-description]
+type = properties
+name = test-description
+
+[scans]
+type = dimension
+name = scans
+
+[pixels]
+type = dimension
+name = pixels
+
+[data]
+type = variable
+name = surface_precip
+dimensions = ["scans", "pixels"]
+description = Some test data.
+unit = test
+
+[longitude]
+type = longitude_coordinate
+name = longitude
+dimensions = ["scans", "pixels"]
+description = The longitude coordinates of the measurements.
+
+[latitude]
+type = latitude_coordinate
+name = latitude
+dimensions = ["scans", "pixels"]
+description = The latitude coordinates of the measurements.
+
+[time]
+type = time_coordinate
+name = time
+dimensions = ["scans"]
+description = The time coordinate.
+"""
+
+def write_hdf4_granule_product_data(path):
+    """
+    Populates a temporary directory with a GranuleProduct test data file
+    files in HDF4 format.
+
+    Args:
+        path: The path to which to write the product files.
+
+    Return:
+        A list of the written product files.
+    """
+    from pyhdf.SD import SD, SDC
+
+    path = Path(path)
+
+    delta_t = timedelta(hours=1)
+    files = []
+    for i in range(4):
+        start_time = datetime(2020, 1, 1, i)
+        end_time = start_time + delta_t
+
+        lats = np.linspace(-5, 5, 100, dtype="float32")
+        lats =  np.tile(lats, (200, 1))
+
+        lons = np.linspace(i * 10, (i + 1) * 10, 200, dtype="float32")
+        lons = np.tile(lons[..., None], (1, 200))
+
+
+
+        filename = get_filename(
+            start_time=start_time,
+            end_time=end_time,
+            lon_min=lons.min(),
+            lat_min=lats.min(),
+            lon_max=lons.max(),
+            lat_max=lats.max(),
+            suffix="hdf"
+        )
+        file_path = path / filename
+        output_file = SD(str(file_path), SDC.WRITE | SDC.CREATE)
+
+        v_lons = output_file.create(
+            'longitude',
+            SDC.FLOAT32,
+            (200, 100)
+        )
+        v_lons[:] = lons
+        v_lats = output_file.create(
+            'latitude',
+            SDC.FLOAT32,
+            (200, 100)
+        )
+        v_lats[:] = lats
+
+        surface_precip = np.random.rand(200, 100).astype("float32")
+        v_sp = output_file.create(
+            'surface_precip',
+            SDC.FLOAT32,
+            (200, 100)
+        )
+        v_sp[:] = surface_precip
+
+        v_time = output_file.create(
+            'time',
+            SDC.INT32,
+            (200,)
+        )
+
+        start_time = to_datetime64(start_time)
+        time_delta = to_datetime64(end_time) - start_time
+        time = time_delta / 200 * np.arange(200)
+        v_time[:] = time.astype("timedelta64[s]").astype("int32")
+
+        output_file.end()
+        files.append(file_path)
+
+
+def write_hdf5_granule_product_data(path):
+    """
+    Populates a temporary directory with a test file for the
+    ExampleGranuleProduct in HDF5 format.
+    """
+    from h5py import File
+
+    path = Path(path)
+
+    filename_pattern = (
+        "data_file_{start_time}_{end_time}_"
+        "{lon_min:06.2f}_{lat_min:06.2f}_{lon_max:06.2f}_{lat_max:06.2f}.h5"
+    )
+    delta_t = timedelta(hours=1)
+    files = []
+
+    for i in range(4):
+        start_time = datetime(2020, 1, 1, i)
+        end_time = start_time + delta_t
+
+        lats = np.linspace(-5, 5, 100, dtype="float32")
+        lats =  np.tile(lats, (200, 1))
+        lons = np.linspace(i * 10, (i + 1) * 10, 200, dtype="float32")
+        lons = np.tile(lons[..., None], (1, 100))
+
+        filename = get_filename(
+            start_time=start_time,
+            end_time=end_time,
+            lon_min=lons.min(),
+            lat_min=lats.min(),
+            lon_max=lons.max(),
+            lat_max=lats.max(),
+            suffix="h5"
+        )
+        file_path = path / filename
+        output_file = File(file_path, "w")
+
+        v_lons = output_file.create_dataset(
+            'longitude',
+            (200, 100),
+            dtype="float32"
+        )
+        v_lons[:] = lons
+        v_lats = output_file.create_dataset(
+            'latitude',
+            (200, 100),
+            dtype="float32",
+        )
+        v_lats[:] = lats
+
+        surface_precip = np.random.rand(200, 100)
+        v_sp = output_file.create_dataset(
+            'surface_precip',
+            (200, 100),
+            dtype="float32",
+        )
+        v_sp[:] = surface_precip
+
+        v_time = output_file.create_dataset(
+            'time',
+            (200,),
+            dtype="int64",
+        )
+        start_time = to_datetime64(start_time)
+        time_delta = to_datetime64(end_time) - start_time
+        time = time_delta / 200 * np.arange(200)
+        v_time[:] = time.astype("int64")
+
+        output_file.close()
+        files.append(file_path)
+
+    return files
+
+class ExampleGranuleProduct(Product):
+    def __init__(self, name, suffix):
+        """
+        This granule version of the example product models the hypothetical case
+        that the data in the data files consists of two parts. The first one
+        covers the first half hour of the temporal coverage of each file and the
+        west-most half of the area, while the second part covers the rest of
+        the domain.
+
+        Args:
+            suffix: The file suffix of the data files.
+        """
+        self._name = name
+        self.filename_regex = re.compile(
+            r"data_file_"
+            r"(?P<start_date>\d{14})_"
+            r"(?P<end_date>\d{14})_"
+            r"(?P<lon_min>[\+\-\d\.]{7})_"
+            r"(?P<lat_min>[\+\-\d\.]{7})_"
+            r"(?P<lon_max>[\+\-\d\.]{7})_"
+            r"(?P<lat_max>[\+\-\d\.]{7})"
+            f".{suffix}"
+        )
+        self.product_description = ProductDescription(
+            EXAMPLE_PRODUCT_DESCRIPTION
+        )
+        super().__init__()
+
+    @property
+    def name(self):
+        return "example." + self._name
+
+    @property
+    def default_destination(self):
+        return Path("example")
+
+    def matches(self, path):
+        """
+        Determine if given path points to a product data file.
+        """
+        path = Path(path)
+        return self.filename_regex.match(path.name) is not None
+
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        The time range spanned by the observations in the file.
+
+        Args:
+            rec:
+        """
+        match = self.filename_regex.match(rec.filename)
+        if match is None:
+            raise ValueError(
+                f"Filename {rec.filename} does not match the expected "
+                "filename pattern."
+            )
+        date_fmt = "%Y%m%d%H%M%S"
+        start_date = datetime.strptime(match.group("start_date"), date_fmt)
+        end_date = datetime.strptime(match.group("end_date"), date_fmt)
+        return TimeRange(start_date, end_date)
+
+    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
+        """
+        Args:
+            rec: File record pointing to a product data file.
+
+        Return:
+            A geometry object representing the spatial coverage of the
+            observations in a given product data file.
+        """
+        match = self.filename_regex.match(rec.filename)
+        lon_min = float(match.group("lon_min"))
+        lat_min = float(match.group("lat_min"))
+        lon_max = float(match.group("lon_max"))
+        lat_max = float(match.group("lat_max"))
+        return LonLatRect(lon_min, lat_min, lon_max, lat_max)
+
+    def get_granules(self, rec: FileRecord) -> list[Granule]:
+        """
+        Returns the two granules representing the temporal and spatial
+        coverage of the file.
+
+        Args:
+            rec: A file record identifying the file from which to extract
+                the granules.
+
+        Return:
+            A list of granule objects representing the temporal and spatial
+            coverage of the file identified by 'rec'.
+        """
+        match = self.filename_regex.match(rec.filename)
+        lon_min = float(match.group("lon_min"))
+        lat_min = float(match.group("lat_min"))
+        lon_max = float(match.group("lon_max"))
+        lat_max = float(match.group("lat_max"))
+        time_range = self.get_temporal_coverage(rec)
+
+        d_lon = lon_max - lon_min
+        g_1 =  LonLatRect(lon_min, lat_min, lon_min + d_lon, lat_max)
+        g_2 =  LonLatRect(lon_max - d_lon, lat_min, lon_max, lat_max)
+
+        d_t = time_range.end - time_range.start
+        time = time_range.start
+        tr_1 = TimeRange(time, time + d_t)
+        tr_2 = TimeRange(time + d_t, time + 2.0 * d_t)
+
+        return [
+            Granule(tr_1, g_1, (0, 100)),
+            Granule(tr_2, g_2, (100, 200))
+        ]
+
+
+    def open(self, rec: FileRecord) -> xr.Dataset:
+        return self.description.to_xarray_dataset(file_handle)
+
+
+hdf4_granule_product = ExampleGranuleProduct(
+    "hdf4_product",
+    suffix="hdf"
+)
+
+hdf5_granule_product = ExampleGranuleProduct(
+    "hdf5_product",
+    suffix="h5"
+)

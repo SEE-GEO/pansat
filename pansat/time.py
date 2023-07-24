@@ -6,8 +6,13 @@ This module provides functionality for dealing with times.
 """
 from datetime import datetime
 from dataclasses import dataclass
+from typing import Union
+
 import pandas as pd
 import numpy as np
+
+
+Time = Union[str, datetime, np.ndarray]
 
 
 def to_datetime(time):
@@ -53,6 +58,9 @@ class TimeRange:
         """
         Create a time range from a given start and end time.
 
+        Mathematically, the time interval is closed. This means that both
+        start and end point are considered to lie within the interval.
+
         Args:
             start: The start time of the time range as a string, Python
                 datetime object or a numpy.datetime64 object.
@@ -62,19 +70,29 @@ class TimeRange:
         self.start = to_datetime(start)
         self.end = to_datetime(end)
 
-    def covers(self, time):
+    def covers(self, time: Union[Time, "TimeRange"]) -> bool:
         """
         Determins wether time range covers a certain time.
 
         Args:
-            time: The time to to check.
+            time: A single time or a time range for which to check coverage
+                with this time range.
 
         Return:
             'True' if the 'time' lies within the time range represented by
             this object. 'False' otherwise.
         """
+        if isinstance(time, TimeRange):
+            return not ((self.start > time.end) or (self.end < time.start))
         time = to_datetime(time)
         return (time >= self.start) and (time <= self.end)
+
+
+    def __lt__(self, other):
+        """
+        TimeRange objects are compared by their start time.
+        """
+        return self.start <= other.start
 
 
     def __iter__(self):

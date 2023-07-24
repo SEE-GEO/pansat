@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.products import Product
 from pansat.exceptions import NoAvailableProvider
 
 
@@ -41,6 +41,21 @@ class MODISProduct(Product):
             True if the filename matches the product, False otherwise.
         """
         return self.filename_regexp.match(filename)
+
+    def get_temporal_coverage(self, rec):
+        match = self.filename_regexp.match(rec)
+        date_string = match.group(1) + match.group(2)
+        start_time = datetime.strptime(date_string, "%Y%j%H%M")
+        end_time = start_time + timedelta(minutes=5)
+        return TimeRange(start_time, end_time)
+
+    def get_spatial_coverage(self, rec):
+        if rec.local_path is None:
+            raise ValueError(
+                "Not implemented."
+            )
+
+
 
     def filename_to_date(self, filename):
         """

@@ -5,14 +5,17 @@ pansat.download.provider.scapers.open_dap
 This module implements functions to extract available products from NASA
  OpenDAP servers.
 """
+import logging
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse, urljoin
 import re
-
 import requests
+
 from bs4 import BeautifulSoup
 
 URL = "https://gpm1.gesdisc.eosdis.nasa.gov/opendap/"
+
+LOGGER = logging.getLogger(__name__)
 
 
 def retrieve_page(url):
@@ -81,6 +84,9 @@ def map_pages(function, parent_url, depth=10):
     parent_url = urlparse(parent_url)
     for link in soup.find_all("a"):
         url = urlparse(link["href"])
+
+        print(url)
+
         if not url.netloc:
             child_path = Path(parent_url.path) / url.path
             parent_path = Path(parent_url.path)
@@ -100,7 +106,7 @@ def map_pages(function, parent_url, depth=10):
 
 
 GPM_PRODUCT_REGEXP = re.compile(
-    r'"(\w*)(?:-(\w*))?\.(\w*)\.(\w*)\..*\.HDF5"', re.MULTILINE
+    r'"(\w*)(?:-([\w\-]*))?\.(\w*)\.(\w*)\.([\w\-]*)\..*\.([\w\-]*)\.\w+\.ddx"', re.MULTILINE
 )
 
 

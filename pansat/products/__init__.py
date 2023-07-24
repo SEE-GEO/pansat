@@ -5,7 +5,9 @@ pansat.products
 The ``products`` module provides functionality for handling supported data products.
 """
 from abc import ABC, abstractmethod, abstractproperty
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import xarray as xr
 
@@ -38,6 +40,14 @@ class Product(ABC):
     This class defines the essential functionality that a product must
     implement to be used inside the pansat framework.
     """
+    PRODUCTS = {}
+
+    def __init__(self):
+        Product.PRODUCTS[self.name] = self
+
+    @classmethod
+    def get_product(cls, name):
+        return cls.PRODUCTS[name]
 
     @abstractproperty
     def default_destination(self):
@@ -47,6 +57,12 @@ class Product(ABC):
         """
         pass
 
+    @abstractproperty
+    def name(self):
+        """
+        A name that uniquely identifies a product.
+        """
+        pass
 
     @abstractmethod
     def matches(self, path: Path) -> bool:
@@ -119,16 +135,12 @@ class Product(ABC):
             end_time = start_time
 
         if destination is None:
-
+            destination = self.default_destination
 
         t_range = TimeRange(start_time, end_time)
         for provider in ALL_PROVIDERS:
             if provider.provides(self):
-                provider.download(
-                    t_range,
-
-
-                )
+                provider.download(self, t_range, destination)
 
 
 
@@ -225,3 +237,52 @@ class NetcdfProduct(ABC):
             An 'xarray.Dataset' that contains the data of the provided file.
         """
         return xr.open_dataset(rec.local_path)
+
+
+@dataclass
+class Granule:
+    """
+    Granules represent temporally and spatially limited sub-sections of a
+    data file. Their purpose is to allow for more find-grained data
+    retrieval.
+    """
+    file_record: FileRecord
+    time_range: TimeRange
+    geometry: Geometry
+    primary_index_range: tuple[int] = None
+    secondary_index_range: Optional[tuple[int]] = None
+
+
+class GranuleProduct(Product):
+    """
+    A granuled product is a product whose datafiles lend themselves
+    to the representation using granules.
+    """
+    @abstractmethod
+    def get_granules(self, file_record: FileRecord) -> list[Granule]:
+        """
+        Return a list of granules representing the temporal and spatial
+        coverage of the data files identified by the given file record.
+
+        Args:
+            file_record: A file record pointing to a data file.
+
+        Return:
+            A list of granule objects representing the temporal and spatial
+            coverage of the data file.
+        """
+
+    @abstractmethod
+    def open_granule(
+            self,
+            granule: Granule
+    ) -> xr.Dataset:
+        """
+        Load data from a granule.
+
+        Args:
+            granule: The data represents the granule.
+
+        Return:
+            An xarray.Dataset containing the loaded data.
+        """
