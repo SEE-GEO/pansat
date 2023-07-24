@@ -2,6 +2,7 @@ cryptography
 numpy
 cdsapi
 requests
+geopandas
 xarray
 pyproj
 appdirs
