@@ -249,8 +249,10 @@ class Granule:
     file_record: FileRecord
     time_range: TimeRange
     geometry: Geometry
-    primary_index_range: tuple[int] = None
-    secondary_index_range: Optional[tuple[int]] = None
+    primary_index_name: str = ""
+    primary_index_range: tuple[int] = (-1, -1)
+    secondary_index_name: str = ""
+    secondary_index_range: Optional[tuple[int]] = (-1, -1)
 
 
 class GranuleProduct(Product):

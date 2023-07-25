@@ -511,7 +511,7 @@ def write_hdf5_granule_product_data(path):
 
     return files
 
-class ExampleGranuleProduct(Product):
+class ExampleGranuleProduct(GranuleProduct):
     def __init__(self, name, suffix):
         """
         This granule version of the example product models the hypothetical case
@@ -608,23 +608,26 @@ class ExampleGranuleProduct(Product):
         lat_max = float(match.group("lat_max"))
         time_range = self.get_temporal_coverage(rec)
 
-        d_lon = lon_max - lon_min
+        d_lon = 0.5 * (lon_max - lon_min)
         g_1 =  LonLatRect(lon_min, lat_min, lon_min + d_lon, lat_max)
         g_2 =  LonLatRect(lon_max - d_lon, lat_min, lon_max, lat_max)
 
-        d_t = time_range.end - time_range.start
+        d_t = 0.5 * (time_range.end - time_range.start)
         time = time_range.start
         tr_1 = TimeRange(time, time + d_t)
         tr_2 = TimeRange(time + d_t, time + 2.0 * d_t)
 
         return [
-            Granule(tr_1, g_1, (0, 100)),
-            Granule(tr_2, g_2, (100, 200))
+            Granule(rec, tr_1, g_1, "time", (0, 100)),
+            Granule(rec, tr_2, g_2, "time", (100, 200))
         ]
 
 
     def open(self, rec: FileRecord) -> xr.Dataset:
         return self.description.to_xarray_dataset(file_handle)
+
+    def open_granule(self, rec: FileRecord):
+        pass
 
 
 hdf4_granule_product = ExampleGranuleProduct(

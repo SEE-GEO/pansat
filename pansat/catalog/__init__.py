@@ -41,13 +41,13 @@ def _get_index_data(product, path):
         return product.get_granules(rec)
 
     start_time, end_time = product.get_temporal_coverage(rec)
-    geom = product.get_spatial_coverage(rec).to_shapely()
+    geom = product.get_spatial_coverage(rec)
     local_path = str(path)
 
     return [Granule(rec, TimeRange(start_time, end_time), geom)]
 
 
-def _pandas_to_file_record(
+def _pandas_to_granule(
         product,
         data
 ):
@@ -64,28 +64,62 @@ def _pandas_to_file_record(
     Return:
         A list of file records pointing to the files in 'data'.
     """
-    recs = []
+    granules = []
 
     if "local_path" in data.columns:
         for row in data.itertuples():
             local_path = row.local_path
-            recs.append(FileRecord(local_path, product))
+            rec = FileRecord(local_path, product)
+            start_time = row.start_time
+            end_time = row.end_time
+            primary_index_name = row.primary_index_name
+            primary_index_start = row.primary_index_start
+            primary_index_end = row.primary_index_end
+            secondary_index_name = row.secondary_index_name
+            secondary_index_start = row.secondary_index_start
+            secondary_index_end = row.secondary_index_end
+            geo = row.geometry
+            granules.append(Granule(
+                rec,
+                TimeRange(start_time, end_time),
+                geo,
+                primary_index_name,
+                (primary_index_start, primary_index_end),
+                (secondary_index_start, secondary_index_end),
+            ))
     elif "remote_path" in data.columns:
         for row in data.itertuples():
             remote_path = row.remote_path
             filename = row.filename
-            recs.append(FileRecord.from_remote(
+            rec = FileRecord.from_remote(
                 product,
                 None,
                 remote_path,
                 filename
+            )
+            start_time = row.start_time
+            end_time = row.end_time
+            primary_index_name = row.primary_index_name
+            primary_index_start = row.primary_index_start
+            primary_index_end = row.primary_index_end
+            secondary_index_name = row.secondary_index_name
+            secondary_index_start = row.secondary_index_start
+            secondary_index_end = row.secondary_index_end
+            geo = row.geometry
+            granules.append(Granule(
+                rec,
+                TimeRange(start_time, end_time),
+                geo,
+                primary_index_name,
+                (primary_index_start, primary_index_end),
+                (secondary_index_start, secondary_index_end),
             ))
     else:
         raise ValueError(
             "Index data must provide either a 'local_path' column or "
             " a 'remote_path' column."
         )
-    return recs
+    return granules
 
 
 class Index:
@@ -126,6 +160,12 @@ class Index:
         start_times = []
         end_times = []
         local_paths = []
+        primary_index_name = []
+        primary_index_start = []
+        primary_index_end = []
+        secondary_index_name = []
+        secondary_index_start = []
+        secondary_index_end = []
 
         if n_processes is None:
             for path in files:
@@ -136,7 +176,13 @@ class Index:
                     start_times.append(granule.time_range.start)
                     end_times.append(granule.time_range.end)
                     local_paths.append(str(granule.file_record.local_path))
-                    geoms.append(granule.geometry)
+                    primary_index_name.append(granule.primary_index_name)
+                    primary_index_start.append(granule.primary_index_range[0])
+                    primary_index_end.append(granule.primary_index_range[1])
+                    secondary_index_name.append(granule.secondary_index_name)
+                    secondary_index_start.append(granule.secondary_index_range[0])
+                    secondary_index_end.append(granule.secondary_index_range[1])
+                    geoms.append(granule.geometry.to_shapely())
         else:
             pool = ProcessPoolExecutor(
                 max_workers=n_processes
@@ -149,18 +195,29 @@ class Index:
                 index_data = task.result()
                 if index_data is None:
                     continue
-                start_time, end_time, local_path, geom = index_data
-                print(local_path)
-                start_times.append(start_time)
-                end_times.append(end_time)
-                local_paths.append(str(path))
-                geoms.append(geom)
+                for granule in index_data:
+                    start_times.append(granule.time_range.start)
+                    end_times.append(granule.time_range.end)
+                    local_paths.append(str(granule.file_record.local_path))
+                    primary_index_name.append(granule.primary_index_name)
+                    primary_index_start.append(granule.primary_index_range[0])
+                    primary_index_end.append(granule.primary_index_range[1])
+                    secondary_index_name.append(granule.secondary_index_name)
+                    secondary_index_start.append(granule.secondary_index_range[0])
+                    secondary_index_end.append(granule.secondary_index_range[1])
+                    geoms.append(granule.geometry.to_shapely())
 
         data = geopandas.GeoDataFrame(
             data={
                 "start_time": start_times,
                 "end_time": end_times,
-                "local_path": local_paths
+                "local_path": local_paths,
+                "primary_index_name": primary_index_name,
+                "primary_index_start": primary_index_start,
+                "primary_index_end": primary_index_end,
+                "secondary_index_name": secondary_index_name,
+                "secondary_index_start": secondary_index_start,
+                "secondary_index_end": secondary_index_end,
             },
             geometry=geoms
         )
@@ -202,7 +259,7 @@ class Index:
         Find entries in Index within given time range and location.
         """
         if time_range is None and roi is None:
-            return _pandas_to_file_record(
+            return _pandas_to_granule(
                 self.product,
                 self.data
             )
@@ -218,7 +275,7 @@ class Index:
             ]
 
         if roi is None:
-            return _pandas_to_file_record(
+            return _pandas_to_granule(
                 self.product,
                 selected
             )
@@ -226,7 +283,7 @@ class Index:
         roi = roi.to_shapely()
         indices = selected.intersects(roi)
 
-        return _pandas_to_file_record(
+        return _pandas_to_granule(
             self.product,
             selected.loc[indices]
         )
@@ -248,13 +305,6 @@ class Index:
         output_file = path / f"{self.product.name}.idx"
         data = self.data.to_parquet(output_file)
         return output_file
-
-
-
-
-
-
-
 
 
 
