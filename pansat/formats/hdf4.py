@@ -20,9 +20,10 @@ as simple as shown below:
     data = file.variable_1[:]  # Read data from variable named `variable_1`
 
 """
+from dataclasses import dataclass
+import logging
 import weakref
 import numpy as np
-import logging
 
 LOGGER = logging.getLogger(__name__)
 
@@ -94,6 +95,14 @@ class VData:
         data = self.file().vdata_table.attach(self.name).__getitem__(*args)
         return np.array(data)
 
+@dataclass
+class Dimension:
+    size: int
+    index: int
+    unlimited: int
+    scaled: int
+    n_attrs: int
+
 
 class Dataset:
     """
@@ -158,12 +167,22 @@ class HDF4File:
         }
         self.datasets = dataset_dict
 
+        dimensions = {}
+        for name in datasets:
+            dataset = self.scientific_dataset.select(name)
+            dimensions.update({
+                name: Dimension(*dim_info) for name, dim_info
+                in dataset.dimensions(full=1).items()
+            })
+        self.dimensions = dimensions
+
         self.vdata_table = VS(self.file_handle)
         vdata_dict = {
             info[0]: VData(weakref.ref(self), *info)
             for info in self.vdata_table.vdatainfo()
         }
         self.vdata = vdata_dict
+
 
     def __del__(self):
         if self.file_handle:
@@ -184,11 +203,13 @@ class HDF4File:
             datasets = object.__getattribute__(self, "datasets")
             if name in datasets:
                 return datasets[name]
+            dimensions = object.__getattribute__(self, "dimensions")
+            if name in dimensions:
+                return dimensions[name]
             vdata = object.__getattribute__(self, "vdata")
             if name in vdata:
                 return vdata[name]
 
-            print(name, self.scientific_dataset)
             try:
                 return getattr(self.scientific_dataset, name)
             except AttributeError:

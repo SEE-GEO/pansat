@@ -84,11 +84,15 @@ Reference
 ---------
 """
 from configparser import ConfigParser
+from dataclasses import dataclass
 import json
 from pathlib import Path
 
 import numpy as np
 import xarray
+
+from pansat.geometry import LonLatRect
+from pansat.time import TimeRange
 
 
 class InconsistentDimensionsError(Exception):
@@ -121,6 +125,16 @@ class Dimension:
     def size(self):
         """The size of the dimension."""
         return self._size
+
+    def get_size(self, file_handle):
+        """
+        Return the size of a dimension.
+
+        Args:
+            file_handle: File handle pointing to an open file object
+                containing the dataset.
+        """
+        return getattr(file_handle, self.field_name).size
 
     @size.setter
     def size(self, value):
@@ -235,7 +249,6 @@ class Variable:
         """
         if slcs is not None:
             slcs = self._extract_slices(slcs)
-            print(slcs)
             data = getattr(file_handle, self.field_name)[slcs]
         else:
             data = getattr(file_handle, self.field_name)[:]
@@ -264,6 +277,30 @@ class DimensionNameError(Exception):
     """
 
 
+@dataclass
+class GranuleInfo:
+    """
+    Holds information about the splitting of a data file into
+    granules.
+    """
+    dimensions: list[str]
+    partitions: list[int]
+
+    def __init__(self, config_dict):
+        if not "granule_dimensions" in config_dict:
+            raise ValueError(
+                "'properties' section must have a 'granule_dimensions' entry specifying the"
+                "dimensions along which to partition the data."
+            )
+        self.dimensions = json.loads(config_dict["granule_dimensions"])
+
+        if not "granule_partitions" in config_dict:
+            partitions = [10] * len(self.dimensions)
+        else:
+            partitions = json.loads(config_dict["granule_partitions"])
+        self.partitions = [int(part) for part in partitions]
+
+
 class ProductDescription(ConfigParser):
     """
     This class represents a description of a data product which is parsed from
@@ -279,10 +316,10 @@ class ProductDescription(ConfigParser):
 
     def __init__(self, ini_file):
         super().__init__()
-        self.dimensions = []
-        self.coordinates = []
-        self.variables = []
-        self.attributes = []
+        self.dimensions = {}
+        self.coordinates = {}
+        self.variables = {}
+        self.attributes = {}
         self.callback = None
         self._name = ""
         self.latitude_coordinate = None
@@ -305,24 +342,47 @@ class ProductDescription(ConfigParser):
             if section_type == "properties":
                 self._parse_properties(section_name, section)
             elif section_type == "dimension":
-                self.dimensions.append(Dimension(section_name, section))
+                self.dimensions[section_name] = Dimension(
+                    section_name,
+                    section
+                )
             elif section_type == "coordinate":
-                self.coordinates.append(Variable(section_name, section))
+                self.coordinates[section_name] = Variable(
+                    section_name,
+                    section
+                )
             elif section_type == "latitude_coordinate":
-                self.coordinates.append(Variable(section_name, section))
-                self.latitude_coordinate = self.coordinates[-1]
+                self.coordinates[section_name] = Variable(
+                    section_name,
+                    section
+                )
+                self.latitude_coordinate = self.coordinates[section_name]
             elif section_type == "longitude_coordinate":
-                self.coordinates.append(Variable(section_name, section))
-                self.longitude_coordinate = self.coordinates[-1]
+                self.coordinates[section_name] = Variable(
+                    section_name,
+                    section
+                )
+                self.longitude_coordinate = self.coordinates[section_name]
             elif section_type == "time_coordinate":
-                self.coordinates.append(Variable(section_name, section))
-                self.time_coordinate = self.coordinates[-1]
+                self.coordinates[section_name] = Variable(
+                    section_name,
+                    section
+                )
+                self.time_coordinate = self.coordinates[section_name]
             elif section_type == "variable":
-                self.variables.append(Variable(section_name, section))
+                self.variables[section_name] = Variable(
+                    section_name,
+                    section
+                )
             elif section_type == "attribute":
-                self.attributes.append(Variable(section_name, section))
+                self.attributes[section_name] = Variable(
+                    section_name,
+                    section
+                )
             elif section_type == "callback":
                 self.callback = section.get("callback", None)
+            elif section_type == "granules":
+                self.granules = GranuleInfo(section)
             else:
                 raise UnknownTypeError(
                     "Type should be one of ['dimension', "
@@ -331,11 +391,23 @@ class ProductDescription(ConfigParser):
                 )
 
     def _parse_properties(self, section_name, section):
+        """
+        Parses the properties section of the product description file.
+
+        Args:
+            section_name: The name of the properties section
+            section: The section object holding the
+                 fields of the properties section.
+        """
         if "name" not in section:
             name = section_name
         else:
             name = section["name"]
         self._name = name
+        if "granule_dimensions" in section:
+            self.granule_info = GranuleInfo(section)
+        else:
+            self.granule_info = None
         self.properties = section
 
     @property
@@ -366,23 +438,23 @@ class ProductDescription(ConfigParser):
         variables = {}
         coordinates = {}
         attributes = {}
-        for variable in self.variables:
+        for name, variable in self.variables.items():
             data = variable.get_data(file_handle, context, slcs=slcs)
             if len(variable.dimensions) < len(data.shape):
                 data = np.squeeze(data)
             for index, dimension in enumerate(variable.dimensions):
                 coordinates[dimension] = np.arange(data.shape[index])
             attrs = variable.get_attributes(file_handle)
-            variables[variable.name] = (variable.dimensions, data, attrs)
-        for coordinate in self.coordinates:
+            variables[name] = (variable.dimensions, data, attrs)
+        for name, coordinate in self.coordinates.items():
             data = coordinate.get_data(file_handle, context, slcs=slcs)
             if len(coordinate.dimensions) < len(data.shape):
                 data = np.squeeze(data)
             attrs = coordinate.get_attributes(file_handle)
-            coordinates[coordinate.name] = (coordinate.dimensions, data, attrs)
-        for attribute in self.attributes:
+            coordinates[name] = (coordinate.dimensions, data, attrs)
+        for name, attribute in self.attributes.items():
             value = attribute.get_data(file_handle, context)
-            attributes[attribute.name] = value
+            attributes[name] = value
 
         return variables, coordinates, attributes
 
@@ -424,14 +496,16 @@ class ProductDescription(ConfigParser):
 
         return dataset
 
-    def load_lonlats(self, file_handle, slc):
+
+    def load_lonlats(self, file_handle, context=None, slcs=None):
         """
         Load longitude and latitude coordinates from a file.
 
         Args:
             file_hanlde: File handle pointing to the file from which to load
                 longitude and latitude coordinates.
-            slc: A slice object to subset the loaded coodinates.
+            slcs: A dictionary mapping dimension names to slices to
+                subset the loaded coordinates.
 
         Return:
             A tuple ``(lons, lats)`` containing the loaded longitude and
@@ -443,6 +517,171 @@ class ProductDescription(ConfigParser):
                 "'latitude_coordinate' fields to extract latitude and "
                 " coordinates."
             )
-        lons = self.longitude_coordinate.get_data(file_handle, None, slc)
-        lats = self.latitude_coordinate.get_data(file_handle, None, slc)
+        lons = self.longitude_coordinate.get_data(file_handle, context, slcs)
+        lats = self.latitude_coordinate.get_data(file_handle, context, slcs)
         return lons, lats
+
+        return lons, lats
+
+
+    def load_time(self, file_handle, context=None, slcs=None):
+        """
+        Load time coordinates from a file.
+
+        Args:
+            file_hanlde: File handle pointing to the file from which to load
+                longitude and latitude coordinates.
+            slcs: A dictionary mapping dimension names to slices to
+                subset the loaded coordinates.
+
+        Return:
+            A tuple ``(lons, lats)`` containing the loaded longitude and
+            latitude coordinates as numpy arrays.
+        """
+        if self.time_coordinate is None:
+            raise ValueError(
+                "Product description needs 'time_coordinate' fields to "
+                " the time coordinates."
+            )
+        time = self.time_coordinate.get_data(file_handle, context, slcs)
+        return time
+
+
+    def get_granule_data(self, file_handle, context=None):
+        """
+        Extracts relevant granule data from a file handle.
+
+        Args:
+            file_handle: A file handle object providing access to a product
+                data file.
+            context: A Python context holding potential callback functions
+                required for the loading of data.
+
+        Return:
+            A list of tuples ``(t_rng, geom, prm_ind_name, prm_ind_rng)``
+            containing the time range, geometry and primary index name and
+            range of each granule in the file.
+
+            If the granuling takes place over two dimension each tuple
+            additionally contains the name and range of the secondary
+            index.
+        """
+        if self.granule_info is None:
+            raise NotImplmentedError(
+                "This product description does not contain any granule "
+                "and can therefore not provide any granules."
+            )
+        if self.latitude_coordinate is None or self.longitude_coordinate is None:
+            raise NotImplmentedError(
+                "This product lacks  longitude and latitude coordinates and "
+                "and can therefore not provide any granules."
+            )
+        if self.time_coordinate is None:
+            raise NotImplmentedError(
+                "This product lacks a time coordinate and "
+                "and can therefore not provide any granules."
+            )
+
+        dim_names = self.granule_info.dimensions
+        sizes = [self.dimensions[name].get_size(file_handle) for name in dim_names]
+        granule_data = []
+
+        outer_start = 0
+        while(outer_start < sizes[0]):
+            outer_end = (min(
+                outer_start + sizes[0] // self.granule_info.partitions[0],
+                sizes[0],
+            ))
+
+            outer_slc = slice(
+                outer_start,
+                outer_end,
+                outer_end - outer_start - 1
+            )
+            outer_start = outer_end
+
+            if len(sizes) == 1:
+                inner_stop = 1
+            else:
+                inner_stop = sizes[1]
+            inner_start = 0
+
+            while inner_start < inner_stop:
+
+                if len(sizes) == 1:
+                    slcs = {
+                        dim_names[0]: outer_slc,
+                    }
+                    inner_start = inner_stop
+                else:
+                    inner_end = (min(
+                        inner_start + sizes[1] // self.granule_info.partitions[1],
+                        sizes[1],
+                    ))
+                    inner_slc = slice(
+                        inner_start,
+                        inner_end,
+                        inner_end - inner_start - 1
+                    )
+                    slcs = {
+                        dim_names[0]: outer_slc,
+                        dim_names[1]: inner_slc,
+                    }
+                    inner_start = inner_end
+
+                time = self.load_time(
+                    file_handle,
+                    context=context,
+                    slcs=slcs
+                )
+                start_time = time.min()
+                end_time = time.max()
+                time_range = TimeRange(start_time, end_time)
+
+                lons, lats = self.load_lonlats(
+                    file_handle,
+                    context=context,
+                    slcs=slcs
+                )
+                geom = LonLatRect(
+                    lons[0, 0],
+                    lats[0, 0],
+                    lons[-1, -1],
+                    lats[-1, -1]
+                )
+
+                if len(dim_names) == 1:
+                    granule_data.append((
+                        time_range,
+                        geom,
+                        dim_names[0],
+                        (outer_start, outer_end),
+                    ))
+                else:
+                    granule_data.append((
+                        time_range,
+                        geom,
+                        dim_names[0],
+                        (outer_start, outer_end),
+                        dim_names[1],
+                        (inner_start, inner_end)
+                    ))
+
+        return granule_data
+
+
+    def open_granule(self, file_handle, granule, context=None):
+        """
+        Open data from a granule.
+
+        Args:
+            file_handle: A file handle object providing access to a product
+                data file.
+            granule: A Granule object identifying the granule to load.
+            context: A Python context holding potential callback functions
+                required for the loading of data.
+
+        Return:
+            An xarray.Dataset containing the product data for the granule
+            in question.
+        """

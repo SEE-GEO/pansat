@@ -51,7 +51,6 @@ def test_granule_indexing(hdf5_granule_product_data):
     assert len(found) == 1
 
     t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T00:10:00")
-
     roi = LonLatRect(5.001, 0, 10, 5)
     found = index.find_files(time_range=t_range, roi=roi)
     assert len(found) == 0

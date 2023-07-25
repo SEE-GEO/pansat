@@ -151,12 +151,17 @@ def write_hdf4_product_data(path):
             200
         )
         v_lons[:] = lons
+        dim_1 = v_lons.dim(0)
+        dim_1.setname("dimension_1")
+
         v_lats = output_file.create(
             'latitude',
             SDC.FLOAT32,
             200
         )
         v_lats[:] = lats
+        dim_2 = v_lats.dim(0)
+        dim_2.setname("dimension_2")
 
         surface_precip = np.random.rand(200, 200).astype("float32")
         v_sp = output_file.create(
@@ -326,6 +331,8 @@ EXAMPLE_GRANULE_PRODUCT_DESCRIPTION = """
 [test-description]
 type = properties
 name = test-description
+granule_dimensions = ["scans", "pixels"]
+granule_partitions = [4, 2]
 
 [scans]
 type = dimension
@@ -408,12 +415,21 @@ def write_hdf4_granule_product_data(path):
             (200, 100)
         )
         v_lons[:] = lons
+        dim_1 = v_lons.dim(0)
+        dim_1.setname("scans")
+        dim_2 = v_lons.dim(1)
+        dim_2.setname("pixels")
+
         v_lats = output_file.create(
             'latitude',
             SDC.FLOAT32,
             (200, 100)
         )
         v_lats[:] = lats
+        dim_1 = v_lats.dim(0)
+        dim_1.setname("scans")
+        dim_2 = v_lats.dim(1)
+        dim_2.setname("pixels")
 
         surface_precip = np.random.rand(200, 100).astype("float32")
         v_sp = output_file.create(
@@ -422,12 +438,18 @@ def write_hdf4_granule_product_data(path):
             (200, 100)
         )
         v_sp[:] = surface_precip
+        dim_1 = v_sp.dim(0)
+        dim_1.setname("scans")
+        dim_2 = v_sp.dim(1)
+        dim_2.setname("pixels")
 
         v_time = output_file.create(
             'time',
             SDC.INT32,
             (200,)
         )
+        dim_1 = v_time.dim(0)
+        dim_1.setname("scans")
 
         start_time = to_datetime64(start_time)
         time_delta = to_datetime64(end_time) - start_time

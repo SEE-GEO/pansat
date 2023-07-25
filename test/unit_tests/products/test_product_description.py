@@ -35,15 +35,15 @@ def test_read_product_description(product_data, request):
     assert description.name == "test-description"
 
     assert len(description.dimensions) == 2
-    assert description.dimensions[0].name == "dimension_1"
-    assert description.dimensions[1].name == "dimension_2"
+    assert description.dimensions["dimension_1"].name == "dimension_1"
+    assert description.dimensions["dimension_2"].name == "dimension_2"
 
     assert len(description.coordinates) == 2
-    assert description.coordinates[0].name == "longitude"
-    assert description.coordinates[1].name == "latitude"
+    assert description.coordinates["longitude"].name == "longitude"
+    assert description.coordinates["latitude"].name == "latitude"
 
     assert len(description.attributes) == 1
-    assert description.attributes[0].name == "attribute_1"
+    assert description.attributes["attribute_1"].name == "attribute_1"
 
 
 @pytest.mark.skipif(not HAS_HDF4, reason="HDF4 library not available.")
@@ -80,11 +80,8 @@ def test_open_hdf5_product(hdf5_product_data):
 
     files = (product_data / "remote").glob("*.hdf")
     for path in files:
-        print(path)
         file_handle = HDF5File(path)
         dataset = description.to_xarray_dataset(file_handle)
-        print(description.latitude_coordinate)
-        print(description.longitude_coordinate)
 
         lats = dataset.latitude.data
         assert np.all(lats > -10)
@@ -93,7 +90,6 @@ def test_open_hdf5_product(hdf5_product_data):
         lons, lats = description.load_lonlats(
             file_handle, slice(0, None, 10)
         )
-        print(lons)
         assert lons.size == 20
         assert lats.size == 20
 
@@ -120,7 +116,7 @@ def test_open_hdf4_product(hdf4_product_data):
             "dimension_2": slice(0, None, 20)
         }
         lons, lats = description.load_lonlats(
-            file_handle, slcs
+            file_handle, slcs=slcs
         )
         assert lons.size == 20
         assert lats.size == 10
@@ -136,11 +132,8 @@ def test_open_hdf5_product(hdf5_product_data):
 
     files = (product_data / "remote").glob("*.hdf")
     for path in files:
-        print(path)
         file_handle = HDF5File(path)
         dataset = description.to_xarray_dataset(file_handle)
-        print(description.latitude_coordinate)
-        print(description.longitude_coordinate)
 
         lats = dataset.latitude.data
         assert np.all(lats > -10)
@@ -151,7 +144,7 @@ def test_open_hdf5_product(hdf5_product_data):
             "dimension_2": slice(0, None, 20)
         }
         lons, lats = description.load_lonlats(
-            file_handle, slcs
+            file_handle, slcs=slcs
         )
         assert lons.size == 20
         assert lats.size == 10
@@ -169,10 +162,42 @@ def test_read_granule_product_description(product_data, request):
     assert description.name == "test-description"
 
     assert len(description.dimensions) == 2
-    assert description.dimensions[0].name == "scans"
-    assert description.dimensions[1].name == "pixels"
+    assert description.dimensions["scans"].name == "scans"
+    assert description.dimensions["pixels"].name == "pixels"
 
     assert len(description.coordinates) == 3
-    assert description.coordinates[0].name == "longitude"
-    assert description.coordinates[1].name == "latitude"
-    assert description.coordinates[2].name == "time"
+    assert description.coordinates["longitude"].name == "longitude"
+    assert description.coordinates["latitude"].name == "latitude"
+    assert description.coordinates["time"].name == "time"
+
+
+@pytest.mark.skipif(not HAS_HDF4, reason="HDF4 library not available.")
+def test_get_granule_data_hdf4_product(hdf4_granule_product_data):
+    """
+    Tests the extract of granules from HDF4 files.
+    """
+    product_data = hdf4_granule_product_data
+    description = ProductDescription(product_data / "product.ini")
+
+    files = (product_data / "remote").glob("*.hdf")
+    for path in files:
+        file_handle = HDF4File(path)
+        granule_data = description.get_granule_data(file_handle)
+
+        assert len(granule_data) == 8
+
+
+@pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available.")
+def test_get_granule_data_hdf5_product(hdf5_granule_product_data):
+    """
+    Tests the extract of granules from HDF4 files.
+    """
+    product_data = hdf5_granule_product_data
+    description = ProductDescription(product_data / "product.ini")
+
+    files = (product_data / "remote").glob("*.hdf")
+    for path in files:
+        file_handle = HDF5File(path)
+        granule_data = description.get_granule_data(file_handle)
+
+        assert len(granule_data) == 8

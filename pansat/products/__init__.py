@@ -254,6 +254,19 @@ class Granule:
     secondary_index_name: str = ""
     secondary_index_range: Optional[tuple[int]] = (-1, -1)
 
+    def get_slices(self):
+        """
+        Get slice dictionary identifying the data range corresponding to
+        this granule.
+        """
+        if self.primary_index_name == "":
+            return None
+        slcs = {}
+        slcs[self.primary_index_name] = slice(*self.primary_index_range)
+        if self.secondary_index_name != "":
+            slcs[self.secondary_index_name] = slice(*self.secondary_index_range)
+        return slcs
+
 
 class GranuleProduct(Product):
     """
