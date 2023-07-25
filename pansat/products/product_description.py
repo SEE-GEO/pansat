@@ -249,13 +249,14 @@ class Variable:
         """
         if slcs is not None:
             slcs = self._extract_slices(slcs)
-            data = getattr(file_handle, self.field_name)[slcs]
         else:
-            data = getattr(file_handle, self.field_name)[:]
+            slcs = slice(0, None)
 
         if self.callback:
             callback = context[self.callback]
-            data = callback(data)
+            data = callback(getattr(file_handle, self.field_name), slcs)
+        else:
+            data = getattr(file_handle, self.field_name)[slcs]
 
         return data
 
@@ -567,23 +568,34 @@ class ProductDescription(ConfigParser):
             index.
         """
         if self.granule_info is None:
-            raise NotImplmentedError(
+            raise ValueError(
                 "This product description does not contain any granule "
                 "and can therefore not provide any granules."
             )
         if self.latitude_coordinate is None or self.longitude_coordinate is None:
-            raise NotImplmentedError(
+            raise ValueError(
                 "This product lacks  longitude and latitude coordinates and "
                 "and can therefore not provide any granules."
             )
         if self.time_coordinate is None:
-            raise NotImplmentedError(
+            raise ValueError(
                 "This product lacks a time coordinate and "
                 "and can therefore not provide any granules."
             )
 
         dim_names = self.granule_info.dimensions
-        sizes = [self.dimensions[name].get_size(file_handle) for name in dim_names]
+
+        try:
+            sizes = [self.dimensions[name].get_size(file_handle) for name in dim_names]
+        except TypeError:
+            lons, lats = self.load_lonlats(file_handle, context=context)
+            time = self.load_time(file_handle, context=context)
+
+            if len(time.shape) > len(lons.shape):
+                sizes = time.shape[:len(dim_names)]
+            else:
+                sizes = lons.shape[:len(dim_names)]
+
         granule_data = []
 
         outer_start = 0

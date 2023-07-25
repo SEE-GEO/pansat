@@ -17,16 +17,16 @@ def test_indexing(hdf5_product_data):
     index = Index.index(hdf5_product, files)
 
     roi = LonLatRect(0, 0, 5, 5)
-    found = index.find_files(roi=roi)
+    found = index.find(roi=roi)
     assert len(found) == 1
 
     roi = LonLatRect(0, 0, 50, 5)
-    found = index.find_files(roi=roi)
+    found = index.find(roi=roi)
     assert len(found) == 4
 
     roi = LonLatRect(0, 0, 50, 5)
     t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T01:00:00")
-    found = index.find_files(time_range=t_range, roi=roi)
+    found = index.find(time_range=t_range, roi=roi)
     assert len(found) == 2
 
 
@@ -38,21 +38,21 @@ def test_granule_indexing(hdf5_granule_product_data):
     assert len(index.data) == 8
 
     roi = LonLatRect(0, 0, 5, 5)
-    found = index.find_files(roi=roi)
+    found = index.find(roi=roi)
     assert len(found) == 2
 
     roi = LonLatRect(0, 0, 2, 2)
-    found = index.find_files(roi=roi)
+    found = index.find(roi=roi)
     assert len(found) == 1
 
     t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T00:10:00")
     roi = LonLatRect(0, 0, 5, 5)
-    found = index.find_files(time_range=t_range, roi=roi)
+    found = index.find(time_range=t_range, roi=roi)
     assert len(found) == 1
 
     t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T00:10:00")
     roi = LonLatRect(5.001, 0, 10, 5)
-    found = index.find_files(time_range=t_range, roi=roi)
+    found = index.find(time_range=t_range, roi=roi)
     assert len(found) == 0
 
 
@@ -67,14 +67,14 @@ def test_save_and_load_index(tmp_path, hdf5_product_data):
     index_loaded = Index.load(tmp_path / index_name)
 
     roi = LonLatRect(0, 0, 5, 5)
-    found = index_loaded.find_files(roi=roi)
+    found = index_loaded.find(roi=roi)
     assert len(found) == 1
 
     roi = LonLatRect(0, 0, 50, 5)
-    found = index_loaded.find_files(roi=roi)
+    found = index_loaded.find(roi=roi)
     assert len(found) == 4
 
     roi = LonLatRect(0, 0, 50, 5)
     t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T01:00:00")
-    found = index_loaded.find_files(time_range=t_range, roi=roi)
+    found = index_loaded.find(time_range=t_range, roi=roi)
     assert len(found) == 2

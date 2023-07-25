@@ -88,6 +88,13 @@ class TimeRange:
         return (time >= self.start) and (time <= self.end)
 
 
+    def __repr__(self):
+        start = self.start.isoformat()
+        end = self.end.isoformat()
+        return f"TimeRange(start='{start}', end='{end}')"
+
+
+
     def __lt__(self, other):
         """
         TimeRange objects are compared by their start time.

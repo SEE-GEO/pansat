@@ -254,7 +254,7 @@ class Index:
 
 
 
-    def find_files(self, time_range=None, roi=None):
+    def find(self, time_range=None, roi=None):
         """
         Find entries in Index within given time range and location.
         """

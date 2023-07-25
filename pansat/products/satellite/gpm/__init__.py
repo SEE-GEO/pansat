@@ -21,6 +21,7 @@ from pansat import products
 import pansat.download.providers as providers
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
+from pansat.products import Granule
 from pansat.products.product import Product
 from pansat.products.product_description import ProductDescription
 from pansat.exceptions import NoAvailableProvider
@@ -28,7 +29,7 @@ from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
 
-class GPMProduct(Product, products.Product):
+class GPMProduct(Product, products.GranuleProduct):
     """
     Base class representing GPM products.
     """
@@ -245,8 +246,31 @@ class GPMProduct(Product, products.Product):
         with HDF5File(filename, "r") as file_handle:
             return self.description.to_xarray_dataset(file_handle, globals())
 
+    def get_granules(self, rec):
+        from pansat.formats.hdf5 import HDF5File
 
-def _extract_scantime(scantime_group):
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(rec)
+
+        granules = []
+        with HDF5File(rec.local_path, "r") as file_handle:
+            for granule_data in self.description.get_granule_data(
+                    file_handle,
+                    globals()):
+                granules.append(Granule(rec, *granule_data))
+        return granules
+
+    def open_granule(self, rec, granule):
+        from pansat.formats.hdf5 import HDF5File
+        with HDF5File(filename, "r") as file_handle:
+            return self.description.to_xarray_granules(
+                file_handle,
+                context=globals(),
+                slcs=granule.get_slices()
+            )
+
+
+def _extract_scantime(scantime_group, slcs=None):
     """
     Extract scan time as numpy object.
 
@@ -259,13 +283,15 @@ def _extract_scantime(scantime_group):
     Returns:
          numpy.datetime64 object representing the scantime.
     """
-    years = scantime_group["Year"][:]
-    months = scantime_group["Month"][:]
-    days = scantime_group["DayOfMonth"][:]
-    hours = scantime_group["Hour"][:]
-    minutes = scantime_group["Minute"][:]
-    seconds = scantime_group["Second"][:]
-    milli_seconds = scantime_group["MilliSecond"][:]
+    if slcs is None:
+        slcs = slice(0, None)
+    years = scantime_group["Year"][slcs]
+    months = scantime_group["Month"][slcs]
+    days = scantime_group["DayOfMonth"][slcs]
+    hours = scantime_group["Hour"][slcs]
+    minutes = scantime_group["Minute"][slcs]
+    seconds = scantime_group["Second"][slcs]
+    milli_seconds = scantime_group["MilliSecond"][slcs]
     n_dates = years.size
     dates = np.zeros(n_dates, dtype="datetime64[ms]")
     for i in range(n_dates):
