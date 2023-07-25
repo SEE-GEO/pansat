@@ -115,11 +115,15 @@ def test_open_hdf4_product(hdf4_product_data):
         assert np.all(lats > -10)
         assert np.all(lats < 10)
 
+        slcs = {
+            "dimension_1": slice(0, None, 10),
+            "dimension_2": slice(0, None, 20)
+        }
         lons, lats = description.load_lonlats(
-            file_handle, slice(0, None, 10)
+            file_handle, slcs
         )
         assert lons.size == 20
-        assert lats.size == 20
+        assert lats.size == 10
 
 
 @pytest.mark.skipif(not HAS_HDF5, reason="HDF4 library not available.")
@@ -142,15 +146,19 @@ def test_open_hdf5_product(hdf5_product_data):
         assert np.all(lats > -10)
         assert np.all(lats < 10)
 
+        slcs = {
+            "dimension_1": slice(0, None, 10),
+            "dimension_2": slice(0, None, 20)
+        }
         lons, lats = description.load_lonlats(
-            file_handle, slice(0, None, 10)
+            file_handle, slcs
         )
-        print(lons)
         assert lons.size == 20
-        assert lats.size == 20
+        assert lats.size == 10
+
 
 @pytest.mark.parametrize("product_data", conftest.GRANULE_PRODUCT_DATA)
-def test_read_product_description(product_data, request):
+def test_read_granule_product_description(product_data, request):
     """
     Reads product description test file and checks that the description
     attributes are parsed correctly.

@@ -100,9 +100,7 @@ class InconsistentDimensionsError(Exception):
 
 class Dimension:
     """
-    Represents a dimension of multi-dimensional dataset.
-
-
+    Represents a dimension of a multi-dimensional dataset.
     """
 
     def __init__(self, name, config_dict):
@@ -173,12 +171,33 @@ class Variable:
         self.field_name = config_dict["name"]
         if "dimensions" not in config_dict:
             raise MissingFieldError(
-                f"Dimension  definition for '{self.name}'" " has no 'dimensions' field."
+                f"Variable definition for '{self.name}'" " has no 'dimensions' field."
             )
         self.dimensions = json.loads(config_dict["dimensions"])
         self.unit = config_dict.get("unit", "")
         self.description = config_dict.get("description", "")
         self.callback = config_dict.get("callback", [])
+
+
+    def _extract_slices(self, slcs):
+        """
+        Transforms the dictionary of slices given by 'slcs' to a tuple
+        of slices matching the dimensions of the variable.
+
+        Args:
+            slcs: A dictionary mapping dimensions names to slice
+                objects.
+
+        Return:
+            A tuple of slice object that can be used to load the data
+            from this variable.
+        """
+        if slcs is None:
+            slcs = {}
+        return tuple(
+            (slcs.get(name, slice(0, None)) for name in self.dimensions)
+        )
+
 
     def get_attributes(self, file_handle):
         """
@@ -199,7 +218,7 @@ class Variable:
 
         return attributes
 
-    def get_data(self, file_handle, context, slc=None):
+    def get_data(self, file_handle, context, slcs=None):
         """
         Get data for variable from file_handle.
 
@@ -214,13 +233,17 @@ class Variable:
              context: Namespace in which to lookup the callback function.
              slc: A slice object to subset the loaded data.
         """
+        if slcs is not None:
+            slcs = self._extract_slices(slcs)
+            print(slcs)
+            data = getattr(file_handle, self.field_name)[slcs]
+        else:
+            data = getattr(file_handle, self.field_name)[:]
+
         if self.callback:
             callback = context[self.callback]
-            data = callback(getattr(file_handle, self.field_name))
-        else:
-            if slc is None:
-                slc = slice(0, None)
-            data = getattr(file_handle, self.field_name)[slc]
+            data = callback(data)
+
         return data
 
     def __repr__(self):
@@ -320,7 +343,7 @@ class ProductDescription(ConfigParser):
         # The name of the data product.
         return self._name
 
-    def _get_data(self, file_handle, context):
+    def _get_data(self, file_handle, context, slcs=None):
         """
         Reads dimensions, variables and coordinates from file_handle and
         returns them as dictionaries.
@@ -328,6 +351,10 @@ class ProductDescription(ConfigParser):
         Args:
             file_handle: File handle that provides access to the dimensions
                  and variable in this product description.
+             context: A Python context defining the callback functions
+                 used to load the product data.
+             slcs: An optional dictionary mapping dimension names to
+                 slices to use to load only a subset of the data.
 
         Returns:
             A tuple ``(variables, coordinates)`` containing a two dictionaries.
@@ -340,7 +367,7 @@ class ProductDescription(ConfigParser):
         coordinates = {}
         attributes = {}
         for variable in self.variables:
-            data = variable.get_data(file_handle, context)
+            data = variable.get_data(file_handle, context, slcs=slcs)
             if len(variable.dimensions) < len(data.shape):
                 data = np.squeeze(data)
             for index, dimension in enumerate(variable.dimensions):
@@ -348,7 +375,7 @@ class ProductDescription(ConfigParser):
             attrs = variable.get_attributes(file_handle)
             variables[variable.name] = (variable.dimensions, data, attrs)
         for coordinate in self.coordinates:
-            data = coordinate.get_data(file_handle, context)
+            data = coordinate.get_data(file_handle, context, slcs=slcs)
             if len(coordinate.dimensions) < len(data.shape):
                 data = np.squeeze(data)
             attrs = coordinate.get_attributes(file_handle)
@@ -359,20 +386,34 @@ class ProductDescription(ConfigParser):
 
         return variables, coordinates, attributes
 
-    def to_xarray_dataset(self, file_handle, context=None):
+    def to_xarray_dataset(
+            self,
+            file_handle,
+            context=None,
+            slcs=None
+    ):
         """
         Convert data from file handle to xarray dataset.
 
         Args:
              file_handle: A file object providing access to the data product
                  described by this product description object.
+             context: A Python context defining the callback functions
+                 used to load the product data.
+             slcs: An optional dictionary mapping dimension names to
+                 slices to use to load only a subset of the data.
+
         Return:
              ``xarray.Dataset`` containing the data from the provided file
              handle.
         """
         if not context:
             context = {}
-        variables, dimensions, attributes = self._get_data(file_handle, context)
+        variables, dimensions, attributes = self._get_data(
+            file_handle,
+            context,
+            slcs=slcs
+        )
         dataset = xarray.Dataset(
             data_vars=variables, coords=dimensions, attrs=attributes
         )
