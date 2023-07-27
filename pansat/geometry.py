@@ -284,6 +284,16 @@ class LineString(ShapelyGeometry):
         )
 
 
+class MultiLineString(ShapelyGeometry):
+    """
+    A combination of multiple line strings.
+    """
+    def __init__(self, coords):
+        super().__init__(
+            shapely.MultiLineString(coords)
+        )
+
+
 class Polygon(ShapelyGeometry):
     """
     A polygon geometry that internally uses a shapely polygon.
