@@ -190,18 +190,46 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
     return make_valid(poly)
 
 
+###############################################################################
+# Geometries classes
+###############################################################################
+
 class Geometry(ABC):
     """
     Generic interface for objects representation the spatial coverage
     of product files.
+
+    Although most geometry classes just wrap around a shapely object,
+    the purpose of the ABC is to serve as an abstraction layer to simplify
+    potential switching to a geometry backend that is more adept for
+    handling spherical geometries.
     """
     @abstractmethod
     def covers(self, other: "Geometry") -> bool:
+        """
+        Predicate function indicating wheterh the geometry covers (or
+        intersects) another geometry.
+        """
         pass
 
     @abstractmethod
     def to_shapely(self):
+        """
+        Convert geometry to a shapely geometry.
+        """
         pass
+
+    def _repr_html_(self):
+        try:
+            from ipyleaflet import Map, WKTLayer
+            from IPython.display import display
+
+            llmap = Map(zoom=1)
+            layer = WKTLayer(wkt_string=self.to_shapely().wkt)
+            llmap.add_layer(layer)
+            display(llmap)
+        except ModuleNotFoundError:
+            return NotImplemented
 
 
 class ShapelyGeometry(Geometry):
@@ -215,7 +243,7 @@ class ShapelyGeometry(Geometry):
         self.geometry = geometry
 
     def covers(self, other: Geometry) -> bool:
-        return self.geometry.covers(other.to_shapely())
+        return self.geometry.intersects(other.to_shapely())
 
     def to_shapely(self):
         return self.geometry
@@ -246,10 +274,43 @@ class LonLatRect(ShapelyGeometry):
         )
 
 
+class LineString(ShapelyGeometry):
+    """
+    A string of points connected by a line.
+    """
+    def __init__(self, coords):
+        super().__init__(
+            shapely.LineString(coords)
+        )
+
+
+class Polygon(ShapelyGeometry):
+    """
+    A polygon geometry that internally uses a shapely polygon.
+    """
+    def __init__(self, coords):
+        super().__init__(
+            shapely.validation.make_valid(shapely.Polygon(coords))
+        )
+
+
+class MultiPolygon(ShapelyGeometry):
+    """
+    A multi-polygon geometry that internally uses a shapely
+    multi-polygon.
+    """
+    def __init__(self, polys):
+        super().__init__(
+            shapely.validation.make_valid(
+                shapely.MultiPolygon(
+                    [shapely.Polygon(poly) for poly in polys])
+            )
+        )
+
 
 class SatelliteSwath(ShapelyGeometry):
     """
-    A satellite swath represented unsing a shapely geometry.
+    A satellite swath represented using a shapely geometry.
     """
     def __init__(self, geometry):
         super().__init__(geometry)
