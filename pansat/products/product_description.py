@@ -91,7 +91,13 @@ from pathlib import Path
 import numpy as np
 import xarray
 
-from pansat.geometry import LonLatRect
+from pansat.geometry import (
+    Geometry,
+    LineString,
+    MultiLineString,
+    Polygon,
+    MultiPolygon
+)
 from pansat.time import TimeRange
 
 
@@ -326,11 +332,18 @@ class ProductDescription(ConfigParser):
         self.latitude_coordinate = None
         self.longitude_coordinate = None
         self.time_coordinate = None
+        self.granule_info = None
+
         try:
-            self.read(ini_file)
+            if Path(ini_file).exists():
+                self.read(ini_file)
+            else:
+                self.read_string(ini_file)
         except OSError:
             self.read_string(ini_file)
         self._parse_config_file()
+
+
 
     def _parse_config_file(self):
         for section_name in self.sections():
@@ -530,7 +543,7 @@ class ProductDescription(ConfigParser):
         Load time coordinates from a file.
 
         Args:
-            file_hanlde: File handle pointing to the file from which to load
+            file_handle: File handle pointing to the file from which to load
                 longitude and latitude coordinates.
             slcs: A dictionary mapping dimension names to slices to
                 subset the loaded coordinates.
@@ -587,7 +600,7 @@ class ProductDescription(ConfigParser):
 
         try:
             sizes = [self.dimensions[name].get_size(file_handle) for name in dim_names]
-        except TypeError:
+        except (TypeError, KeyError):
             lons, lats = self.load_lonlats(file_handle, context=context)
             time = self.load_time(file_handle, context=context)
 
@@ -599,9 +612,13 @@ class ProductDescription(ConfigParser):
         granule_data = []
 
         outer_start = 0
-        while(outer_start < sizes[0]):
+        while(outer_start < sizes[0] - 1):
+
             outer_end = (min(
-                outer_start + sizes[0] // self.granule_info.partitions[0],
+                outer_start + max(
+                    sizes[0] // self.granule_info.partitions[0],
+                    2
+                ),
                 sizes[0],
             ))
 
@@ -610,12 +627,15 @@ class ProductDescription(ConfigParser):
                 outer_end,
                 outer_end - outer_start - 1
             )
+
+            if outer_start == outer_end:
+                break
             outer_start = outer_end
 
             if len(sizes) == 1:
                 inner_stop = 1
             else:
-                inner_stop = sizes[1]
+                inner_stop = sizes[1] - 1
             inner_start = 0
 
             while inner_start < inner_stop:
@@ -627,7 +647,10 @@ class ProductDescription(ConfigParser):
                     inner_start = inner_stop
                 else:
                     inner_end = (min(
-                        inner_start + sizes[1] // self.granule_info.partitions[1],
+                        inner_start + max(
+                            sizes[1] // self.granule_info.partitions[1],
+                            2
+                        ),
                         sizes[1],
                     ))
                     inner_slc = slice(
@@ -639,6 +662,8 @@ class ProductDescription(ConfigParser):
                         dim_names[0]: outer_slc,
                         dim_names[1]: inner_slc,
                     }
+                    if inner_start == inner_end:
+                        break
                     inner_start = inner_end
 
                 time = self.load_time(
@@ -655,28 +680,24 @@ class ProductDescription(ConfigParser):
                     context=context,
                     slcs=slcs
                 )
-                geom = LonLatRect(
-                    lons[0, 0],
-                    lats[0, 0],
-                    lons[-1, -1],
-                    lats[-1, -1]
-                )
+
+                geom = _geometry_from_coords(lons, lats)
 
                 if len(dim_names) == 1:
                     granule_data.append((
                         time_range,
                         geom,
                         dim_names[0],
-                        (outer_start, outer_end),
+                        (outer_slc.start, outer_slc.stop),
                     ))
                 else:
                     granule_data.append((
                         time_range,
                         geom,
                         dim_names[0],
-                        (outer_start, outer_end),
+                        (outer_slc.start, outer_slc.stop),
                         dim_names[1],
-                        (inner_start, inner_end)
+                        (inner_slc.start, inner_slc.stop),
                     ))
 
         return granule_data
@@ -697,3 +718,75 @@ class ProductDescription(ConfigParser):
             An xarray.Dataset containing the product data for the granule
             in question.
         """
+
+
+def _geometry_from_coords(
+        lons: np.ndarray,
+        lats: np.ndarray
+) -> Geometry:
+    """
+    Create a geometry object representing given longitude and
+    latitude boundaries.
+
+    Args:
+        lons: A 2-element or 2x2 numpy.ndarray containing the longitude
+            coordinates of the granules boundary points.
+        lats: A 2-element 2x2 numpy.ndarray containing the latititude
+            coordinates of the granules boundary points.
+
+    Return:
+        A pansat.geometry.Geometry object reprsentings the boundaries
+        of the granule.
+    """
+    if lons.ndim == 1:
+        if np.any(np.abs(np.diff(lons))) > 180:
+            lons_l = lons.copy() % 360
+            lons_r = lons_l - 360
+
+            geom_l = zip(lons_l, lats)
+            geom_r = zip(lons_r, lats)
+            geom = MultiLineString([geom_l, geom_r])
+
+        else:
+            geom = LineString(zip(lons, lats))
+
+        return geom
+
+    lon_seq = np.array([
+        lons[0, 0],
+        lons[0, 1],
+        lons[1, 1],
+        lons[1, 0],
+        lons[0, 0]
+    ])
+    d_lon = np.abs(np.diff(lon_seq))
+    if np.any(d_lon) > 180:
+
+        lons_l = lons.copy() % 360
+        lons_r = lons_l - 360
+
+        geom_l = [
+            (lons_l[0, 0], lats[0, 0]),
+            (lons_l[0, -1], lats[0, -1]),
+            (lons_l[-1, -1], lats[-1, -1]),
+            (lons_l[-1, 0], lats[-1, 0]),
+            (lons_l[0, 0], lats[0, 0]),
+        ]
+        geom_r = [
+            (lons_r[0, 0], lats[0, 0]),
+            (lons_r[0, -1], lats[0, -1]),
+            (lons_r[-1, -1], lats[-1, -1]),
+            (lons_r[-1, 0], lats[-1, 0]),
+            (lons_r[0, 0], lats[0, 0]),
+        ]
+        geom = MultiPolygon([geom_l, geom_r])
+
+    else:
+        geom = Polygon([
+            (lons[0, 0], lats[0, 0]),
+            (lons[0, -1], lats[0, -1]),
+            (lons[-1, -1], lats[-1, -1]),
+            (lons[-1, 0], lats[-1, 0]),
+            (lons[0, 0], lats[0, 0]),
+        ])
+    return geom

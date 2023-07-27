@@ -268,11 +268,34 @@ class Granule:
         return slcs
 
 
+    def __eq__(self, other):
+        return (
+            (self.file_record.filename == other.file_record.filename) and
+            (self.time_range.start == other.time_range.start) and
+            (self.time_range.end == other.time_range.end)
+        )
+
+    def __hash__(self):
+        return hash((
+            self.file_record.filename,
+            self.time_range.start,
+            self.time_range.end,
+            self.primary_index_name,
+            self.primary_index_range,
+            self.secondary_index_name,
+            self.secondary_index_range,
+        ))
+
+
 class GranuleProduct(Product):
     """
     A granuled product is a product whose datafiles lend themselves
     to the representation using granules.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @abstractmethod
     def get_granules(self, file_record: FileRecord) -> list[Granule]:
         """

@@ -5,6 +5,12 @@ import pytest
 import conftest
 
 from pansat.products.product_description import ProductDescription
+from pansat.products.example import  (
+    thin_swath_product,
+    write_thin_swath_product_data
+)
+from pansat.file_record import FileRecord
+from pansat.geometry import LineString
 
 HAS_HDF4 = False
 try:
@@ -174,7 +180,7 @@ def test_read_granule_product_description(product_data, request):
 @pytest.mark.skipif(not HAS_HDF4, reason="HDF4 library not available.")
 def test_get_granule_data_hdf4_product(hdf4_granule_product_data):
     """
-    Tests the extract of granules from HDF4 files.
+    Tests the extraction of granules from HDF4 files.
     """
     product_data = hdf4_granule_product_data
     description = ProductDescription(product_data / "product.ini")
@@ -190,7 +196,7 @@ def test_get_granule_data_hdf4_product(hdf4_granule_product_data):
 @pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available.")
 def test_get_granule_data_hdf5_product(hdf5_granule_product_data):
     """
-    Tests the extract of granules from HDF4 files.
+    Tests the extraction of granules from HDF4 files.
     """
     product_data = hdf5_granule_product_data
     description = ProductDescription(product_data / "product.ini")
@@ -201,3 +207,20 @@ def test_get_granule_data_hdf5_product(hdf5_granule_product_data):
         granule_data = description.get_granule_data(file_handle)
 
         assert len(granule_data) == 8
+
+
+@pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available.")
+def test_get_granule_data_thin_swath_product(tmp_path):
+    """
+    Tests the extraction of granules from HDF4 files.
+    """
+
+    path = tmp_path / "thin_swath"
+    path.mkdir()
+    write_thin_swath_product_data(tmp_path / "thin_swath")
+    files = path.glob("*")
+
+    for path in files:
+        granules = thin_swath_product.get_granules(FileRecord(path))
+        for granule in granules:
+            assert isinstance(granule.geometry, LineString)

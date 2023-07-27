@@ -326,7 +326,6 @@ hdf5_product = ExampleProduct(
 # Granule product
 ######################################################################
 
-
 EXAMPLE_GRANULE_PRODUCT_DESCRIPTION = """
 [test-description]
 type = properties
@@ -546,6 +545,7 @@ class ExampleGranuleProduct(GranuleProduct):
             suffix: The file suffix of the data files.
         """
         self._name = name
+        self.suffix = suffix
         self.filename_regex = re.compile(
             r"data_file_"
             r"(?P<start_date>\d{14})_"
@@ -557,7 +557,7 @@ class ExampleGranuleProduct(GranuleProduct):
             f".{suffix}"
         )
         self.product_description = ProductDescription(
-            EXAMPLE_PRODUCT_DESCRIPTION
+            EXAMPLE_GRANULE_PRODUCT_DESCRIPTION
         )
         super().__init__()
 
@@ -623,26 +623,18 @@ class ExampleGranuleProduct(GranuleProduct):
             A list of granule objects representing the temporal and spatial
             coverage of the file identified by 'rec'.
         """
-        match = self.filename_regex.match(rec.filename)
-        lon_min = float(match.group("lon_min"))
-        lat_min = float(match.group("lat_min"))
-        lon_max = float(match.group("lon_max"))
-        lat_max = float(match.group("lat_max"))
-        time_range = self.get_temporal_coverage(rec)
+        if self.suffix == "h5":
+            from pansat.formats.hdf5 import HDF5File
+            file_handle = HDF5File(str(rec.local_path))
+        else:
+            from pansat.formats.hdf4 import HDF4File
+            file_handle = HDF4File(str(rec.local_path))
 
-        d_lon = 0.5 * (lon_max - lon_min)
-        g_1 =  LonLatRect(lon_min, lat_min, lon_min + d_lon, lat_max)
-        g_2 =  LonLatRect(lon_max - d_lon, lat_min, lon_max, lat_max)
+        granules = []
+        for granule_data in self.product_description.get_granule_data(file_handle):
+            granules.append(Granule(rec, *granule_data))
 
-        d_t = 0.5 * (time_range.end - time_range.start)
-        time = time_range.start
-        tr_1 = TimeRange(time, time + d_t)
-        tr_2 = TimeRange(time + d_t, time + 2.0 * d_t)
-
-        return [
-            Granule(rec, tr_1, g_1, "time", (0, 100)),
-            Granule(rec, tr_2, g_2, "time", (100, 200))
-        ]
+        return granules
 
 
     def open(self, rec: FileRecord) -> xr.Dataset:
@@ -661,3 +653,141 @@ hdf5_granule_product = ExampleGranuleProduct(
     "hdf5_product",
     suffix="h5"
 )
+
+######################################################################
+# Thin-swath product
+######################################################################
+
+EXAMPLE_THIN_SWATH_PRODUCT_DESCRIPTION = """
+[test-description]
+type = properties
+name = test-description
+granule_dimensions = ["rays"]
+granule_partitions = [10]
+
+[rays]
+type = dimension
+name = rays
+
+[data]
+type = variable
+name = surface_precip
+dimensions = ["rays"]
+description = Some test data.
+unit = test
+
+[longitude]
+type = longitude_coordinate
+name = longitude
+dimensions = ["rays"]
+description = The longitude coordinates of the measurements.
+
+[latitude]
+type = latitude_coordinate
+name = latitude
+dimensions = ["rays"]
+description = The latitude coordinates of the measurements.
+
+[time]
+type = time_coordinate
+name = time
+dimensions = ["rays"]
+description = The time coordinate.
+"""
+
+def write_thin_swath_product_data(path: Path) -> list[Path]:
+    """
+    Populates a temporary directory with a ThinSwathProduct test data file
+    files in HDF5 format.
+
+    The thin-swath product emulates a data product whose data is organized
+    along a single dimensions such as, for example, CloudSat data.
+
+    Args:
+        path: The path to which to write the product files.
+
+    Return:
+        A list of the written product files.
+    """
+    from h5py import File
+
+    path = Path(path)
+
+    filename_pattern = (
+        "data_file_{start_time}_{end_time}_"
+        "{lon_min:06.2f}_{lat_min:06.2f}_{lon_max:06.2f}_{lat_max:06.2f}.h5"
+    )
+    delta_t = timedelta(hours=1)
+    files = []
+
+    for i in range(4):
+        start_time = datetime(2020, 1, 1, i)
+        end_time = start_time + delta_t
+
+        lat_min = -20 + 10 * i
+        lat_max = lat_min + 10
+        lats = np.linspace(lat_min, lat_max, 101, dtype="float32")[:-1]
+        lons = 20 * np.ones(100, dtype="float32")
+
+        filename = get_filename(
+            start_time=start_time,
+            end_time=end_time,
+            lon_min=lons.min(),
+            lat_min=lats.min(),
+            lon_max=lons.max(),
+            lat_max=lats.max(),
+            suffix="h5"
+        )
+        file_path = path / filename
+        output_file = File(file_path, "w")
+
+        v_lons = output_file.create_dataset(
+            'longitude',
+            (100,),
+            dtype="float32"
+        )
+        v_lons[:] = lons
+        v_lats = output_file.create_dataset(
+            'latitude',
+            (100,),
+            dtype="float32",
+        )
+        v_lats[:] = lats
+
+        surface_precip = np.random.rand(100)
+        v_sp = output_file.create_dataset(
+            'surface_precip',
+            (100,),
+            dtype="float32",
+        )
+        v_sp[:] = surface_precip
+
+        v_time = output_file.create_dataset(
+            'time',
+            (100,),
+            dtype="int64",
+        )
+        start_time = to_datetime64(start_time)
+        time_delta = to_datetime64(end_time) - start_time
+        time = time_delta / 100 * np.arange(100)
+        v_time[:] = time.astype("int64")
+
+        output_file.close()
+        files.append(file_path)
+
+    return files
+
+
+class ThinSwathProduct(ExampleGranuleProduct):
+    """
+    The thins-swath product defines a product whose data is organized
+    along a single dimension as is the case for CloudSat.
+    """
+    def __init__(self):
+        super().__init__("thin_swath_product", "h5")
+        self.product_description = ProductDescription(
+            EXAMPLE_THIN_SWATH_PRODUCT_DESCRIPTION
+        )
+
+thin_swath_product = ThinSwathProduct()
+print("TSP :: ", type(thin_swath_product.product_description.granule_info))
