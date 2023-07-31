@@ -739,9 +739,10 @@ def _geometry_from_coords(
         of the granule.
     """
     if lons.ndim == 1:
-        if np.any(np.abs(np.diff(lons))) > 180:
-            lons_l = lons.copy() % 360
-            lons_r = lons_l - 360
+        if np.any(np.abs(np.diff(lons)) > 180):
+            lons_r = lons.copy()
+            lons_r[lons_r < 0] += 360
+            lons_l = lons_r - 360
 
             geom_l = zip(lons_l, lats)
             geom_r = zip(lons_r, lats)
@@ -754,16 +755,17 @@ def _geometry_from_coords(
 
     lon_seq = np.array([
         lons[0, 0],
-        lons[0, 1],
-        lons[1, 1],
-        lons[1, 0],
+        lons[0, -1],
+        lons[-1, -1],
+        lons[-1, 0],
         lons[0, 0]
     ])
     d_lon = np.abs(np.diff(lon_seq))
-    if np.any(d_lon) > 180:
+    if np.any(d_lon > 180):
 
-        lons_l = lons.copy() % 360
-        lons_r = lons_l - 360
+        lons_r = lons.copy()
+        lons_r[lons_r < 0] += 360
+        lons_l = lons_r - 360
 
         geom_l = [
             (lons_l[0, 0], lats[0, 0]),

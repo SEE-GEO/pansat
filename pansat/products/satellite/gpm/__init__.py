@@ -65,6 +65,7 @@ class GPMProduct(Product, products.GranuleProduct):
             rf"\.{algorithm}([\w-]*).(\d{{8}})-"
             r"S(\d{6})-E(\d{6})\.(\w*)\.((\w*)\.)?(HDF5|h5|nc|nc4)"
         )
+        super().__init__()
 
     @property
     def variables(self):
@@ -260,10 +261,11 @@ class GPMProduct(Product, products.GranuleProduct):
                 granules.append(Granule(rec, *granule_data))
         return granules
 
-    def open_granule(self, rec, granule):
+    def open_granule(self, granule):
         from pansat.formats.hdf5 import HDF5File
+        filename = granule.file_record.local_path
         with HDF5File(filename, "r") as file_handle:
-            return self.description.to_xarray_granules(
+            return self.description.to_xarray_dataset(
                 file_handle,
                 context=globals(),
                 slcs=granule.get_slices()
@@ -290,7 +292,7 @@ def _extract_scantime(scantime_group, slcs=None):
     days = scantime_group["DayOfMonth"][slcs]
     hours = scantime_group["Hour"][slcs]
     minutes = scantime_group["Minute"][slcs]
-    seconds = scantime_group["Second"][slcs]
+    seconds = np.minimum(scantime_group["Second"][slcs], 59)
     milli_seconds = scantime_group["MilliSecond"][slcs]
     n_dates = years.size
     dates = np.zeros(n_dates, dtype="datetime64[ms]")

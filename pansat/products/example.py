@@ -365,6 +365,7 @@ type = time_coordinate
 name = time
 dimensions = ["scans"]
 description = The time coordinate.
+callback = _parse_times
 """
 
 def write_hdf4_granule_product_data(path):
@@ -523,14 +524,24 @@ def write_hdf5_granule_product_data(path):
             dtype="int64",
         )
         start_time = to_datetime64(start_time)
-        time_delta = to_datetime64(end_time) - start_time
-        time = time_delta / 200 * np.arange(200)
-        v_time[:] = time.astype("int64")
+        end_time = to_datetime64(end_time)
+        time = np.arange(start_time, end_time, (end_time - start_time) / 199)
+
+        v_time[:] = time.astype("datetime64[s]").astype("int64")
 
         output_file.close()
         files.append(file_path)
 
     return files
+
+
+def _parse_times(file_handle, field_name):
+    """
+    Callback function required to convert time stored as int back
+    to datetime64 dtype.
+    """
+    return file_handle[field_name][:].astype("datetime64[s]")
+
 
 class ExampleGranuleProduct(GranuleProduct):
     def __init__(self, name, suffix):
@@ -631,7 +642,10 @@ class ExampleGranuleProduct(GranuleProduct):
             file_handle = HDF4File(str(rec.local_path))
 
         granules = []
-        for granule_data in self.product_description.get_granule_data(file_handle):
+        for granule_data in self.product_description.get_granule_data(
+                file_handle,
+                context=globals()
+        ):
             granules.append(Granule(rec, *granule_data))
 
         return granules
@@ -693,6 +707,7 @@ type = time_coordinate
 name = time
 dimensions = ["rays"]
 description = The time coordinate.
+callback = _parse_times
 """
 
 def write_thin_swath_product_data(path: Path) -> list[Path]:
@@ -727,7 +742,7 @@ def write_thin_swath_product_data(path: Path) -> list[Path]:
         lat_min = -20 + 10 * i
         lat_max = lat_min + 10
         lats = np.linspace(lat_min, lat_max, 101, dtype="float32")[:-1]
-        lons = 20 * np.ones(100, dtype="float32")
+        lons = 13 * np.ones(100, dtype="float32")
 
         filename = get_filename(
             start_time=start_time,
@@ -768,9 +783,9 @@ def write_thin_swath_product_data(path: Path) -> list[Path]:
             dtype="int64",
         )
         start_time = to_datetime64(start_time)
-        time_delta = to_datetime64(end_time) - start_time
-        time = time_delta / 100 * np.arange(100)
-        v_time[:] = time.astype("int64")
+        end_time = to_datetime64(end_time)
+        times = np.arange(start_time, end_time, (end_time - start_time) / 99)
+        v_time[:] = times.astype("datetime64[s]").astype("int64")
 
         output_file.close()
         files.append(file_path)
@@ -790,4 +805,3 @@ class ThinSwathProduct(ExampleGranuleProduct):
         )
 
 thin_swath_product = ThinSwathProduct()
-print("TSP :: ", type(thin_swath_product.product_description.granule_info))
