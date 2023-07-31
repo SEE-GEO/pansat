@@ -16,6 +16,7 @@ from pansat.download.providers.noaa import NOAA_PRODUCTS
 from pansat.download.providers.icare import ICARE_PRODUCTS
 from pansat.download.providers.ges_disc import GPM_PRODUCTS
 from pansat.file_record import FileRecord
+from pansat.granule import Granule
 from pansat.time import TimeRange
 from pansat import geometry
 
@@ -238,53 +239,6 @@ class NetcdfProduct(ABC):
         """
         return xr.open_dataset(rec.local_path)
 
-
-@dataclass
-class Granule:
-    """
-    Granules represent temporally and spatially limited sub-sections of a
-    data file. Their purpose is to allow for more find-grained data
-    retrieval.
-    """
-    file_record: FileRecord
-    time_range: TimeRange
-    geometry: Geometry
-    primary_index_name: str = ""
-    primary_index_range: tuple[int] = (-1, -1)
-    secondary_index_name: str = ""
-    secondary_index_range: Optional[tuple[int]] = (-1, -1)
-
-    def get_slices(self):
-        """
-        Get slice dictionary identifying the data range corresponding to
-        this granule.
-        """
-        if self.primary_index_name == "":
-            return None
-        slcs = {}
-        slcs[self.primary_index_name] = slice(*self.primary_index_range)
-        if self.secondary_index_name != "":
-            slcs[self.secondary_index_name] = slice(*self.secondary_index_range)
-        return slcs
-
-
-    def __eq__(self, other):
-        return (
-            (self.file_record.filename == other.file_record.filename) and
-            (self.time_range.start == other.time_range.start) and
-            (self.time_range.end == other.time_range.end)
-        )
-
-    def __hash__(self):
-        return hash((
-            self.file_record.filename,
-            self.time_range.start,
-            self.time_range.end,
-            self.primary_index_name,
-            self.primary_index_range,
-            self.secondary_index_name,
-            self.secondary_index_range,
-        ))
 
 
 class GranuleProduct(Product):
