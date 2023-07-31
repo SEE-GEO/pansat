@@ -219,6 +219,11 @@ class Geometry(ABC):
         """
         pass
 
+    def merge(self, other):
+        """
+        Merge a geometry with another.
+        """
+
     def _repr_html_(self):
         try:
             from ipyleaflet import Map, WKTLayer
@@ -247,6 +252,10 @@ class ShapelyGeometry(Geometry):
 
     def to_shapely(self):
         return self.geometry
+
+    def merge(self, other):
+        geometry = self.geometry.union(other.to_shapely())
+        return ShapelyGeometry(geometry)
 
 
 class LonLatRect(ShapelyGeometry):
