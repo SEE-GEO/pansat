@@ -84,9 +84,9 @@ class DiscreteProvider(DataProvider):
             files = self.get_files_in_range(start_time, end_time, True)
 
         downloaded = []
-        for f in files:
-            path = destination / f
-            self.download_file(f, path)
+        for rec in files:
+            path = destination / rec.filename
+            self.download_file(rec.filename, path)
             downloaded.append(path)
         return downloaded
 
@@ -264,12 +264,14 @@ class DiscreteProviderBase(DataProvider):
         """
 
 
-    def download(self, time_range, roi=None, destination=None):
+    def download(self, product, time_range, roi=None, destination=None):
         """
         This method downloads data for a given time range from respective the
         data provider.
 
         Args:
+            product: pansat Product object representing the data product to
+                download.
             time_range(``datetime.datetime``): Time range object specifying the
                 time range for which to download files.
             roi: If given only files whose geographical coverage overlaps with
@@ -277,23 +279,19 @@ class DiscreteProviderBase(DataProvider):
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
-        start_time = to_datetime(start_time)
-        end_time = to_datetime(end_time)
 
         if not destination:
-            destination = self.product.default_destination
+            destination = product.default_destination
         else:
             destination = Path(destination)
         destination.mkdir(parents=True, exist_ok=True)
 
-        files = self.get_files_in_range(start_time, end_time)
-        if len(files) == 0:
-            files = self.get_files_in_range(start_time, end_time, True)
+        files = self.find_files(product, time_range)
 
         downloaded = []
-        for f in files:
-            path = destination / f
-            self.download_file(f, path)
+        for rec in files:
+            path = destination / rec.filename
+            self.download_file(product, rec.filename, path)
             downloaded.append(path)
         return downloaded
 
@@ -318,7 +316,7 @@ class DiscreteProviderBase(DataProvider):
 
         files = []
         while time <= time_range.end:
-            recs = self.find_files(time)
+            recs = self.find_files(product, time)
             for rec in recs:
                 tr_f = product.get_temporal_coverage(rec)
                 if tr_f.covers(time_range):
@@ -363,7 +361,7 @@ def find_files_in_range(
     return files
 
 
-class DiscreteProviderDay():
+class DiscreteProviderDay(DiscreteProviderBase):
     """
     This provider class provides helper functions for data providers
     which organize available files by days.

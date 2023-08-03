@@ -71,14 +71,14 @@ class GesDiscProviderBase():
 
             # Get data
             redirect = session.get(url)
-            redirect.raise_for_status()
-            response = session.get(redirect.url)
-            respoinse.raise_for_status()
+            response = session.get(redirect.url, auth=auth, stream=True)
+            response.raise_for_status()
 
             # Write to disk
             with open(destination, "wb") as f:
                 for chunk in response:
                     f.write(chunk)
+
 
     def get_base_url(self, product):
         """
@@ -94,7 +94,12 @@ class GesDiscProviderBase():
         base_url, path = GPM_PRODUCTS[product.name]
         return "/".join([base_url, path])
 
-    def find_files_by_year(self, year):
+    def _request_string(self, product):
+        """The URL containing the data files for the given product."""
+        base_url = self.get_base_url(product)
+        return base_url + "/{year}/{day}/{filename}"
+
+    def find_files_by_year(self, product, year):
         """
         Return list of available files for a given day of a year.
 
@@ -105,13 +110,13 @@ class GesDiscProviderBase():
             A list of strings containing the filenames that are available
             for the given year.
         """
-        request_string = self._request_string.format(year=year, day="", filename="")
+        request_string = self._request_string(product).format(year=year, day="", filename="")
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesDiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
 
-    def download_file(self, filename, destination):
+    def download_file(self, product, filename, destination):
         """
         Download file from data provider.
 
@@ -120,16 +125,16 @@ class GesDiscProviderBase():
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
-        t = self.product.filename_to_date(filename)
-        year = t.year
-        day = t.strftime("%j")
+        time = product.filename_to_date(filename)
+        year = time.year
+        day = time.strftime("%j")
         day = "0" * (3 - len(day)) + day
-        if self.product.variant in ["MO"]:
+        if product.variant in ["MO"]:
             day = ""
-        if self.product.variant.startswith("DAY"):
-            day = f"{t.month:02}"
-        url = self._request_string.format(year=year, day=day, filename=filename)
-        self._download_with_redirect(url, destination)
+        if product.variant.startswith("DAY"):
+            day = f"{time.month:02}"
+        url = self._request_string(product).format(year=year, day=day, filename=filename)
+        self.download_url(url, destination)
 
     def download_metadata(self, filename):
         """
@@ -151,6 +156,7 @@ class GesDiscProviderBase():
 
         response = requests.get(url)
         return ET.fromstring(response.text)
+
 
 class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
 
@@ -279,7 +285,6 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
 ges_disc_provider_day = GesDiscProviderDay()
 ges_disc_provider_month = GesDiscProviderMonth()
 ges_disc_provider_year = GesDiscProviderYear()
-
 
 class GesDiscProviderBase():
     """
@@ -430,8 +435,8 @@ class GesDiscProviderBase():
         """
         auth = accounts.get_identity("GES DISC")
 
-        with requests.Session() as session:
-            response = session.get(url)
+        with requests.Session(authu=auth) as session:
+            response = session.get(url, auth=auth)
             response = session.get(response.url, auth=auth, stream=True)
             response.raise_for_status()
             with open(destination, "wb") as f:
@@ -478,5 +483,3 @@ class GesDiscProviderBase():
 
         response = requests.get(url)
         return ET.fromstring(response.text)
-
-
