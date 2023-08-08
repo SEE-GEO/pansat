@@ -6,6 +6,7 @@ This module provides functionality for dealing with times.
 """
 from datetime import datetime
 from dataclasses import dataclass
+import json
 from typing import Union
 
 import pandas as pd
@@ -70,6 +71,11 @@ class TimeRange:
         self.start = to_datetime(start)
         self.end = to_datetime(end)
 
+    def __eq__(self, other):
+        if not isinstance(other, TimeRange):
+            return NotImplemented
+        return self.start == other.start and self.end == other.end
+
     def covers(self, time: Union[Time, "TimeRange"]) -> bool:
         """
         Determins wether time range covers a certain time.
@@ -87,6 +93,25 @@ class TimeRange:
         time = to_datetime(time)
         return (time >= self.start) and (time <= self.end)
 
+    @classmethod
+    def from_dict(cls, dct):
+        """ Create TimeRange object from dictionary representaiton. """
+        return TimeRange(dct["start"], dct["end"])
+
+    def to_dict(self):
+        """
+        Return a dictionary representation containing only primitive types.
+        """
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat()
+        }
+
+    def to_json(self):
+        """ Return json representation of time range object. """
+        return json.dumps({
+            "TimeRange": self.to_dict()
+        })
 
     def __repr__(self):
         start = self.start.isoformat()

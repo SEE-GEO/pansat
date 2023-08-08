@@ -6,6 +6,7 @@ Defines a file record class that contains information about a local or remote
 file.
 """
 from dataclasses import dataclass
+import json
 from pathlib import Path
 
 
@@ -47,7 +48,14 @@ class FileRecord:
         rec.provider = provider
         return rec
 
-    def __init__(self, local_path, product=None, filename=None):
+    def __init__(
+            self,
+            local_path,
+            product=None,
+            filename=None,
+            provider=None,
+            remote_path=None
+    ):
         """
         Create file record from product and local file path.
 
@@ -70,6 +78,9 @@ class FileRecord:
             filename = local_path.name
         self.filename = filename
         self.product = product
+        self.provider = provider
+        self.remote_path = remote_path
+
 
     def download(self, destination):
         """
@@ -98,3 +109,43 @@ class FileRecord:
                 " possible."
             )
         return self.provider.download(self, destination)
+
+    @classmethod
+    def from_dict(cls, dct):
+        """
+        Create FileRecord from dictionary representation data.
+
+        Args:
+            dct: A dictionary containing the parsed json data.
+
+        Return:
+            A FileRecord representing the loaded data.
+        """
+        from pansat import products
+        product = dct["product"]
+        if product is not None:
+            dct["product"] = products.get_product(product)
+        local_path = dct["local_path"]
+        if local_path is not None:
+            dct["local_path"] = Path(local_path)
+        return FileRecord(**dct)
+
+    def to_dict(self):
+        """
+        Return dictionary representation containing only primitive types.
+        """
+        return {
+            "filename": self.filename,
+            "local_path": str(self.local_path),
+            "product": self.product.name if self.product is not None else None,
+            "provider": self.provider,
+            "remote_path": self.remote_path
+        }
+
+    def to_json(self):
+        """
+        Return json representation of the file record.
+        """
+        return json.dumps({
+            "FileRecord": self.to_dict()
+            })

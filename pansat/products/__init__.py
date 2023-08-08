@@ -6,6 +6,7 @@ The ``products`` module provides functionality for handling supported data produ
 """
 from abc import ABC, abstractmethod, abstractproperty
 from dataclasses import dataclass
+import importlib
 from pathlib import Path
 from typing import Optional
 
@@ -34,6 +35,34 @@ class Geometry:
     pass
 
 
+def get_product(product_name):
+    """
+    Retrieve a product by its name.
+
+    Args:
+        product_name: A string containing the product name as returned
+            by the 'name' attribute of the product object.
+
+    Return:
+        The object representing the product.
+    """
+    if product_name in Product.PRODUCTS:
+        return Product.PRODUCTS[product_name]
+
+    parts = product_name.split(".")
+    if len(parts) > 1:
+        try:
+            module = ".".join(["pansat", "products"] + parts[:-1])
+            module = importlib.import_module(module)
+            product = getattr(module, parts[-1])
+            return product
+        except (ImportError, AttributeError):
+            pass
+    raise ValueError(
+        f"Could not find a product with the name '{product_name}'."
+    )
+
+
 class Product(ABC):
     """
     Generic interface for datasets managed by pansat.
@@ -45,10 +74,6 @@ class Product(ABC):
 
     def __init__(self):
         Product.PRODUCTS[self.name] = self
-
-    @classmethod
-    def get_product(cls, name):
-        return cls.PRODUCTS[name]
 
     @abstractproperty
     def default_destination(self):

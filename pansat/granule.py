@@ -7,11 +7,14 @@ the spatial and temporal extent of contiguous pieces of geospatial
 data.
 """
 from dataclasses import dataclass
+import json
 from typing import Optional
 
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
-from pansat.geometry import Geometry
+from pansat.geometry import Geometry, ShapelyGeometry
+
+
 
 @dataclass
 class Granule:
@@ -165,6 +168,50 @@ class Granule:
             self.secondary_index_name,
             secondary_index_range
         )
+
+
+    @classmethod
+    def from_json(cls, dct):
+        """
+        Load granule from parsed json representation.
+
+        Args:
+            dct: A dictionary containing the parsed json data.
+
+        Return:
+            The deserialized granule object.
+        """
+        print(dct)
+        file_record = FileRecord.from_dict(dct.pop("file_record"))
+        time_range = TimeRange.from_dict(dct.pop("time_range"))
+        geometry = ShapelyGeometry.from_geojson(dct.pop("geometry"))
+        primary_index_range = tuple(dct.pop("primary_index_range"))
+        secondary_index_range = tuple(dct.pop("secondary_index_range"))
+        return Granule(
+            file_record=file_record,
+            time_range=time_range,
+            geometry=geometry,
+            primary_index_range=primary_index_range,
+            secondary_index_range=secondary_index_range,
+            **dct
+        )
+
+
+    def to_json(self):
+        """
+        Return json representation of this Granule object.
+        """
+        return json.dumps({
+            "Granule": {
+                "file_record": self.file_record.to_dict(),
+                "time_range": self.time_range.to_dict(),
+                "geometry": self.geometry.to_geojson(),
+                "primary_index_name": self.primary_index_name,
+                "primary_index_range": self.primary_index_range,
+                "secondary_index_name": self.secondary_index_name,
+                "secondary_index_range": self.secondary_index_range
+            }
+        })
 
 
 def merge_granules(granules):

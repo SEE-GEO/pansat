@@ -3,17 +3,14 @@ Test basic product functionality.
 """
 from h5py import File
 
-from pansat.products.example import (
-    hdf5_product
-)
 
-def test_product(hdf5_product_data):
+from pansat.products import get_product
 
-    hdf5_product_files = sorted(
-        list((hdf5_product_data / "remote").glob("*.h5"))
-    )
 
-    rec = FileRecord(
-        hdf_product_files[0],
-        hdf5_product
-    )
+def test_get_product():
+    """
+    Test retrieving a GPM product without prior import.
+    """
+    product_name = "satellite.gpm.l2b_gpm_cmb"
+    l2b_gpm_cmb = get_product(product_name)
+    assert l2b_gpm_cmb is not None

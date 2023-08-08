@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 import numpy as np
@@ -156,7 +158,9 @@ def test_adjacent(test_granules):
 
 
 def test_merge(test_granules):
-
+    """
+    Test merging of differenct granules.
+    """
     g_1, g_2, g_3, g_4, g_5, g_6 = test_granules
     g_m_1 = g_1.merge(g_2.merge(g_3.merge(g_4)))
 
@@ -166,6 +170,21 @@ def test_merge(test_granules):
 
 
 def test_merge_granules(test_granules):
-
+    """
+    Test merge_granules function.
+    """
     granules = merge_granules(test_granules)
     assert len(granules) == 2
+
+
+def test_json_serialization(test_granules):
+
+    def object_hook(dct):
+        if "Granule" in dct:
+            return Granule.from_json(dct["Granule"])
+        return dct
+
+    for granule in test_granules:
+        json_repr = granule.to_json()
+        granule_loaded = json.loads(json_repr, object_hook=object_hook)
+        assert granule_loaded == granule
