@@ -14,34 +14,26 @@ try:
 except Exception:
     pass
 
-PRODUCTS = [gpm.l2a_dpr]
+PRODUCTS = [gpm.l2a_gpm_dpr]
 TEST_NAMES = {
     str(gpm.l1c_metopb_mhs): (
-        "1C.METOPB.MHS.XCAL2016-V.20161124" "-S111934-E130055.021719.V05A.HDF5"
+        "1C.METOPB.MHS.XCAL2016-V.20140103-S020041-E034201.006711.V07A.HDF5"
     ),
-    str(gpm.l1c_gpm_gmi_r): (
-        "1C-R.GPM.GMI.XCAL2016-C.20161121-S110157" "-E123429.015524.V05A.HDF5"
+    str(gpm.l1c_r_gpm_gmi): (
+        "1C.GPM.GMI.XCAL2016-C.20180105-S022251-E035525.021896.V07A.HDF5"
     ),
-    str(gpm.l2a_dpr): (
-        "2A.GPM.DPR.V8-20180723.20180110-S102756-E120031" ".021979.V06A.HDF5"
-    ),
-    str(gpm.l2a_gprof_gpm_gmi): (
-        "2A.GPM.GMI.GPROF2017v1.20161124-S113145" "-E130417.015571.V05A.HDF"
-    ),
-    str(gpm.l2a_gprof_metopb_mhs): (
-        "2A.METOPB.MHS.GPROF2017v2.20161121" "-S104106-E122227.021676.V05C.HDF"
+    str(gpm.l2a_gpm_dpr): (
+        "2A.GPM.DPR.V9-20211125.20230108-S031503-E044734.050349.V07A.HDF5"
     ),
     str(gpm.l2b_gpm_cmb): (
         "2B.GPM.DPRGMI.CORRA2022.20161124-S113145-E130417.015571.V07A.HDF5"
     ),
 }
 TEST_TIMES = {
-    str(gpm.l1c_metopb_mhs): datetime(2016, 11, 24, 11, 19, 34),
-    str(gpm.l1c_gpm_gmi_r): datetime(2016, 11, 21, 11, 1, 57),
-    str(gpm.l2a_dpr): datetime(2018, 1, 10, 10, 27, 56),
-    str(gpm.l2a_gprof_gpm_gmi): datetime(2016, 11, 24, 11, 31, 45),
-    str(gpm.l2a_gprof_metopb_mhs): datetime(2016, 11, 21, 10, 41, 6),
-    str(gpm.l2b_gpm_cmb): datetime(2016, 11, 21, 10, 41, 6),
+    str(gpm.l1c_metopb_mhs): datetime(2014, 1, 3, 2, 0, 41),
+    str(gpm.l1c_r_gpm_gmi): datetime(2018, 1, 5, 2, 22, 51),
+    str(gpm.l2a_gpm_dpr): datetime(2023, 1, 8, 3, 15, 3),
+    str(gpm.l2b_gpm_cmb): datetime(2016, 11, 24, 11, 31, 45),
 }
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
