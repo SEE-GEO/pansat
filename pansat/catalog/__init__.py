@@ -18,7 +18,7 @@ import rich.progress
 from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
 from pansat.granule import Granule, merge_granules
-from pansat.products import Product, GranuleProduct
+from pansat.products import Product, GranuleProduct, get_product
 from pansat.geometry import ShapelyGeometry
 
 
@@ -146,7 +146,7 @@ class Index:
         path = Path(path)
         data = geopandas.read_parquet(path)
         product_name = path.stem
-        product = Product.get_product(product_name)
+        product = get_product(product_name)
         return cls(product, data)
 
 
@@ -590,7 +590,7 @@ def find_matches(
 
     n_granules_l = index_l.data.shape[0]
     granules_per_proc = n_granules_l // n_processes
-    rem = n_granules_l % granules_per_proc
+    rem = n_granules_l % n_processes
 
     manager = Manager()
     done_queue = manager.Queue()
@@ -600,8 +600,10 @@ def find_matches(
 
     for i in range(n_processes):
 
-        n_granules = granules_per_proc + min(i, rem)
-        ind_end = ind_start + n_granules
+        ind_start = i * granules_per_proc + min(i, rem)
+        ind_end = ind_start + granules_per_proc
+        if i < rem:
+            ind_end += 1
 
         index_data_l = index_l.data.iloc[ind_start:ind_end]
         start_time = index_data_l.start_time.iloc[0] - time_diff
@@ -622,7 +624,6 @@ def find_matches(
             merge=merge,
             done_queue=done_queue,
         ))
-        ind_start = ind_end
 
     assert ind_end == n_granules_l
 
@@ -643,6 +644,14 @@ def find_matches(
                     pass
 
             matches_t = task.result()
+
+            if len(matches_t) == 0:
+                continue
+
+            if len(matches) == 0:
+                matches = matches_t
+                continue
+
             if merge:
                 matches = (
                     matches[:-1] +
@@ -658,6 +667,85 @@ def find_matches(
             prog.update(prog_task, advance=elems)
 
     return matches
+
+
+
+def matches_to_geopandas(matches):
+    """
+    Convert a list of matches to geopandas data frames.
+
+    Args:
+        matches: A list of match tuples such as the one returned by the
+            'find_matches' function.
+
+    Return:
+        A tuple ``(dframe_l, dframe_r)`` containing two dataframes, each
+        containing the matches from the two respective datasets.
+    """
+    dframes = []
+    for ind in range(2):
+
+        match_indices = []
+        geoms = []
+        start_times = []
+        end_times = []
+        local_paths = []
+        filenames = []
+        remote_paths = []
+        primary_index_name = []
+        primary_index_start = []
+        primary_index_end = []
+        secondary_index_name = []
+        secondary_index_start = []
+        secondary_index_end = []
+
+        for match_ind, match in enumerate(matches):
+
+            granule = match[ind]
+
+            match_indices.append(match_ind)
+            geoms.append(granule.geometry.to_shapely())
+            start_times.append(granule.time_range.start)
+            end_times.append(granule.time_range.end)
+
+            if granule.file_record.local_path is not None:
+                local_paths.append(str(granule.file_record.local_path))
+            else:
+                local_paths.append("")
+
+            if granule.file_record.remote_path is not None:
+                remote_paths.append(str(granule.file_record.remote_path))
+            else:
+                remote_paths.append("")
+            filenames.append(str(granule.file_record.filename))
+
+            primary_index_name.append(granule.primary_index_name)
+            primary_index_start.append(granule.primary_index_range[0])
+            primary_index_end.append(granule.primary_index_range[1])
+            secondary_index_name.append(granule.secondary_index_name)
+            secondary_index_start.append(granule.secondary_index_range[0])
+            secondary_index_end.append(granule.secondary_index_range[1])
+
+        dframes.append(
+            geopandas.GeoDataFrame(
+                data={
+                    "start_time": start_times,
+                    "end_time": end_times,
+                    "local_path": local_paths,
+                    "remote_path": remote_paths,
+                    "filename": filenames,
+                    "primary_index_name": primary_index_name,
+                    "primary_index_start": primary_index_start,
+                    "primary_index_end": primary_index_end,
+                    "secondary_index_name": secondary_index_name,
+                    "secondary_index_start": secondary_index_start,
+                    "secondary_index_end": secondary_index_end,
+                },
+                geometry=geoms,
+                index=match_indices
+            )
+        )
+    return tuple(dframes)
 
 
 def find_files(product: "pansat.products.Prodcut", path: Path):

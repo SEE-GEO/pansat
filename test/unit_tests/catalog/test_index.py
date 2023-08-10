@@ -14,7 +14,11 @@ from pansat.products.example import  (
 )
 
 
-from pansat.catalog import Index, find_matches
+from pansat.catalog import (
+    Index,
+    find_matches,
+    matches_to_geopandas
+)
 from pansat.geometry import LonLatRect
 from pansat.time import TimeRange
 
@@ -114,3 +118,6 @@ def test_match_indices(tmp_path, hdf5_granule_product_data):
         merge=False
     )
     assert len(matches) == 10
+
+    dframe_l, dframe_r = matches_to_geopandas(matches)
+    assert dframe_l.shape[0] == dframe_r.shape[0]

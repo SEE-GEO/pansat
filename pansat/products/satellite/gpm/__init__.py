@@ -235,7 +235,7 @@ class GPMProduct(Product, products.GranuleProduct):
 
         return provider.download(start_time, end_time, destination)
 
-    def open(self, filename):
+    def open(self, filename, slcs=None):
         """
         Open file as xarray dataset.
 
@@ -245,7 +245,11 @@ class GPMProduct(Product, products.GranuleProduct):
         from pansat.formats.hdf5 import HDF5File
 
         with HDF5File(filename, "r") as file_handle:
-            return self.description.to_xarray_dataset(file_handle, globals())
+            return self.description.to_xarray_dataset(
+                file_handle,
+                context=globals(),
+                slcs=slcs
+            )
 
     def get_granules(self, rec):
         from pansat.formats.hdf5 import HDF5File

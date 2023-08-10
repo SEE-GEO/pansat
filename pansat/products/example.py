@@ -659,12 +659,12 @@ class ExampleGranuleProduct(GranuleProduct):
 
 
 hdf4_granule_product = ExampleGranuleProduct(
-    "hdf4_product",
+    "hdf4_granule_product",
     suffix="hdf"
 )
 
 hdf5_granule_product = ExampleGranuleProduct(
-    "hdf5_product",
+    "hdf5_granule_product",
     suffix="h5"
 )
 

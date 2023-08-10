@@ -219,6 +219,9 @@ class Geometry(ABC):
         """
         pass
 
+    def to_geojson(self):
+        return shapely.to_geojson(self.to_shapely())
+
     def merge(self, other):
         """
         Merge a geometry with another.
@@ -257,6 +260,12 @@ class ShapelyGeometry(Geometry):
         geometry = self.geometry.union(other.to_shapely())
         return ShapelyGeometry(geometry)
 
+    @classmethod
+    def from_geojson(cls, dct):
+        """
+        Parse object from geojson.
+        """
+        return cls(shapely.from_geojson(dct))
 
 class LonLatRect(ShapelyGeometry):
     """

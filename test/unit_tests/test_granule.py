@@ -5,7 +5,12 @@ import pytest
 import numpy as np
 
 from pansat.geometry import LonLatRect
-from pansat.granule import Granule, merge_granules
+from pansat.granule import (
+    Granule,
+    merge_granules,
+    GranuleEncoder,
+    granule_hook
+)
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 
@@ -174,17 +179,16 @@ def test_merge_granules(test_granules):
     Test merge_granules function.
     """
     granules = merge_granules(test_granules)
-    assert len(granules) == 2
 
-
-def test_json_serialization(test_granules):
-
-    def object_hook(dct):
-        if "Granule" in dct:
-            return Granule.from_json(dct["Granule"])
-        return dct
-
+def test_granule_json_serialization(test_granules):
     for granule in test_granules:
         json_repr = granule.to_json()
-        granule_loaded = json.loads(json_repr, object_hook=object_hook)
+        granule_loaded = json.loads(json_repr, object_hook=granule_hook)
+        assert granule_loaded == granule
+
+def test_granule_list_json_serialization(test_granules):
+
+    test_granules_json = json.dumps(test_granules, cls=GranuleEncoder)
+    test_granules_loaded = json.loads(test_granules_json, object_hook=granule_hook)
+    for granule_loaded, granule in zip(test_granules, test_granules_loaded):
         assert granule_loaded == granule

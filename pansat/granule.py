@@ -15,7 +15,6 @@ from pansat.time import TimeRange
 from pansat.geometry import Geometry, ShapelyGeometry
 
 
-
 @dataclass
 class Granule:
     """
@@ -171,17 +170,16 @@ class Granule:
 
 
     @classmethod
-    def from_json(cls, dct):
+    def from_dict(cls, dct):
         """
-        Load granule from parsed json representation.
+        Load granule from dictionary representation.
 
         Args:
-            dct: A dictionary containing the parsed json data.
+            dct: A dictionary representing a Granule object.
 
         Return:
             The deserialized granule object.
         """
-        print(dct)
         file_record = FileRecord.from_dict(dct.pop("file_record"))
         time_range = TimeRange.from_dict(dct.pop("time_range"))
         geometry = ShapelyGeometry.from_geojson(dct.pop("geometry"))
@@ -197,12 +195,16 @@ class Granule:
         )
 
 
-    def to_json(self):
+    def open(self):
+        product = self.file_record.product
+        return product.open(self.file_record.local_path, slcs=self.get_slices())
+
+    def to_dict(self):
         """
-        Return json representation of this Granule object.
+        Return dictionary representation of this granule using only primitive
+        (i.e., JSON encodable) types.
         """
-        return json.dumps({
-            "Granule": {
+        return {
                 "file_record": self.file_record.to_dict(),
                 "time_range": self.time_range.to_dict(),
                 "geometry": self.geometry.to_geojson(),
@@ -210,8 +212,35 @@ class Granule:
                 "primary_index_range": self.primary_index_range,
                 "secondary_index_name": self.secondary_index_name,
                 "secondary_index_range": self.secondary_index_range
-            }
+        }
+
+    def to_json(self):
+        """
+        Return json representation of this Granule object.
+        """
+        return json.dumps({
+            "Granule": self.to_dict()
         })
+
+
+class GranuleEncoder(json.JSONEncoder):
+    """
+    Encoder class that allows encoding granules in
+
+    """
+    def default(self, obj):
+        if isinstance(obj, Granule):
+            return {"Granule": obj.to_dict()}
+        return json.JSONEncoder.default(self, obj)
+
+def granule_hook(dct):
+    """
+    Object hook that allows loading Granule object from a json stream.
+    """
+    if 'Granule' in dct:
+        return Granule.from_dict(dct["Granule"])
+    return dct
+
 
 
 def merge_granules(granules):
