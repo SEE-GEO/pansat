@@ -67,14 +67,21 @@ class PersiannProduct(Product):
         data = data / 100
         data[data < 0] = np.nan
 
+<<<<<<< HEAD
         dataset = xr.Dataset({
+=======
+        return xr.Dataset({
+>>>>>>> main
             "time": (("time",), [date]),
             "latitude": (("latitude",), lats),
             "longitude": (("longitude",), lons),
             "precipitation": (("time", "latitude", "longitude"),
                               data[np.newaxis])
         })
+<<<<<<< HEAD
         return dataset
+=======
+>>>>>>> main
 
     def _get_provider(self):
         """Find a provider that provides the product."""
@@ -127,7 +134,10 @@ class CCS(PersiannProduct):
     }
 
     def __init__(self, resolution=1):
+<<<<<<< HEAD
         self.filename_regexp = re.compile("rgccs1h(\d{7}).bin.gz")
+=======
+>>>>>>> main
         super().__init__(resolution=resolution)
 
     @property

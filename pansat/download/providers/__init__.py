@@ -44,7 +44,6 @@ from pansat.download.providers.noaa_ncei import NOAANCEIProvider
 from pansat.download.providers.cloudnet import CloudnetProvider
 from pansat.download.providers.cloudsat_dpc import CloudSatDPCProvider
 
-
 ALL_PROVIDERS = [
     CopernicusProvider,
     IcareProvider,
@@ -57,8 +56,12 @@ ALL_PROVIDERS = [
     HimawariAWSProvider,
     IowaStateProvider,
     EUMETSATProvider,
+<<<<<<< HEAD
     UciProvider,
     NOAANCEIProvider,
     CloudnetProvider,
     CloudSatDPCProvider
+=======
+    UciProvider
+>>>>>>> main
 ]

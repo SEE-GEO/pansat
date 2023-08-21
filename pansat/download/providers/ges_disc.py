@@ -64,6 +64,7 @@ class GesdiscProvider(DiscreteProvider):
     @classmethod
     def download_url(cls, url, destination):
         auth = accounts.get_identity("GES DISC")
+<<<<<<< HEAD
         # If only requests.get(url, auth=auth) is used, the requests library
         # will search in ~/.netrc credentials for the machine
         # urs.earthdata.nasa.gov, but `auth` is not used as the authorization
@@ -81,6 +82,15 @@ class GesdiscProvider(DiscreteProvider):
             with open(destination, "wb") as f:
                 for chunk in response:
                     f.write(chunk)
+=======
+        response = requests.get(url, auth=auth)
+        url = response.url
+        response = requests.get(url, auth=auth)
+
+        with open(destination, "wb") as f:
+            for chunk in response:
+                f.write(chunk)
+>>>>>>> main
 
     @property
     def _request_string(self):
@@ -121,7 +131,10 @@ class GesdiscProvider(DiscreteProvider):
             day=f"{month:02}",
             filename=""
         )
+<<<<<<< HEAD
         print(request_string)
+=======
+>>>>>>> main
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
@@ -145,13 +158,25 @@ class GesdiscProvider(DiscreteProvider):
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
+        print(request_string)
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+<<<<<<< HEAD
         if len(files) == 0:
             month = f"{month:02}"
             request_string = self._request_string.format(year=year, day=month, filename="")
             response = requests.get(request_string, auth=auth)
             files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+=======
+        print(files)
+        if len(files) == 0:
+            month = f"{month:02}"
+            request_string = self._request_string.format(year=year, day=month, filename="")
+            print(request_string)
+            response = requests.get(request_string, auth=auth)
+            files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
+            print(files)
+>>>>>>> main
         return [f[1:-1] for f in files]
 
     def _download_with_redirect(self, url, destination):
