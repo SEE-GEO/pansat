@@ -16,7 +16,7 @@ def test_download(tmpdir):
     product = CloudnetProduct("iwc", "")
     provider = CloudnetProvider(product)
     files = provider.get_files_by_day(2020, 1)
-    assert len(files) == 8
+    assert len(files) == 9
 
 
 def test_filenames():
