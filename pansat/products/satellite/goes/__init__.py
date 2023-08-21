@@ -169,6 +169,7 @@ class GOES17L1BRadiances(GOESProduct):
     def __init__(self, region, channel):
         super().__init__(17, "1b", "Rad", region, channel)
 
+
 class GOES18L1BRadiances(GOESProduct):
     """
     Class representing GOES 18 L1 radiance products.

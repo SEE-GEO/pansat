@@ -290,7 +290,6 @@ class ProductDescription(ConfigParser):
                 )
 
     def _parse_properties(self, section_name, section):
-
         if "name" not in section:
             raise MissingFieldError(
                 "No field 'name' in section for dimensions" f" {section_name}"
@@ -356,9 +355,9 @@ class ProductDescription(ConfigParser):
         if not context:
             context = {}
         variables, dimensions, attributes = self._get_data(file_handle, context)
-        dataset = xarray.Dataset(data_vars=variables,
-                                 coords=dimensions,
-                                 attrs=attributes)
+        dataset = xarray.Dataset(
+            data_vars=variables, coords=dimensions, attrs=attributes
+        )
 
         if self.callback is not None:
             callback = context[self.callback]

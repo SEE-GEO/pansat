@@ -119,10 +119,7 @@ class GPMProduct(Product):
                 valid = np.where(np.any(lons >= -180, 0))[0]
                 left = valid[0]
                 right = valid[-1]
-                return geometry.parse_swath(
-                    lons[:, left:right],
-                    lats[:, left:right]
-                )
+                return geometry.parse_swath(lons[:, left:right], lats[:, left:right])
         raise ValueError(
             "A NetcdfProduct needs a local file to determine temporal coverage"
             " but the 'local_path' attribute of the provided file record "
@@ -191,6 +188,7 @@ class GPMProduct(Product):
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
         from pansat.formats.hdf5 import HDF5File
+
         with HDF5File(filename, "r") as file_handle:
             return self.description.to_xarray_dataset(file_handle, globals())
 
@@ -255,6 +253,7 @@ _parse_products()
 # GPROF products
 ################################################################################
 
+
 class GPROFProduct(GPMProduct):
     """
     Specialization of GPM product for GPROF products, which all have the same
@@ -276,15 +275,14 @@ l2a_gprof_metopb_mhs = GPROFProduct("METOPB", "MHS", 5)
 ################################################################################
 
 
-class GPMMergeIR():
+class GPMMergeIR:
     """
     The GPM merged IR product.
     """
 
     def __init__(self):
-        pattern = r'merg_(\d{10,10})_4km-pixel.nc'
+        pattern = r"merg_(\d{10,10})_4km-pixel.nc"
         self.filename_regexp = re.compile(pattern)
-
 
     def matches(self, filename):
         """
@@ -337,7 +335,6 @@ class GPMMergeIR():
         ``GPM/<product_name>``>
         """
         return Path("GPM") / Path(self.name)
-
 
     @property
     def name(self):
@@ -392,8 +389,9 @@ def _imerg_parse_time(seconds_since_1970):
     Helper function to convert time from IMERG HDF5 files to
     numpy datetime.
     """
-    return (np.datetime64("1970-01-01T00:00:00") +
-            seconds_since_1970[:].astype("timedelta64[s]"))
+    return np.datetime64("1970-01-01T00:00:00") + seconds_since_1970[:].astype(
+        "timedelta64[s]"
+    )
 
 
 def _gpm_l1c_parse_time(scan_time_group):
@@ -409,14 +407,18 @@ def _gpm_l1c_parse_time(scan_time_group):
     second = scan_time_group["Second"][:]
     milli_second = scan_time_group["MilliSecond"][:]
 
-    return pd.to_datetime(pd.DataFrame({
-        "year": year,
-        "month": month,
-        "day": day,
-        "hour": hour,
-        "minute": minute,
-        "second": second
-    }))
+    return pd.to_datetime(
+        pd.DataFrame(
+            {
+                "year": year,
+                "month": month,
+                "day": day,
+                "hour": hour,
+                "minute": minute,
+                "second": second,
+            }
+        )
+    )
     return scan_time
 
 
@@ -472,7 +474,7 @@ def parse_offsets(field):
     offs = []
     c = 1
     c_name = f"{c})"
-    for w1, w2, w3, w4 in zip(lines[:-4], lines[1:-2], lines[2: -1], lines[3:]):
+    for w1, w2, w3, w4 in zip(lines[:-4], lines[1:-2], lines[2:-1], lines[3:]):
         if w1 == c_name:
             freq = w2.split("+")
             if len(freq) > 1:

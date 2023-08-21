@@ -8,6 +8,7 @@ of data files using geometrical objects.
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
+from shapely.ops import unary_union
 
 
 def parse_point(xml_point):
@@ -24,7 +25,7 @@ def parse_polygon_xml(xml_polygon):
     Parse polygon from XML file.
     """
     boundary = xml_polygon[0]
-    points =  np.array(list(map(parse_point, boundary.getchildren())))
+    points = np.array(list(map(parse_point, boundary)))
     dlons = points[:, 0] - points[0, 0]
     indices = np.where(np.abs(dlons) > 180)[0]
     for ind in indices:
@@ -49,18 +50,24 @@ def parse_swath_xml(meta_data):
     sdc = meta_data.find("SpatialDomainContainer")
     hsdc = sdc.find("HorizontalSpatialDomainContainer")
 
-    polygons = list(map(parse_polygon, hsdc.getchildren()))
+    polygons = list(map(parse_polygon_xml, hsdc))
+    new_polygons = []
+    poles = []
+
     for ind in range(len(polygons)):
         poly = polygons[ind]
         points = np.array(poly.convex_hull.exterior.coords)
-        if any(points[:, 1] > 60):
-            poly_2 = Polygon([[-180, 75], [180, 75], [180, 90], [-180, 90]])
-            polygons[ind] = poly.union(poly_2)
-        if any(points[:, 1] < -60):
-            poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
-            polygons[ind] = poly.union(poly_2)
+        if any(points[:, 1] > 85):
+            pole = Polygon([[-180, 70], [180, 70], [180, 90], [-180, 90]])
+            poles.append(pole)
+        elif any(points[:, 1] < -85):
+            pole = Polygon([[-180, -70], [180, -70], [180, -90], [-180, -90]])
+            poles.append(pole)
+        else:
+            new_polygons.append(poly)
 
-    return make_valid(MultiPolygon(polygons))
+    multi = unary_union(new_polygons + poles)
+    return multi
 
 
 def handle_poles(polygons):
@@ -123,30 +130,23 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
             lat_0_0 = lats[ind_i, ind_j]
             lon_0_1 = lons[ind_i, min(ind_j + d_j, n_j - 1)]
             lat_0_1 = lats[ind_i, min(ind_j + d_j, n_j - 1)]
-            lon_1_1 = lons[
-                min(ind_i + d_i, n_i - 1),
-                min(ind_j + d_j, n_j - 1)
-            ]
-            lat_1_1 = lats[
-                min(ind_i + d_i, n_i - 1),
-                min(ind_j + d_j, n_j - 1)
-            ]
+            lon_1_1 = lons[min(ind_i + d_i, n_i - 1), min(ind_j + d_j, n_j - 1)]
+            lat_1_1 = lats[min(ind_i + d_i, n_i - 1), min(ind_j + d_j, n_j - 1)]
             lon_1_0 = lons[min(ind_i + d_i, n_i - 1), ind_j]
             lat_1_0 = lats[min(ind_i + d_i, n_i - 1), ind_j]
 
-            polys.append(Polygon([
-                [lon_0_0, lat_0_0],
-                [lon_0_1, lat_0_1],
-                [lon_1_1, lat_1_1],
-                [lon_1_0, lat_1_0],
-                [lon_0_0, lat_0_0],
-            ]))
+            polys.append(
+                Polygon(
+                    [
+                        [lon_0_0, lat_0_0],
+                        [lon_0_1, lat_0_1],
+                        [lon_1_1, lat_1_1],
+                        [lon_1_0, lat_1_0],
+                        [lon_0_0, lat_0_0],
+                    ]
+                )
+            )
             ind_j += d_j
         ind_i += d_i
     poly = handle_poles(polys)
     return make_valid(poly)
-
-
-
-
-

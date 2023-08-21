@@ -22,12 +22,8 @@ class CloudnetProduct(Product):
     location in which case only data of the product collected at the
     given location is represetned by the product.
     """
-    def __init__(
-            self,
-            product_name,
-            description,
-            location=None
-    ):
+
+    def __init__(self, product_name, description, location=None):
         """
         Args:
             product_name: The name of the product.
@@ -40,13 +36,9 @@ class CloudnetProduct(Product):
         self.location = location
 
         if location is not None:
-            self.filename_regexp = re.compile(
-                rf"(\d{{8}})_{location}_[-\w\d]*.nc"
-            )
+            self.filename_regexp = re.compile(rf"(\d{{8}})_{location}_[-\w\d]*.nc")
         else:
-            self.filename_regexp = re.compile(
-                rf"(\d{{8}})_([\w-]*)_[-\w\d]*.nc"
-            )
+            self.filename_regexp = re.compile(rf"(\d{{8}})_([\w-]*)_[-\w\d]*.nc")
 
     @property
     def description(self):
@@ -86,9 +78,8 @@ class CloudnetProduct(Product):
         date = datetime.strptime(date_string, "%Y%m%d")
         return date
 
-
     def _get_provider(self):
-        """ Find a provider that provides the product. """
+        """Find a provider that provides the product."""
         available_providers = [
             p
             for p in providers.ALL_PROVIDERS

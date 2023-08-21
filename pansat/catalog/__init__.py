@@ -18,6 +18,7 @@ class Catalog:
     """
     A catalog to manage collections of files of a given product.
     """
+
     def __init__(self, path, product):
         self.path = Path(path)
         self.product = product
@@ -64,12 +65,7 @@ class Catalog:
         candidates = np.where((start_times <= time) * (end_times >= time))[0]
         return self.files[candidates]
 
-
-    def load(self,
-             start_time,
-             end_time,
-             dimension="time",
-             load_callback=None):
+    def load(self, start_time, end_time, dimension="time", load_callback=None):
         """
         Load data from files within a given time range.
 
@@ -89,7 +85,6 @@ class Catalog:
             load_callback = self.product.open
 
         for ind in indices:
-
             dataset = load_callback(self.files[ind])
             if dimension not in dataset.dims:
                 dataset = dataset.expand_dims("time")
@@ -103,10 +98,7 @@ class Catalog:
         return xr.concat(datasets, dim=dimension)
 
 
-def find_files(
-        product: "pansat.products.Prodcut",
-        path: Path
-):
+def find_files(product: "pansat.products.Prodcut", path: Path):
     """
     Find files of a given product.
 
@@ -121,8 +113,5 @@ def find_files(
     files = []
     for file_path in sorted(list(Path(path).glob("**/*"))):
         if product.matches(file_path.name):
-            files.append(
-                FileRecord(product, file_path)
-            )
+            files.append(FileRecord(product, file_path))
     return files
-

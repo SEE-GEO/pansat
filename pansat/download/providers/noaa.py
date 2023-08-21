@@ -112,7 +112,8 @@ class NOAAProvider(DataProvider):
             start(``int``): start year for desired time range
             end(``int``): end year for desired timerange
         Return:
-            List of the filenames of this product for given variable and time range by year."""
+            List of the filenames of this product for given variable and time range by year.
+        """
 
         files = []
         for year in np.arange(start, end + 1):

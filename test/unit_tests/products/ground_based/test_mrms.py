@@ -29,7 +29,7 @@ def test_filename_to_date(filename):
     assert time.minute == 4
 
 
-# @pytest.mark.xfail(reason="Requires cfgrib package.")
+@pytest.mark.slow
 @pytest.mark.parametrize("filename", _PRODUCTS)
 def test_download_and_open(tmp_path, filename):
     """

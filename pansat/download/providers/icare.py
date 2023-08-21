@@ -125,7 +125,7 @@ class IcareProvider(DiscreteProvider):
             "Retrieving files for product %s on day %s of year %s.",
             self.product,
             year,
-            day
+            day,
         )
         day_str = str(day)
         day_str = "0" * (3 - len(day_str)) + day_str
@@ -133,10 +133,7 @@ class IcareProvider(DiscreteProvider):
         path = "/".join([self.product_path, str(year), date.strftime("%Y_%m_%d")])
         listing = self._ftp_listing_to_list(path, str)
         files = [name for name in listing if self.product.matches(name)]
-        LOGGER.info(
-            "Found %s files.",
-            len(files)
-        )
+        LOGGER.info("Found %s files.", len(files))
         return files
 
     def download_file(self, filename, destination):

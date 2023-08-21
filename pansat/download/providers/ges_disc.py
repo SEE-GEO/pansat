@@ -117,9 +117,7 @@ class GesdiscProvider(DiscreteProvider):
             for the given year.
         """
         request_string = self._request_string.format(
-            year=year,
-            day=f"{month:02}",
-            filename=""
+            year=year, day=f"{month:02}", filename=""
         )
         print(request_string)
         auth = accounts.get_identity("GES DISC")
@@ -139,8 +137,9 @@ class GesdiscProvider(DiscreteProvider):
             A list of strings containing the filename that are available
             for the given day.
         """
-        month = (datetime.datetime(year=year, month=1, day=1) +
-                 datetime.timedelta(days=day)).month
+        month = (
+            datetime.datetime(year=year, month=1, day=1) + datetime.timedelta(days=day)
+        ).month
         day = str(day)
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
@@ -149,7 +148,9 @@ class GesdiscProvider(DiscreteProvider):
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         if len(files) == 0:
             month = f"{month:02}"
-            request_string = self._request_string.format(year=year, day=month, filename="")
+            request_string = self._request_string.format(
+                year=year, day=month, filename=""
+            )
             response = requests.get(request_string, auth=auth)
             files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
@@ -206,7 +207,9 @@ class GesdiscProvider(DiscreteProvider):
         year = t.year
         day = t.strftime("%j")
         day = "0" * (3 - len(day)) + day
-        url = self._request_string.format(year=year, day=day, filename=filename) + ".xml"
+        url = (
+            self._request_string.format(year=year, day=day, filename=filename) + ".xml"
+        )
 
         response = requests.get(url)
         return ET.fromstring(response.text)
@@ -220,7 +223,7 @@ class Disc2Provider(GesdiscProvider):
 
     URLS = {
         "gpm_mergeir": "/data/MERGED_IR/GPM_MERGIR.1",
-        "gpm_1c_trmm_tmi": "/data/TRMM_L1/GPM_1CTRMMTMI.07"
+        "gpm_1c_trmm_tmi": "/data/TRMM_L1/GPM_1CTRMMTMI.07",
     }
 
     base_url = "https://disc2.gesdisc.eosdis.nasa.gov"

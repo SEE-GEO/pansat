@@ -33,8 +33,8 @@ def get_links(url):
         html = urlopen(url).read()
         soup = BeautifulSoup(html, features="html.parser")
         files = []
-        for link in soup.findAll('a'):
-            files.append(link.get('href'))
+        for link in soup.findAll("a"):
+            files.append(link.get("href"))
         _CACHE[url] = files
     files = _CACHE[url]
     return files
@@ -46,13 +46,10 @@ class UciProvider(DiscreteProvider):
     PERSIANN-CDF products from the Center for Hydrometeorology and
     Remote Sensing.
     """
+
     @classmethod
     def get_available_products(cls):
-        return [
-            "PDIRNow",
-            "PERSIANN-CCS",
-            "PERSIANN-CDR"
-        ]
+        return ["PDIRNow", "PERSIANN-CCS", "PERSIANN-CDR"]
 
     def __init__(self, product):
         """
@@ -81,9 +78,11 @@ class UciProvider(DiscreteProvider):
         for l in links:
             try:
                 f_date = self.product.filename_to_date(l)
-                if ((f_date.year == date.year) and
-                    (f_date.month == date.month) and
-                    (f_date.day == date.day)):
+                if (
+                    (f_date.year == date.year)
+                    and (f_date.month == date.month)
+                    and (f_date.day == date.day)
+                ):
                     files.append(l)
             except ValueError:
                 pass

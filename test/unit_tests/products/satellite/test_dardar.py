@@ -10,7 +10,7 @@ import pansat.products.satellite.dardar as dardar
 TEST_NAMES = {
     "DARDAR_CLOUD": {
         2: "DARDAR-CLOUD_v2.1.1_2009001035423_14254.hdf",
-        3: "DARDAR-CLOUD_2009001035423_14254_V3-00.nc"
+        3: "DARDAR-CLOUD_2009001035423_14254_V3-00.nc",
     }
 }
 
@@ -68,7 +68,6 @@ def test_download():
     t_0 = datetime(2016, 6, 1, 10)
     t_1 = datetime(2016, 6, 1, 12)
     files = product.download(t_0, t_1)
-
 
     if HAS_HDF:
         product.open(files[0])

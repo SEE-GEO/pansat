@@ -17,11 +17,11 @@ import pansat.download.providers as providers
 from pansat.products.product import Product
 
 
-
 class PersiannProduct(Product):
     """
     Base class for PERSIANN precipitation products.
     """
+
     def __init__(self, resolution=1):
         self.resolution = resolution
 
@@ -40,8 +40,9 @@ class PersiannProduct(Product):
         year = 2000 + int(filename[-14:-12])
         day_of_year = int(filename[-12:-9])
         hour = int(filename[-9:-7])
-        date = (datetime(year=year, month=1, day=1, hour=hour) +
-                timedelta(days=day_of_year - 1))
+        date = datetime(year=year, month=1, day=1, hour=hour) + timedelta(
+            days=day_of_year - 1
+        )
         return date
 
     def open(self, filename):
@@ -67,13 +68,14 @@ class PersiannProduct(Product):
         data = data / 100
         data[data < 0] = np.nan
 
-        dataset = xr.Dataset({
-            "time": (("time",), [date]),
-            "latitude": (("latitude",), lats),
-            "longitude": (("longitude",), lons),
-            "precipitation": (("time", "latitude", "longitude"),
-                              data[np.newaxis])
-        })
+        dataset = xr.Dataset(
+            {
+                "time": (("time",), [date]),
+                "latitude": (("latitude",), lats),
+                "longitude": (("longitude",), lons),
+                "precipitation": (("time", "latitude", "longitude"), data[np.newaxis]),
+            }
+        )
         return dataset
 
     def _get_provider(self):
@@ -119,12 +121,8 @@ class CCS(PersiannProduct):
     """
     The PERSIANN cloud classification system (CCS) precipitation retrieval.
     """
-    RESOLUTIONS = {
-        1: "hrly",
-        3: "3hrly",
-        6: "6hrly",
-        24: "daily"
-    }
+
+    RESOLUTIONS = {1: "hrly", 3: "3hrly", 6: "6hrly", 24: "daily"}
 
     def __init__(self, resolution=1):
         self.filename_regexp = re.compile("rgccs1h(\d{7}).bin.gz")
@@ -155,11 +153,9 @@ class PDIRNow(PersiannProduct):
     """
     The PERSIANN cloud classification system (CCS) precipitation retrieval.
     """
-    RESOLUTIONS = {
-        1: "1hourly",
-        3: "3hourly",
-        6: "6hourly"
-    }
+
+    RESOLUTIONS = {1: "1hourly", 3: "3hourly", 6: "6hourly"}
+
     def __init__(self, resolution=1):
         super().__init__(resolution=resolution)
 
