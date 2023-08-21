@@ -24,8 +24,10 @@ ALL_PRODUCTS = [
     *list(GPM_PRODUCTS.keys()),
 ]
 
+
 class Geometry:
-    """ A dummy class."""
+    """A dummy class."""
+
     pass
 
 
@@ -36,6 +38,7 @@ class Product(ABC):
     This class defines the essential functionality that a product must
     implement to be used inside the pansat framework.
     """
+
     @abstractmethod
     def matches(self, path: Path) -> bool:
         """
@@ -70,9 +73,7 @@ class Product(ABC):
         """
 
     @abstractmethod
-    def get_spatial_coverage(
-            self,
-            rec: FileRecord) -> Geometry:
+    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
         Determine the spatial coverage of a data file.
 
@@ -99,11 +100,13 @@ class Product(ABC):
         """
         pass
 
+
 class NetcdfProduct(ABC):
     """
     A generic product interface for data in NetCDF format with certain standard
     names.
     """
+
     def __init__(self, variable_names=None):
         super().__init__()
         self.variable_names = variable_names
@@ -156,9 +159,7 @@ class NetcdfProduct(ABC):
             "does not point to an existing file."
         )
 
-    def get_spatial_coverage(
-            self,
-            rec: FileRecord) -> Geometry:
+    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
         Determine the spatial coverage of a data file.
 

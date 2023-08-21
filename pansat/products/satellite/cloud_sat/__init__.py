@@ -226,7 +226,9 @@ def _parse_products():
             product_name = description.name
             level = description.properties["level"]
             version = description.properties["version"]
-            globals()[python_name] = CloudSatProduct(product_name, level, version, description)
+            globals()[python_name] = CloudSatProduct(
+                product_name, level, version, description
+            )
 
 
 _parse_products()

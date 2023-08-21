@@ -115,14 +115,16 @@ class DiscreteProvider(DataProvider):
                 for f in files_of_day
             ]
         )
-        if ((len(time_deltas_start) == 0 or time_deltas_start.min() > 0)
-            and start_inclusive):
+        if (
+            len(time_deltas_start) == 0 or time_deltas_start.min() > 0
+        ) and start_inclusive:
             previous_day = start_time - timedelta(days=1)
             year = previous_day.year
             day = int(previous_day.strftime("%j"))
             files = self.get_files_by_day(year, day)
-            files_of_day = (sorted(files, key=self.product.filename_to_date)
-                            + files_of_day)
+            files_of_day = (
+                sorted(files, key=self.product.filename_to_date) + files_of_day
+            )
 
         #
         # Go over days within range an add all included files.
@@ -130,7 +132,6 @@ class DiscreteProvider(DataProvider):
 
         time = start_time
         files = []
-
 
         while (time - end_time).total_seconds() < 24 * 60 * 60:
             if time != start_time:

@@ -182,10 +182,7 @@ class CopernicusProvider(DataProvider):
             client = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == "global":
-                area = ""
-                domain = ""
-            else:
+            if self.product.domain != "global":
                 # change to requested order of coordinate values
                 dom = np.array(
                     [
@@ -197,6 +194,8 @@ class CopernicusProvider(DataProvider):
                 ).astype(str)
                 area = "/".join(dom)
                 domain = "-".join(np.array(self.product.domain).astype(str))
+            else:
+                domain = ""
 
             dates, years = self.get_timesteps_monthly(start, end)
             # container to save list of downloaded files
@@ -232,74 +231,65 @@ class CopernicusProvider(DataProvider):
                     LOGGER.info("%s already exists.", out)
                     files.append(out)
                 else:
+                    request_dict = {
+                        "product_type": "monthly_averaged_reanalysis",
+                        "format": "netcdf",
+                        "variable": self.product.variables,
+                        "year": year,
+                        "month": month,
+                        "time": hour,
+                    }
+                    # add pressure levels if pressure product is desired
                     if "pressure" in self.product.name:
-                        client.retrieve(
-                            self.product.name,
-                            {
-                                "product_type": "monthly_averaged_reanalysis",
-                                "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "pressure_level": [
-                                    "1",
-                                    "2",
-                                    "3",
-                                    "5",
-                                    "7",
-                                    "10",
-                                    "20",
-                                    "30",
-                                    "50",
-                                    "70",
-                                    "100",
-                                    "125",
-                                    "150",
-                                    "175",
-                                    "200",
-                                    "225",
-                                    "250",
-                                    "300",
-                                    "350",
-                                    "400",
-                                    "450",
-                                    "500",
-                                    "550",
-                                    "600",
-                                    "650",
-                                    "700",
-                                    "750",
-                                    "775",
-                                    "800",
-                                    "825",
-                                    "850",
-                                    "875",
-                                    "900",
-                                    "925",
-                                    "950",
-                                    "975",
-                                    "1000",
-                                ],
-                                "year": year,
-                                "month": month,
-                                "time": hour,
-                            },
-                            out,
-                        )
+                        request_dict["pressure_level"] = [
+                            "1",
+                            "2",
+                            "3",
+                            "5",
+                            "7",
+                            "10",
+                            "20",
+                            "30",
+                            "50",
+                            "70",
+                            "100",
+                            "125",
+                            "150",
+                            "175",
+                            "200",
+                            "225",
+                            "250",
+                            "300",
+                            "350",
+                            "400",
+                            "450",
+                            "500",
+                            "550",
+                            "600",
+                            "650",
+                            "700",
+                            "750",
+                            "775",
+                            "800",
+                            "825",
+                            "850",
+                            "875",
+                            "900",
+                            "925",
+                            "950",
+                            "975",
+                            "1000",
+                        ]
+                    # add area is subdomain is set
+                    if domain != "":
+                        request_dict["area"] = area
 
-                    else:
-                        client.retrieve(
-                            self.product.name,
-                            {
-                                "product_type": "monthly_averaged_reanalysis",
-                                "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "year": year,
-                                "month": month,
-                                "time": hour,
-                            },
-                            out,
-                        )
+                    # retrieve data
+                    client.retrieve(
+                        self.product.name,
+                        request_dict,
+                        out,
+                    )
 
                     LOGGER.info("file downloaded and saved as %s", out)
                     files.append(out)
@@ -330,10 +320,7 @@ class CopernicusProvider(DataProvider):
             client = cdsapi.Client()
 
             # subset region, if requested
-            if self.product.domain == "global":
-                area = ""
-                domain = ""
-            else:
+            if self.product.domain != "global":
                 # change to requested order of coordinate values
                 dom = np.array(
                     [
@@ -345,6 +332,8 @@ class CopernicusProvider(DataProvider):
                 ).astype(str)
                 area = "/".join(dom)
                 domain = "-".join(np.array(self.product.domain).astype(str))
+            else:
+                domain = ""
 
             dates = self.get_timesteps_hourly(start, end)
 
@@ -398,76 +387,66 @@ class CopernicusProvider(DataProvider):
                     LOGGER.info("%s already exists.", out)
                     files.append(out)
                 else:
+                    request_dict = {
+                        "product_type": download_key,
+                        "format": "netcdf",
+                        "variable": self.product.variables,
+                        "year": year,
+                        "month": month,
+                        "day": day,
+                        "time": hour,
+                    }
+                    # add pressure levels if pressure product is desired
                     if "pressure" in self.product.name:
-                        client.retrieve(
-                            self.product.name,
-                            {
-                                "product_type": download_key,
-                                "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "pressure_level": [
-                                    "1",
-                                    "2",
-                                    "3",
-                                    "5",
-                                    "7",
-                                    "10",
-                                    "20",
-                                    "30",
-                                    "50",
-                                    "70",
-                                    "100",
-                                    "125",
-                                    "150",
-                                    "175",
-                                    "200",
-                                    "225",
-                                    "250",
-                                    "300",
-                                    "350",
-                                    "400",
-                                    "450",
-                                    "500",
-                                    "550",
-                                    "600",
-                                    "650",
-                                    "700",
-                                    "750",
-                                    "775",
-                                    "800",
-                                    "825",
-                                    "850",
-                                    "875",
-                                    "900",
-                                    "925",
-                                    "950",
-                                    "975",
-                                    "1000",
-                                ],
-                                "year": year,
-                                "month": month,
-                                "day": day,
-                                "time": hour,
-                            },
-                            out,
-                        )
+                        request_dict["pressure_level"] = [
+                            "1",
+                            "2",
+                            "3",
+                            "5",
+                            "7",
+                            "10",
+                            "20",
+                            "30",
+                            "50",
+                            "70",
+                            "100",
+                            "125",
+                            "150",
+                            "175",
+                            "200",
+                            "225",
+                            "250",
+                            "300",
+                            "350",
+                            "400",
+                            "450",
+                            "500",
+                            "550",
+                            "600",
+                            "650",
+                            "700",
+                            "750",
+                            "775",
+                            "800",
+                            "825",
+                            "850",
+                            "875",
+                            "900",
+                            "925",
+                            "950",
+                            "975",
+                            "1000",
+                        ]
+                    # add area if subdomain is set
+                    if domain != "":
+                        request_dict["area"] = area
 
-                    else:
-                        client.retrieve(
-                            self.product.name,
-                            {
-                                "product_type": download_key,
-                                "format": "netcdf",
-                                "area": area,
-                                "variable": self.product.variables,
-                                "year": year,
-                                "month": month,
-                                "day": day,
-                                "time": hour,
-                            },
-                            out,
-                        )
+                    # retrieve data
+                    client.retrieve(
+                        self.product.name,
+                        request_dict,
+                        out,
+                    )
 
                     LOGGER.info("file downloaded and saved as %s", out)
                     files.append(out)

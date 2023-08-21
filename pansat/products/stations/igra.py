@@ -398,7 +398,6 @@ class IGRASoundings(Product):
             dataframe.to_csv(os.path.splitext(filename)[0] + ".csv")
 
     def open(self, filename, advanced=False):
-
         """Unzips and opens a text file containing IGRA sounding data.
 
         Args:

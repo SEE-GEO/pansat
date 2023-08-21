@@ -34,7 +34,6 @@ class ERA5Product(Product):
     """
 
     def __init__(self, levels, variables, domain=None):
-
         self.variables = variables
 
         if not domain:

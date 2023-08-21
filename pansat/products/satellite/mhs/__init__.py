@@ -21,6 +21,7 @@ class MHSProduct(Product):
     """
     Base class representing MHS products.
     """
+
     def __init__(self):
         self.filename_regexp = re.compile(
             "MHSx_xxx_1B_M01_(\d{8})Z_(\d{8})Z_N_O_\d{8}Z.nat"
@@ -127,4 +128,4 @@ class MHSProduct(Product):
         return self.description.to_xarray_dataset(file_handle, globals())
 
 
-mhs_l1b = MHSProduct()
+l1b_mhs = MHSProduct()

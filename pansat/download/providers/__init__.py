@@ -56,12 +56,8 @@ ALL_PROVIDERS = [
     HimawariAWSProvider,
     IowaStateProvider,
     EUMETSATProvider,
-<<<<<<< HEAD
     UciProvider,
     NOAANCEIProvider,
     CloudnetProvider,
     CloudSatDPCProvider
-=======
-    UciProvider
->>>>>>> main
 ]

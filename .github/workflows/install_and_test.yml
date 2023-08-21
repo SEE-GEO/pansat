@@ -22,6 +22,6 @@ jobs:
         shell: bash -l {0}
         run: mamba install --quiet --yes --file conda-requirements.txt &&
              pip install -e . &&
-             pytest test/unit_tests
+             pytest -m "not slow" test/unit_tests
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}

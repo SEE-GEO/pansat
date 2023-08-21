@@ -19,15 +19,16 @@ BASE_URL = "https://www.ncei.noaa.gov/data"
 NCEI_PRODUCTS = {
     "gridsat_goes": "gridsat-goes/access/goes",
     "gridsat_conus": "gridsat-goes/access/conus",
-    "gridsat_b1": "geostationary-ir-channel-brightness-temperature-gridsat-b1/access"
+    "gridsat_b1": "geostationary-ir-channel-brightness-temperature-gridsat-b1/access",
 }
 
 
 class NOAANCEIProvider(DiscreteProvider):
     """
-    Data provider for GridSat GOES datasets  available at
- https://www.ncei.noaa.gov/data/.
+       Data provider for GridSat GOES datasets  available at
+    https://www.ncei.noaa.gov/data/.
     """
+
     def __init__(self, product):
         """
         Instantiate provider for given product.
@@ -95,8 +96,11 @@ class NOAANCEIProvider(DiscreteProvider):
             self.cache[(year, month)] = files
 
         dates = map(self.product.filename_to_date, files)
-        files = [name for name, date in zip(files, dates)
-                 if date.day == day_of_month and date.month == month]
+        files = [
+            name
+            for name, date in zip(files, dates)
+            if date.day == day_of_month and date.month == month
+        ]
         return files
 
     def download_file(self, filename, destination):

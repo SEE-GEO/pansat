@@ -58,7 +58,6 @@ class HimawariAWSProvider(DiscreteProvider):
         return HIMAWARI_AWS_PRODUCTS
 
     def _get_keys(self, prefix):
-
         global _BUCKET_CACHE
         cache_id = (prefix,)
 

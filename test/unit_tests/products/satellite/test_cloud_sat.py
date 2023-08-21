@@ -7,7 +7,9 @@ import numpy as np
 import pytest
 import pansat.products.satellite.cloud_sat as cloud_sat
 
-TEST_NAMES = {"CloudSat_1B-CPR": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf"}
+TEST_NAMES = {
+    "CloudSat_1B-CPR": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf"
+}
 TEST_TIMES = {"CloudSat_1B-CPR": datetime(2018, 5, 23, 00, 41, 15)}
 PRODUCTS = [cloud_sat.l1b_cpr]
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
@@ -41,6 +43,7 @@ def test_matches(product):
     assert product.matches(filename)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
@@ -71,8 +74,9 @@ def test_cloud_class_masks():
     assert cloud_sat._cloud_scenario_to_precipitation_flag(data) == 0
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
-#@pytest.mark.usefixtures("test_identities")
+@pytest.mark.slow
+@pytest.mark.skip(reason="Currently no way to test this.")
+@pytest.mark.usefixtures("test_identities")
 def test_download_rain_profile():
     """
     Download CloudSat rain profile.

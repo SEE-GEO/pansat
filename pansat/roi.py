@@ -6,14 +6,10 @@ Functions to define and work with regions of interest (ROIs).
 """
 import numpy as np
 
+
 class ROI:
     def __init__(self, lon_ll, lat_ll, lon_ur, lat_ur):
-        self._components = np.array([
-            lon_ll,
-            lat_ll,
-            lon_ur,
-            lat_ur
-        ])
+        self._components = np.array([lon_ll, lat_ll, lon_ur, lat_ur])
 
     @property
     def lon_min(self):
@@ -55,16 +51,12 @@ class ROI:
 
     def __getitem__(self, i):
         if (i < 0) or (i < 0):
-            raise ValueError(
-                "The bounding box has only for elements."
-            )
+            raise ValueError("The bounding box has only for elements.")
         return self._components[i]
 
     def __setitem__(self, i, val):
         if (i < 0) or (i < 0):
-            raise ValueError(
-                "The bounding box has only for elements."
-            )
+            raise ValueError("The bounding box has only for elements.")
         self._components[i] = val
 
     def to_geometry(self):
@@ -72,12 +64,15 @@ class ROI:
         Return representation of ROI as ``shapely.geometry.Polygon``.
         """
         from shapely.geometry import Polygon
-        return Polygon([
-            [self.lon_min, self.lat_min],
-            [self.lon_max, self.lat_min],
-            [self.lon_max, self.lat_max],
-            [self.lon_min, self.lat_max],
-        ])
+
+        return Polygon(
+            [
+                [self.lon_min, self.lat_min],
+                [self.lon_max, self.lat_min],
+                [self.lon_max, self.lat_max],
+                [self.lon_min, self.lat_max],
+            ]
+        )
 
 
 class PolygonROI:
@@ -127,7 +122,9 @@ class PolygonROI:
         Return representation of ROI as ``shapely.geometry.Polygon``.
         """
         from shapely.geometry import Polygon
+
         return Polygon(self.points)
+
 
 def _get_lats_and_lons(data):
     """
@@ -148,9 +145,7 @@ def _get_lats_and_lons(data):
     elif "lat" in data:
         lats = data.lat
     else:
-        raise ValueError(
-            "Neither 'lat' nor 'latitude' variable is present in dataset."
-        )
+        raise ValueError("Neither 'lat' nor 'latitude' variable is present in dataset.")
 
     if "longitude" in data:
         lons = data.longitude
@@ -165,19 +160,20 @@ def _get_lats_and_lons(data):
 
 
 def find_overpasses(roi, data):
-
     lats, lons = _get_lats_and_lons(data)
     lats = lats.data
     lons = lons.data
 
     axes = tuple(range(lats.ndim))[1:]
-    indices = np.where(np.any(
-        (lats >= roi.lat_min) *
-        (lats <= roi.lat_max) *
-        (lons >= roi.lon_min) *
-        (lons <= roi.lon_max),
-        axis=axes
-    ))[0]
+    indices = np.where(
+        np.any(
+            (lats >= roi.lat_min)
+            * (lats <= roi.lat_max)
+            * (lons >= roi.lon_min)
+            * (lons <= roi.lon_max),
+            axis=axes,
+        )
+    )[0]
 
     if len(indices) == 0:
         return []
@@ -194,7 +190,7 @@ def find_overpasses(roi, data):
     for g in gaps:
         i_start = indices[0]
         i_end = indices[g - offset]
-        indices = indices[g - offset + 1:]
+        indices = indices[g - offset + 1 :]
         offset = g + 1
         slices.append(data[{first_dim: slice(i_start, i_end + 1)}])
 
@@ -205,32 +201,33 @@ def find_overpasses(roi, data):
 
 
 def any_inside(roi, data):
-
     lats, lons = _get_lats_and_lons(data)
     lats = lats.data
     lons = lons.data
 
     axes = tuple(range(lats.ndim))[1:]
-    return np.any(np.any(
-        (lats >= roi.lat_min) *
-        (lats <= roi.lat_max) *
-        (lons >= roi.lon_min) *
-        (lons <= roi.lon_max),
-        axis=axes
-    ))
+    return np.any(
+        np.any(
+            (lats >= roi.lat_min)
+            * (lats <= roi.lat_max)
+            * (lons >= roi.lon_min)
+            * (lons <= roi.lon_max),
+            axis=axes,
+        )
+    )
+
 
 def some_inside(roi, data, fraction=0.5):
-
     lats, lons = _get_lats_and_lons(data)
     lats = lats.data
     lons = lons.data
 
     axes = tuple(range(lats.ndim))[1:]
     inside = np.mean(
-        (lats >= roi.lat_min) *
-        (lats <= roi.lat_max) *
-        (lons >= roi.lon_min) *
-        (lons <= roi.lon_max),
-        axis=axes
+        (lats >= roi.lat_min)
+        * (lats <= roi.lat_max)
+        * (lons >= roi.lon_min)
+        * (lons <= roi.lon_max),
+        axis=axes,
     )
     return np.any(inside > fraction)

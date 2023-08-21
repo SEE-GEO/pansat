@@ -5,9 +5,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
+import pytest
 
-from pansat.products.satellite.persiann import (CCS, PDIRNow)
+from pansat.products.satellite.persiann import CCS, PDIRNow
 
+
+@pytest.mark.slow
 def test_ccs(tmp_path):
     """
     Test downloading and opening of PERSIANN CCS files.
@@ -23,6 +26,8 @@ def test_ccs(tmp_path):
     assert "latitude" in data.dims
     assert "longitude" in data.dims
 
+
+@pytest.mark.slow
 def test_pdirnow(tmp_path):
     """
     Test downloading and opening of PERSIANN CCS files.
