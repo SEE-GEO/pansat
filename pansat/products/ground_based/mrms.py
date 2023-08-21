@@ -141,3 +141,4 @@ class MRMSProduct(Product):
 mrms_precip_rate = MRMSProduct("PrecipRate", "precip_rate")
 mrms_radar_quality_index = MRMSProduct("RadarQualityIndex", "radar_quality_index")
 mrms_precip_flag = MRMSProduct("PrecipFlag", "precip_flag")
+mrms_reflectivity = MRMSProduct("SeamlessHSR", "reflectivity")

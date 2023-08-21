@@ -1,6 +1,7 @@
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
+from shapely import unary_union
 
 def parse_point(xml_point):
     """
@@ -50,7 +51,7 @@ def parse_swath(meta_data):
             poly_2 = Polygon([[-180, -75], [180, -75], [180, -90], [-180, -90]])
             polygons[ind] = poly.union(poly_2)
 
-    return make_valid(MultiPolygon(polygons))
+    return unary_union(polygons)
 
 
 

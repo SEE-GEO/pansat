@@ -20,6 +20,7 @@ PRODUCTS = {
     "MRMS_PrecipRate": ["mrms", "ncep", "PrecipRate"],
     "MRMS_RadarQualityIndex": ["mrms", "ncep", "RadarQualityIndex"],
     "MRMS_PrecipFlag": ["mrms", "ncep", "PrecipFlag"],
+    "MRMS_SeamlessHSR": ["mrms", "ncep", "SeamlessHSR"],
 }
 
 

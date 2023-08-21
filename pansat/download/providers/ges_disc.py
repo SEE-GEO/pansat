@@ -121,6 +121,7 @@ class GesdiscProvider(DiscreteProvider):
             day=f"{month:02}",
             filename=""
         )
+        print(request_string)
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
@@ -258,6 +259,5 @@ class Disc2Provider(GesdiscProvider):
     def _request_string(self):
         """The URL containing the data files for the given product."""
         base_url = "https://disc2.gesdisc.eosdis.nasa.gov"
-        print("PROD :: ", self.product_name)
         part = Disc2Provider.URLS[self.product_name.lower()]
         return base_url + part + "/{year}/{day}/{filename}"
