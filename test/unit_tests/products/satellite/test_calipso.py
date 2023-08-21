@@ -49,6 +49,7 @@ def test_matches(product):
     assert product.matches(filename)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_download():
