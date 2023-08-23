@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 pansat.catalog.index
 ====================
@@ -14,6 +13,7 @@ import queue
 import numpy as np
 import xarray as xr
 import geopandas
+import pandas as pd
 import rich.progress
 
 from pansat.time import TimeRange, to_datetime64
@@ -22,6 +22,29 @@ from pansat.granule import Granule, merge_granules
 from pansat.products import Product, GranuleProduct, get_product
 from pansat.geometry import ShapelyGeometry
 
+
+def find_pansat_catalog(path):
+    """
+    Walks down the directory tree starting from a given path and looks
+    for '.pansat' folders that may a catalog.
+
+    Args:
+        path: Path object pointing to a directory at which to start searching
+            for .pansat folders.
+
+    Return:
+        A Catalog object if a '.pansat' folder is found. 'None' otherwise.
+    """
+    curr_path = path.absolute()
+    while curr_path != curr_path.parent:
+        pansat_path = curr_path / ".pansat"
+        if pansat_path.exists() and pansat_path.is_dir():
+            return Catalog(pansat_path)
+    return None
+
+
+
+    
 
 def _get_index_data(product, path):
     """
@@ -148,6 +171,10 @@ class Index:
 
         Return:
             The loaded index.
+
+        Raises:
+            'ValueError' if the product corresponding to the index could
+            not be found.
         """
         path = Path(path)
         data = geopandas.read_parquet(path)
@@ -176,6 +203,7 @@ class Index:
         start_times = []
         end_times = []
         local_paths = []
+        filenames = []
         primary_index_name = []
         primary_index_start = []
         primary_index_end = []
@@ -192,6 +220,7 @@ class Index:
                     start_times.append(granule.time_range.start)
                     end_times.append(granule.time_range.end)
                     local_paths.append(str(granule.file_record.local_path))
+                    filenames.append(str(granule.file_record.filename))
                     primary_index_name.append(granule.primary_index_name)
                     primary_index_start.append(granule.primary_index_range[0])
                     primary_index_end.append(granule.primary_index_range[1])
@@ -227,6 +256,7 @@ class Index:
                         start_times.append(granule.time_range.start)
                         end_times.append(granule.time_range.end)
                         local_paths.append(str(granule.file_record.local_path))
+                        filenames.append(str(granule.file_record.filename))
                         primary_index_name.append(granule.primary_index_name)
                         primary_index_start.append(granule.primary_index_range[0])
                         primary_index_end.append(granule.primary_index_range[1])
@@ -241,7 +271,8 @@ class Index:
             data={
                 "start_time": start_times,
                 "end_time": end_times,
-                "local_path": local_paths,
+                "local_path": pd.Series(local_paths, dtype="string"),
+                "filename": pd.Series(filenames, dtype="string"),
                 "primary_index_name": primary_index_name,
                 "primary_index_start": primary_index_start,
                 "primary_index_end": primary_index_end,
@@ -282,6 +313,26 @@ class Index:
             f"<Index of '{self.product.name}' containing "
             f"{self.data.start_time.size} entries>"
         )
+
+
+    def find_local_path(self, file_record: FileRecord):
+        """
+        Find the local path corresponding to a given file record.
+
+        Args:
+            file_record: A FileRecord pointing to a given data file.
+
+        Return:
+            A pathlib.Path object pointing to the file or 'None' if the
+            file is not available from the index.
+        """
+        inds = self.data.filename == file_record.filename
+        if np.any(inds):
+            path = Path(self.data.loc[inds].iloc[0].local_path)
+            if path == "":
+                return None
+            return path
+        return None
 
 
     def find(self, time_range=None, roi=None):
@@ -354,11 +405,33 @@ def merge_matches(match_1, match_2):
         A list that either contains the merged match or the two matches if they are not adjacent.
     """
     if match_1[0].is_adjacent(match_2[0]):
-        if match_1[1].is_adjacent(match_2[1]):
-            return [(
-                match_1[0].merge(match_2[0]),
-                match_1[1].merge(match_2[1]),
-            )]
+        matches_r_1 = match_1[1]
+        matches_r_2 = match_2[1]
+
+        adj_1 = []
+        adj_2 = []
+        merged_r = []
+
+        for g_1 in matches_r_1:
+            for g_2 in matches_r_2:
+                if g_1.is_adjacent(g_2):
+                    adj_1.append(g_1)
+                    adj_2.append(g_2)
+                    merged_r.append(g_1.merge(g_2))
+
+        merged_r = set(merged_r)
+        [matches_r_1.remove(granule) for granule in adj_1]
+        [matches_r_2.remove(granule) for granule in adj_2]
+
+        results = []
+        if len(matches_r_1) > 0:
+            results.append((match_1[0], matches_r_1))
+        if len(merged_r) > 0:
+            results.append((match_1[0].merge(match_2[0]), merged_r))
+        if len(matches_r_2) > 0:
+            results.append((match_2[0], matches_r_2))
+        return results
+
     return [match_1, match_2]
 
 
@@ -478,7 +551,7 @@ def _find_matches_rec(
 
     if done_queue is not None:
         done_queue.put(1)
-    return [(granule_l, granule) for granule in granules_r]
+    return [(granule_l, set(granules_r))]
 
 
 def find_matches(
