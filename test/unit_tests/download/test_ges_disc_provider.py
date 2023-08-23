@@ -100,12 +100,12 @@ def test_ges_disc_provider_merged_ir():
     assert not ges_disc_provider_month.provides(merged_ir)
     assert not ges_disc_provider_year.provides(merged_ir)
 
-    start_time = datetime(2020, 1, 1, 0, 0)
+    start_time = datetime(2020, 1, 1, 0, 1)
     time_range = TimeRange(start_time, start_time)
     files = ges_disc_provider_day.find_files(merged_ir, time_range)
     assert len(files) == 1
 
-    start_time = datetime(2019, 12, 31, 0, 0)
+    start_time = datetime(2019, 12, 31, 23, 30)
     end_time = datetime(2020, 1, 1, 0, 1)
     time_range = TimeRange(start_time, end_time)
     files = ges_disc_provider_day.find_files(merged_ir, time_range)
