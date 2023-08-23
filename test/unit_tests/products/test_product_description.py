@@ -4,10 +4,15 @@ import pytest
 
 import conftest
 
-from pansat.products.product_description import ProductDescription
+from pansat.products.product_description import (
+    ProductDescription,
+    get_slice
+)
+
 from pansat.products.example import  (
     thin_swath_product,
-    write_thin_swath_product_data
+    write_thin_swath_product_data,
+    _parse_times
 )
 from pansat.file_record import FileRecord
 from pansat.geometry import LineString
@@ -188,9 +193,44 @@ def test_get_granule_data_hdf4_product(hdf4_granule_product_data):
     files = (product_data / "remote").glob("*.hdf")
     for path in files:
         file_handle = HDF4File(path)
-        granule_data = description.get_granule_data(file_handle)
+        granule_data = description.get_granule_data(file_handle, globals())
 
         assert len(granule_data) == 8
+
+
+def test_get_slice():
+
+    arr = np.arange(0, 20)
+
+    slc = get_slice(5, 15, 20, 2)
+    sel = arr[slc]
+    assert sel[0] == 5
+    assert sel[-1] == 15
+
+    slc = get_slice(5, 15, 20, 3)
+    sel = arr[slc]
+    assert sel[0] <= 5
+    assert sel[-1] >= 15
+
+    slc = get_slice(0, 10, 20, 3)
+    sel = arr[slc]
+    assert sel[0] <= 0
+    assert sel[-1] >= 10
+
+    slc = get_slice(0, 10, 20, 4)
+    sel = arr[slc]
+    assert sel[0] <= 0
+    assert sel[-1] >= 10
+
+    slc = get_slice(10, 20, 20, 3)
+    sel = arr[slc]
+    assert sel[0] <= 10
+    assert sel[-1] >= 19
+
+    slc = get_slice(10, 20, 20, 4)
+    sel = arr[slc]
+    assert sel[0] <= 10
+    assert sel[-1] >= 19
 
 
 @pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available.")
@@ -204,7 +244,7 @@ def test_get_granule_data_hdf5_product(hdf5_granule_product_data):
     files = (product_data / "remote").glob("*.hdf")
     for path in files:
         file_handle = HDF5File(path)
-        granule_data = description.get_granule_data(file_handle)
+        granule_data = description.get_granule_data(file_handle, globals())
 
         assert len(granule_data) == 8
 

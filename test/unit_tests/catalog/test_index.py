@@ -14,7 +14,7 @@ from pansat.products.example import  (
 )
 
 
-from pansat.catalog import (
+from pansat.catalog.index import (
     Index,
     find_matches,
     matches_to_geopandas
