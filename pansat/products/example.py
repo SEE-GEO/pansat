@@ -535,12 +535,12 @@ def write_hdf5_granule_product_data(path):
     return files
 
 
-def _parse_times(file_handle, field_name):
+def _parse_times(file_handle, slices):
     """
     Callback function required to convert time stored as int back
     to datetime64 dtype.
     """
-    return file_handle[field_name][:].astype("datetime64[s]")
+    return file_handle[slices].astype("datetime64[s]")
 
 
 class ExampleGranuleProduct(GranuleProduct):

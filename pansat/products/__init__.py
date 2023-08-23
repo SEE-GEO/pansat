@@ -45,6 +45,11 @@ def get_product(product_name):
 
     Return:
         The object representing the product.
+
+    Raises:
+        Runtime error if not product with the given product name could
+        be found.
+
     """
     if product_name in Product.PRODUCTS:
         return Product.PRODUCTS[product_name]
