@@ -298,8 +298,9 @@ def _extract_scantime(scantime_group, slcs=None):
     minutes = scantime_group["Minute"][slcs]
     seconds = np.minimum(scantime_group["Second"][slcs], 59)
     milli_seconds = scantime_group["MilliSecond"][slcs]
+
     n_dates = years.size
-    dates = np.zeros(n_dates, dtype="datetime64[ms]")
+    dates = np.zeros(n_dates, dtype="datetime64[ns]")
     for i in range(n_dates):
         year = years[i]
         month = months[i]
@@ -533,7 +534,7 @@ def parse_l1c_header(dataset, file_handle):
     dataset.attrs.update(attrs)
 
 
-def parse_frequencies(field):
+def parse_frequencies(field, *args):
     """
     Callback to parse frequencies from GPM L1C files.
 
@@ -553,7 +554,7 @@ def parse_frequencies(field):
     return np.array(freqs)
 
 
-def parse_offsets(field):
+def parse_offsets(field, *args):
     """
     Callback to parse frequency-offsets from GPM L1C files.
 
