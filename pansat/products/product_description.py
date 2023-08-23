@@ -292,6 +292,7 @@ class GranuleInfo:
     """
     dimensions: list[str]
     partitions: list[int]
+    resolution: list[int]
 
     def __init__(self, config_dict):
         if not "granule_dimensions" in config_dict:
@@ -300,12 +301,16 @@ class GranuleInfo:
                 "dimensions along which to partition the data."
             )
         self.dimensions = json.loads(config_dict["granule_dimensions"])
-
         if not "granule_partitions" in config_dict:
             partitions = [10] * len(self.dimensions)
         else:
             partitions = json.loads(config_dict["granule_partitions"])
         self.partitions = [int(part) for part in partitions]
+        if not "granule_resolution" in config_dict:
+            resolution = [2] * len(self.dimensions)
+        else:
+            resolution = json.loads(config_dict["granule_resolution"])
+        self.resolution = resolution
 
 
 class ProductDescription(ConfigParser):
@@ -583,7 +588,7 @@ class ProductDescription(ConfigParser):
         if self.granule_info is None:
             raise ValueError(
                 "This product description does not contain any granule "
-                "and can therefore not provide any granules."
+                "information and can therefore not provide any granules."
             )
         if self.latitude_coordinate is None or self.longitude_coordinate is None:
             raise ValueError(
@@ -603,11 +608,10 @@ class ProductDescription(ConfigParser):
         except (TypeError, KeyError):
             lons, lats = self.load_lonlats(file_handle, context=context)
             time = self.load_time(file_handle, context=context)
-
-            if len(time.shape) > len(lons.shape):
-                sizes = time.shape[:len(dim_names)]
+            if time.ndim > lons.ndim:
+                sizes = time.shape
             else:
-                sizes = lons.shape[:len(dim_names)]
+                sizes = lons.shape
 
         granule_data = []
 
@@ -622,10 +626,11 @@ class ProductDescription(ConfigParser):
                 sizes[0],
             ))
 
-            outer_slc = slice(
+            outer_slc = get_slice(
                 outer_start,
                 outer_end,
-                outer_end - outer_start - 1
+                sizes[0],
+                self.granule_info.resolution[0]
             )
 
             if outer_start == outer_end:
@@ -635,28 +640,27 @@ class ProductDescription(ConfigParser):
             if len(sizes) == 1:
                 inner_stop = 1
             else:
-                inner_stop = sizes[1] - 1
+                inner_stop = sizes[1]
             inner_start = 0
 
             while inner_start < inner_stop:
 
                 if len(sizes) == 1:
-                    slcs = {
-                        dim_names[0]: outer_slc,
-                    }
+                    slcs = {dim_names[0]: outer_slc,}
                     inner_start = inner_stop
                 else:
-                    inner_end = (min(
-                        inner_start + max(
-                            sizes[1] // self.granule_info.partitions[1],
-                            2
-                        ),
-                        sizes[1],
-                    ))
-                    inner_slc = slice(
+                    if len(self.granule_info.partitions) == 1:
+                        inner_end = sizes[1]
+                    else:
+                        inner_end = (
+                            inner_start +
+                            max(sizes[1] // self.granule_info.partitions[1], 2)
+                        )
+                    inner_slc = get_slice(
                         inner_start,
                         inner_end,
-                        inner_end - inner_start - 1
+                        inner_stop,
+                        self.granule_info.resolution[1]
                     )
                     slcs = {
                         dim_names[0]: outer_slc,
@@ -720,6 +724,7 @@ class ProductDescription(ConfigParser):
         """
 
 
+
 def _geometry_from_coords(
         lons: np.ndarray,
         lats: np.ndarray
@@ -753,12 +758,11 @@ def _geometry_from_coords(
 
         return geom
 
-    lon_seq = np.array([
-        lons[0, 0],
-        lons[0, -1],
-        lons[-1, -1],
-        lons[-1, 0],
-        lons[0, 0]
+    lon_seq = np.concatenate([
+        lons[0, :],
+        lons[:, -1],
+        lons[-1, ::-1],
+        lons[::-1, 0],
     ])
     d_lon = np.abs(np.diff(lon_seq))
     if np.any(d_lon > 180):
@@ -767,28 +771,58 @@ def _geometry_from_coords(
         lons_r[lons_r < 0] += 360
         lons_l = lons_r - 360
 
-        geom_l = [
-            (lons_l[0, 0], lats[0, 0]),
-            (lons_l[0, -1], lats[0, -1]),
-            (lons_l[-1, -1], lats[-1, -1]),
-            (lons_l[-1, 0], lats[-1, 0]),
-            (lons_l[0, 0], lats[0, 0]),
-        ]
-        geom_r = [
-            (lons_r[0, 0], lats[0, 0]),
-            (lons_r[0, -1], lats[0, -1]),
-            (lons_r[-1, -1], lats[-1, -1]),
-            (lons_r[-1, 0], lats[-1, 0]),
-            (lons_r[0, 0], lats[0, 0]),
-        ]
-        geom = MultiPolygon([geom_l, geom_r])
-
-    else:
-        geom = Polygon([
-            (lons[0, 0], lats[0, 0]),
-            (lons[0, -1], lats[0, -1]),
-            (lons[-1, -1], lats[-1, -1]),
-            (lons[-1, 0], lats[-1, 0]),
-            (lons[0, 0], lats[0, 0]),
+        geom_l = np.concatenate([
+            np.stack([lons_l[0, :], lats[0, :]], -1),
+            np.stack([lons_l[:, -1], lats[:, -1]], -1),
+            np.stack([lons_l[-1, ::-1], lats[-1, ::-1]], -1),
+            np.stack([lons_l[::-1, 0], lats[::-1, 0]], -1),
         ])
+        geom_r = np.concatenate([
+            np.stack([lons_r[0, :], lats[0, :]], -1),
+            np.stack([lons_r[:, -1], lats[:, -1]], -1),
+            np.stack([lons_r[-1, ::-1], lats[-1, ::-1]], -1),
+            np.stack([lons_r[::-1, 0], lats[::-1, 0]], -1),
+        ])
+        return MultiPolygon([geom_l, geom_r])
+
+    geom = Polygon(np.concatenate([
+        np.stack([lons[0, :], lats[0, :]], -1),
+        np.stack([lons[:, -1], lats[:, -1]], -1),
+        np.stack([lons[-1, ::-1], lats[-1, ::-1]], -1),
+        np.stack([lons[::-1, 0], lats[::-1, 0]], -1),
+    ]))
     return geom
+
+
+def get_slice(start, end, size, n_elements):
+    """
+    Return a slice that covers a range with a number of steps.
+
+    Args:
+        start: A start index.
+        end: An end index.
+        size:
+        n_elements: The number of elements in the resulting selection.
+
+    Return:
+        A slice object that will result in a selection with 'resolution'
+        elements that is guaranted to cover the range defined by
+        'start' and 'end'.
+    """
+    end = min(end + 1, size)
+    delta = end - start - 1
+
+    if delta % (n_elements - 1) == 0:
+        step = delta // (n_elements - 1)
+        return slice(start, end, step)
+
+    step = delta // (n_elements - 1) + 1
+    delta_new = (n_elements - 1) * step
+    rem = delta_new - delta
+
+    start_new = max(0, min(start - rem // 2, size - delta_new - 1))
+    end_new = min(start_new + delta_new + 1, size)
+
+    print(start_new, end_new, step)
+
+    return slice(start_new, end_new, step)
