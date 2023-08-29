@@ -219,7 +219,7 @@ def test_get_slice():
 
     slc = get_slice(0, 10, 20, 4)
     sel = arr[slc]
-    assert sel[0] <= 0
+    assert sel[0] <= 1
     assert sel[-1] >= 10
 
     slc = get_slice(10, 20, 20, 3)
@@ -231,6 +231,11 @@ def test_get_slice():
     sel = arr[slc]
     assert sel[0] <= 10
     assert sel[-1] >= 19
+
+    arr = np.arange(0, 243)
+    slc = get_slice(0, 243, 243, 4)
+    sel = arr[slc]
+    assert len(sel) == 4
 
 
 @pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available.")

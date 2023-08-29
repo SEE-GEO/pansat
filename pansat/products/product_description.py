@@ -812,6 +812,7 @@ def get_slice(start, end, size, n_elements):
     end = min(end + 1, size)
     delta = end - start - 1
 
+    # The easy case: The whole range can be covered with endpoints.
     if delta % (n_elements - 1) == 0:
         step = delta // (n_elements - 1)
         return slice(start, end, step)
@@ -820,9 +821,12 @@ def get_slice(start, end, size, n_elements):
     delta_new = (n_elements - 1) * step
     rem = delta_new - delta
 
+    # Expand range if necessary.
     start_new = max(0, min(start - rem // 2, size - delta_new - 1))
     end_new = min(start_new + delta_new + 1, size)
 
-    print(start_new, end_new, step)
+    # Handle case when we can't expand.
+    if (start == 0) and (end_new == size):
+        return slice(0, size, (size - 1) // (n_elements - 1))
 
     return slice(start_new, end_new, step)
