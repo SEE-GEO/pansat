@@ -30,7 +30,7 @@ class TestProviderDay(
     """
     Dummy provider to test the DiscreteProvider functionality.
     """
-    def find_files_by_day(self, time):
+    def find_files_by_day(self, product, time):
         """
         Return list of hourly filenames.
 
@@ -55,7 +55,7 @@ class TestProviderDay(
                 suffix="hdf"
             )
             recs.append(FileRecord.from_remote(
-                example_product_hdf4,
+                product,
                 self,
                 Path("remote") / filename,
                 filename
@@ -63,11 +63,13 @@ class TestProviderDay(
             time += timedelta(hours=1)
         return recs
 
+    def download_file(self):
+        pass
 
 class TestProviderMonth(
         DiscreteProviderMonth
 ):
-    def find_files_by_month(self, time):
+    def find_files_by_month(self, product, time):
         """
         Return list of daily files within a month.
 
@@ -94,7 +96,7 @@ class TestProviderMonth(
             )
             print(filename)
             recs.append(FileRecord.from_remote(
-                example_product_hdf4,
+                product,
                 self,
                 Path("remote") / filename,
                 filename
@@ -112,7 +114,7 @@ class TestProviderMonth(
 class TestProviderYear(
         DiscreteProviderYear
 ):
-    def find_files_by_year(self, time):
+    def find_files_by_year(self, product, time):
         """
         Return list of daily files within a year.
 
@@ -138,7 +140,7 @@ class TestProviderYear(
                 suffix="hdf"
             )
             recs.append(FileRecord.from_remote(
-                example_product_hdf4,
+                product,
                 self,
                 Path("remote") / filename,
                 filename
@@ -164,7 +166,7 @@ def test_files_in_range_day():
     t_range = TimeRange(t_0, t_1)
 
     files = provider.find_files(
-        example_product_hdf4,
+        hdf4_product,
         t_range
     )
     assert len(files) == 1
@@ -174,7 +176,7 @@ def test_files_in_range_day():
     t_range = TimeRange(t_0, t_1)
 
     files = provider.find_files(
-        example_product_hdf4,
+        hdf4_product,
         t_range
     )
     assert len(files) == 2
@@ -191,7 +193,7 @@ def test_files_in_range_month():
     t_range = TimeRange(t_0, t_1)
 
     files = provider.find_files(
-        example_product_hdf4,
+        hdf4_product,
         t_range
     )
     assert len(files) == 1
@@ -201,7 +203,7 @@ def test_files_in_range_month():
     t_range = TimeRange(t_0, t_1)
 
     files = provider.find_files(
-        example_product_hdf4,
+        hdf4_product,
         t_range
     )
     assert len(files) == 2
@@ -217,7 +219,7 @@ def test_files_in_range_year():
     t_range = TimeRange(t_0, t_1)
 
     files = provider.find_files(
-        example_product_hdf4,
+        hdf4_product,
         t_range
     )
     assert len(files) == 1
@@ -227,7 +229,7 @@ def test_files_in_range_year():
     t_range = TimeRange(t_0, t_1)
 
     files = provider.find_files(
-        example_product_hdf4,
+        hdf4_product,
         t_range
     )
     assert len(files) == 2

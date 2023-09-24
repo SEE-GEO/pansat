@@ -20,7 +20,6 @@ class DataProvider(ABC):
         if not self in ALL_PROVIDERS:
             ALL_PROVIDERS.append(self)
 
-    @abstractclassmethod
     def get_available_products(cls):
         """
         Return the names of products available from this data provider.
