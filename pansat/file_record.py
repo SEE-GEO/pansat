@@ -28,7 +28,7 @@ class FileRecord:
         product: "pansat.Product",
         provider: "pansat.DataProvider",
         remote_path: str,
-        filename: str
+        filename: str,
     ):
         """
         Create file record from a remote file.
@@ -49,12 +49,7 @@ class FileRecord:
         return rec
 
     def __init__(
-            self,
-            local_path,
-            product=None,
-            filename=None,
-            provider=None,
-            remote_path=None
+        self, local_path, product=None, filename=None, provider=None, remote_path=None
     ):
         """
         Create file record from product and local file path.
@@ -80,7 +75,6 @@ class FileRecord:
         self.product = product
         self.provider = provider
         self.remote_path = remote_path
-
 
     def download(self, destination):
         """
@@ -122,6 +116,7 @@ class FileRecord:
             A FileRecord representing the loaded data.
         """
         from pansat import products
+
         product = dct["product"]
         if product is not None:
             dct["product"] = products.get_product(product)
@@ -139,13 +134,11 @@ class FileRecord:
             "local_path": str(self.local_path),
             "product": self.product.name if self.product is not None else None,
             "provider": self.provider,
-            "remote_path": self.remote_path
+            "remote_path": self.remote_path,
         }
 
     def to_json(self):
         """
         Return json representation of the file record.
         """
-        return json.dumps({
-            "FileRecord": self.to_dict()
-            })
+        return json.dumps({"FileRecord": self.to_dict()})

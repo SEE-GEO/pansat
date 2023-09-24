@@ -226,6 +226,7 @@ class DiscreteProviderBase(DataProvider):
     and the extends the functionality to match the general DataProvider
     interface.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -261,7 +262,6 @@ class DiscreteProviderBase(DataProvider):
             A list of 'pansat.FileRecords' specifying the available
             files.
         """
-
 
     def download(self, product, time_range, roi=None, destination=None):
         """
@@ -324,12 +324,7 @@ class DiscreteProviderBase(DataProvider):
         return files
 
 
-def find_files_in_range(
-        product,
-        time_range,
-        find_files_fun,
-        get_time_step_fun
-):
+def find_files_in_range(product, time_range, find_files_fun, get_time_step_fun):
     """
     Get all files within time range.
 
@@ -365,11 +360,10 @@ class DiscreteProviderDay(DiscreteProviderBase):
     This provider class provides helper functions for data providers
     which organize available files by days.
     """
+
     @abstractmethod
     def find_files_by_day(
-            self,
-            time: Time,
-            roi: Optional[Geometry] = None
+        self, time: Time, roi: Optional[Geometry] = None
     ) -> list[FileRecord]:
         """
         Compile a list of file records available for a given day.
@@ -389,10 +383,10 @@ class DiscreteProviderDay(DiscreteProviderBase):
         return timedelta(days=1)
 
     def find_files(
-            self,
-            product: "pansat.Product",
-            time_range: TimeRange,
-            roi: Optional[Geometry] = None
+        self,
+        product: "pansat.Product",
+        time_range: TimeRange,
+        roi: Optional[Geometry] = None,
     ) -> list[FileRecord]:
         """
         Compile a list of file records available for a given time range.
@@ -408,10 +402,7 @@ class DiscreteProviderDay(DiscreteProviderBase):
             day.
         """
         return find_files_in_range(
-            product,
-            time_range,
-            self.find_files_by_day,
-            self.get_time_step
+            product, time_range, self.find_files_by_day, self.get_time_step
         )
 
 
@@ -419,6 +410,7 @@ class DiscreteProviderMonth(DiscreteProviderBase):
     """
     A discrete provider which organizes files by months.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -428,17 +420,15 @@ class DiscreteProviderMonth(DiscreteProviderBase):
 
     @abstractmethod
     def find_files_by_month(
-            self,
-            product: "pansat.Product",
-            time: datetime
+        self, product: "pansat.Product", time: datetime
     ) -> list[FileRecord]:
         pass
 
     def find_files(
-            self,
-            product: "pansat.Product",
-            time_range: TimeRange,
-            roi: Optional[Geometry] = None
+        self,
+        product: "pansat.Product",
+        time_range: TimeRange,
+        roi: Optional[Geometry] = None,
     ) -> list[FileRecord]:
         """
         Compile a list of file records available for a given time range.
@@ -457,7 +447,7 @@ class DiscreteProviderMonth(DiscreteProviderBase):
             product,
             time_range,
             self.find_files_by_month,
-            lambda time: DiscreteProviderMonth.get_time_step(self, time)
+            lambda time: DiscreteProviderMonth.get_time_step(self, time),
         )
 
 
@@ -465,6 +455,7 @@ class DiscreteProviderYear(DiscreteProviderBase):
     """
     A discrete provider which organizes files by years.
     """
+
     def __init__(self):
         super().__init__()
 
@@ -477,10 +468,10 @@ class DiscreteProviderYear(DiscreteProviderBase):
         pass
 
     def find_files(
-            self,
-            product: "pansat.Product",
-            time_range: TimeRange,
-            roi: Optional[Geometry] = None
+        self,
+        product: "pansat.Product",
+        time_range: TimeRange,
+        roi: Optional[Geometry] = None,
     ) -> list[FileRecord]:
         """
         Compile a list of file records available for a given time range.
@@ -499,5 +490,5 @@ class DiscreteProviderYear(DiscreteProviderBase):
             product,
             time_range,
             self.find_files_by_year,
-            lambda time: DiscreteProviderYear.get_time_step(self, time)
+            lambda time: DiscreteProviderYear.get_time_step(self, time),
         )

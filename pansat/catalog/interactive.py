@@ -10,8 +10,7 @@ try:
     from ipyleaflet import Map, WKTLayer, DrawControl
 except ModuleNotFoundError:
     raise ModuleNotFoundError(
-        "This ipyleaflet module is required for interactively visualizing"
-        "indices."
+        "This ipyleaflet module is required for interactively visualizing" "indices."
     )
 from ipywidgets import HBox, VBox, DatePicker, Button, HTML, Text, Label
 from IPython.display import display
@@ -25,11 +24,12 @@ from pansat.geometry import MultiPolygon
 from pansat.time import TimeRange
 
 
-class GranuleDrawer():
+class GranuleDrawer:
     """
     Helper class that manages the drawing of granules onto the
     leaflet widget.
     """
+
     def __init__(self, leaflet_map, max_granules=500):
         """
         Args:
@@ -74,7 +74,6 @@ class GranuleDrawer():
         added = []
 
         for granule in add:
-
             if len(self.layers) > self.max_granules:
                 break
 
@@ -90,15 +89,13 @@ class GranuleDrawer():
                 """
 
             layer = WKTLayer(
-                wkt_string=granule.geometry.to_shapely().wkt,
-                popup=HTML(info_str)
+                wkt_string=granule.geometry.to_shapely().wkt, popup=HTML(info_str)
             )
             self.leaflet_map.add_layer(layer)
             self.layers[granule] = layer
             added.append(granule)
 
         self._granules = new_granules & old_granules | set(added)
-
 
     def clear(self):
         self.leaflet_map.clear_layers()
@@ -107,11 +104,12 @@ class GranuleDrawer():
         self._granules = set()
 
 
-class PolygonManager():
+class PolygonManager:
     """
     This class manages the region polygon that can be used to limit
     the search regions.
     """
+
     def __init__(self, leaflet_map):
         """
         Args:
@@ -135,10 +133,7 @@ class PolygonManager():
         if self._layer is not None:
             self.leaflet_map.remove_layer(self._layer)
         self._layer = WKTLayer(
-            wkt_string=new_polygon.to_shapely().wkt,
-            style={
-                "color": "red"
-            }
+            wkt_string=new_polygon.to_shapely().wkt, style={"color": "red"}
         )
         self.leaflet_map.add_layer(self._layer)
         self._polygon = new_polygon
@@ -153,6 +148,7 @@ class SearchResult:
     A container class the holds the search results from the
     interactive search.
     """
+
     def __init__(self):
         self._granules = set()
 
@@ -169,11 +165,7 @@ class SearchResult:
 
 
 def visualize_index(index, max_granules=10):
-
-    granules = _pandas_to_granule(
-        index.product,
-        index.data.iloc[:max_granules]
-    )
+    granules = _pandas_to_granule(index.product, index.data.iloc[:max_granules])
     start_time = pd.to_datetime(index.data.start_time[0])
     end_time = pd.to_datetime(index.data.start_time[max_granules - 1])
 
@@ -183,11 +175,8 @@ def visualize_index(index, max_granules=10):
         "shapeOptions": {
             "color": "#6be5c3",
         },
-        "drawError": {
-            "color": "#dd253b",
-            "message": "Oups!"
-        },
-        "allowIntersection": False
+        "drawError": {"color": "#dd253b", "message": "Oups!"},
+        "allowIntersection": False,
     }
     draw_control.polyline = {}
     draw_control.circlemarker = {}
@@ -197,19 +186,17 @@ def visualize_index(index, max_granules=10):
     def remove_polygons(*args, **kwargs):
         poly_manager.polygon = kwargs["geo_json"]["geometry"]["coordinates"]
         draw_control.clear_polygons()
+
     draw_control.on_draw(remove_polygons)
     ll_map.add_control(draw_control)
 
     date_field_1 = Text(
-        description="Start time: ",
-        value=start_time.strftime("%Y-%m-%dT%H:%M:%S")
+        description="Start time: ", value=start_time.strftime("%Y-%m-%dT%H:%M:%S")
     )
     date_field_2 = Text(
-        description="End time: ",
-        value=end_time.strftime("%Y-%m-%dT%H:%M:%S")
+        description="End time: ", value=end_time.strftime("%Y-%m-%dT%H:%M:%S")
     )
     label = Label()
-
 
     button = Button(description="Search")
 
@@ -222,7 +209,6 @@ def visualize_index(index, max_granules=10):
     results = SearchResult()
 
     def search(button):
-
         try:
             date_1 = np.datetime64(date_field_1.value)
         except ValueError:
@@ -245,7 +231,6 @@ def visualize_index(index, max_granules=10):
         results.granules = granules
         granule_drawer.granules = granules
         poly_manager.reset()
-
 
     button.on_click(search)
     display(box)

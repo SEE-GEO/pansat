@@ -15,8 +15,10 @@ class DataProvider(ABC):
     """
     Abstract base class for data provider classes.
     """
+
     def __init__(self):
         from pansat.download.providers import ALL_PROVIDERS
+
         if not self in ALL_PROVIDERS:
             ALL_PROVIDERS.append(self)
 
@@ -60,10 +62,12 @@ class DataProvider(ABC):
                 the downloaded files should be stored.
         """
 
+
 class MetaDataprovider(ABC):
     """
     Abstract base class for metadata provider.
     """
+
     @abstractclassmethod
     def get_available_products(cls):
         """

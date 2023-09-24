@@ -22,6 +22,7 @@ class Granule:
     data file. Their purpose is to allow for more find-grained data
     retrieval.
     """
+
     file_record: FileRecord
     time_range: TimeRange
     geometry: Geometry
@@ -49,11 +50,11 @@ class Granule:
         and the same primary and seconday index range.
         """
         return (
-            (self.file_record.filename == other.file_record.filename) and
-            (self.primary_index_name == other.primary_index_name) and
-            (self.primary_index_range == other.primary_index_range) and
-            (self.secondary_index_name == other.secondary_index_name) and
-            (self.secondary_index_range == other.secondary_index_range)
+            (self.file_record.filename == other.file_record.filename)
+            and (self.primary_index_name == other.primary_index_name)
+            and (self.primary_index_range == other.primary_index_range)
+            and (self.secondary_index_name == other.secondary_index_name)
+            and (self.secondary_index_range == other.secondary_index_range)
         )
 
     def __hash__(self):
@@ -61,29 +62,34 @@ class Granule:
         The hash of a granule is computed using its filename and the
         names and ranges of the primary and secondary indices.
         """
-        return hash((
-            self.file_record.filename,
-            self.primary_index_name,
-            self.primary_index_range,
-            self.secondary_index_name,
-            self.secondary_index_range,
-        ))
+        return hash(
+            (
+                self.file_record.filename,
+                self.primary_index_name,
+                self.primary_index_range,
+                self.secondary_index_name,
+                self.secondary_index_range,
+            )
+        )
 
     def __repr__(self):
-
         if self.secondary_index_name == "":
-            return (f"Granule(filename='{self.file_record.filename}', "
-                    f"start_time='{self.time_range.start}', "
-                    f"end_time='{self.time_range.end}', "
-                    f"primary_index_name='{self.primary_index_name}', "
-                    f"primary_index_range='{self.primary_index_range}')")
-        return (f"Granule(filename='{self.file_record.filename}', "
+            return (
+                f"Granule(filename='{self.file_record.filename}', "
                 f"start_time='{self.time_range.start}', "
                 f"end_time='{self.time_range.end}', "
                 f"primary_index_name='{self.primary_index_name}', "
-                f"primary_index_range='{self.primary_index_range}', "
-                f"secondary_index_name='{self.secondary_index_name}', "
-                f"secondary_index_range='{self.secondary_index_range}')")
+                f"primary_index_range='{self.primary_index_range}')"
+            )
+        return (
+            f"Granule(filename='{self.file_record.filename}', "
+            f"start_time='{self.time_range.start}', "
+            f"end_time='{self.time_range.end}', "
+            f"primary_index_name='{self.primary_index_name}', "
+            f"primary_index_range='{self.primary_index_range}', "
+            f"secondary_index_name='{self.secondary_index_name}', "
+            f"secondary_index_range='{self.secondary_index_range}')"
+        )
 
     def is_adjacent(self, other):
         """
@@ -138,9 +144,7 @@ class Granule:
              and other.
         """
         if not self.is_adjacent(other):
-            raise ValueError(
-                "Can only merge adjacent granules."
-            )
+            raise ValueError("Can only merge adjacent granules.")
 
         time_range = TimeRange(
             min(self.time_range.start, other.time_range.end),
@@ -165,9 +169,8 @@ class Granule:
             self.primary_index_name,
             primary_index_range,
             self.secondary_index_name,
-            secondary_index_range
+            secondary_index_range,
         )
-
 
     @classmethod
     def from_dict(cls, dct):
@@ -191,9 +194,8 @@ class Granule:
             geometry=geometry,
             primary_index_range=primary_index_range,
             secondary_index_range=secondary_index_range,
-            **dct
+            **dct,
         )
-
 
     def open(self):
         product = self.file_record.product
@@ -205,22 +207,20 @@ class Granule:
         (i.e., JSON encodable) types.
         """
         return {
-                "file_record": self.file_record.to_dict(),
-                "time_range": self.time_range.to_dict(),
-                "geometry": self.geometry.to_geojson(),
-                "primary_index_name": self.primary_index_name,
-                "primary_index_range": self.primary_index_range,
-                "secondary_index_name": self.secondary_index_name,
-                "secondary_index_range": self.secondary_index_range
+            "file_record": self.file_record.to_dict(),
+            "time_range": self.time_range.to_dict(),
+            "geometry": self.geometry.to_geojson(),
+            "primary_index_name": self.primary_index_name,
+            "primary_index_range": self.primary_index_range,
+            "secondary_index_name": self.secondary_index_name,
+            "secondary_index_range": self.secondary_index_range,
         }
 
     def to_json(self):
         """
         Return json representation of this Granule object.
         """
-        return json.dumps({
-            "Granule": self.to_dict()
-        })
+        return json.dumps({"Granule": self.to_dict()})
 
 
 class GranuleEncoder(json.JSONEncoder):
@@ -228,19 +228,20 @@ class GranuleEncoder(json.JSONEncoder):
     Encoder class that allows encoding granules in
 
     """
+
     def default(self, obj):
         if isinstance(obj, Granule):
             return {"Granule": obj.to_dict()}
         return json.JSONEncoder.default(self, obj)
 
+
 def granule_hook(dct):
     """
     Object hook that allows loading Granule object from a json stream.
     """
-    if 'Granule' in dct:
+    if "Granule" in dct:
         return Granule.from_dict(dct["Granule"])
     return dct
-
 
 
 def merge_granules(granules):
@@ -261,9 +262,7 @@ def merge_granules(granules):
     merged = []
 
     if len(granules) == 0:
-        raise ValueError(
-            "Need at least one granule to merge."
-        )
+        raise ValueError("Need at least one granule to merge.")
 
     current = granules[0]
     for ind in range(len(granules) - 1):

@@ -23,6 +23,7 @@ class ExampleProvider(DataProvider):
     files a in a single directory the path to which is provided
     to the provider at construction.
     """
+
     def __init__(self, data_dir, fmt):
         """
         Args:
@@ -45,17 +46,9 @@ class ExampleProvider(DataProvider):
         """
         name = product.name
         print(name)
-        return (
-            name.startswith("example") and
-            name.split(".")[1].startswith(self.fmt)
-        )
+        return name.startswith("example") and name.split(".")[1].startswith(self.fmt)
 
-    def find_files(
-            self,
-            product: Product,
-            time_range: TimeRange,
-            roi: Geometry = None
-    ):
+    def find_files(self, product: Product, time_range: TimeRange, roi: Geometry = None):
         """
         Find all product files within a given time range.
 
@@ -71,16 +64,11 @@ class ExampleProvider(DataProvider):
             A list of FileRecord object identifying the found files.
         """
         all_recs = map(
-            lambda path: FileRecord.from_remote(
-                product,
-                self,
-                path,
-                path.name),
-            sorted(list(self.data_dir.glob(f"**/*")))
+            lambda path: FileRecord.from_remote(product, self, path, path.name),
+            sorted(list(self.data_dir.glob(f"**/*"))),
         )
         found_recs = []
         for rec in all_recs:
-
             try:
                 rng = product.get_temporal_coverage(rec)
             except ValueError:

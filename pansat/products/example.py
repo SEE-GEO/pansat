@@ -65,14 +65,15 @@ description = An attribute.
 # Test data creation
 ###############################################################################
 
+
 def get_filename(
-        start_time,
-        end_time,
-        lon_min=-180,
-        lat_min=-90,
-        lon_max=180,
-        lat_max=90,
-        suffix="h5"
+    start_time,
+    end_time,
+    lon_min=-180,
+    lat_min=-90,
+    lon_max=180,
+    lat_max=90,
+    suffix="h5",
 ):
     """
     Create filename for example product.
@@ -102,7 +103,7 @@ def get_filename(
         lat_min=lat_min,
         lon_max=lon_max,
         lat_max=lat_max,
-        suffix=suffix
+        suffix=suffix,
     )
 
 
@@ -137,38 +138,26 @@ def write_hdf4_product_data(path):
             lat_min=lats.min(),
             lon_max=lons.max(),
             lat_max=lats.max(),
-            suffix="hdf"
+            suffix="hdf",
         )
         file_path = path / filename
         output_file = SD(str(file_path), SDC.WRITE | SDC.CREATE)
 
         att = output_file.attr("attribute_1")
-        att.set(SDC.CHAR, 'test')
+        att.set(SDC.CHAR, "test")
 
-        v_lons = output_file.create(
-            'longitude',
-            SDC.FLOAT32,
-            200
-        )
+        v_lons = output_file.create("longitude", SDC.FLOAT32, 200)
         v_lons[:] = lons
         dim_1 = v_lons.dim(0)
         dim_1.setname("dimension_1")
 
-        v_lats = output_file.create(
-            'latitude',
-            SDC.FLOAT32,
-            200
-        )
+        v_lats = output_file.create("latitude", SDC.FLOAT32, 200)
         v_lats[:] = lats
         dim_2 = v_lats.dim(0)
         dim_2.setname("dimension_2")
 
         surface_precip = np.random.rand(200, 200).astype("float32")
-        v_sp = output_file.create(
-            'surface_precip',
-            SDC.FLOAT32,
-            (200, 200)
-        )
+        v_sp = output_file.create("surface_precip", SDC.FLOAT32, (200, 200))
         v_sp[:] = surface_precip
         output_file.end()
         files.append(file_path)
@@ -204,18 +193,14 @@ def write_hdf5_product_data(path):
             lat_min=lats.min(),
             lon_max=lons.max(),
             lat_max=lats.max(),
-            suffix="h5"
+            suffix="h5",
         )
         file_path = path / filename
         output_file = File(file_path, "w")
-        v_lons = output_file.create_dataset(
-            'longitude',
-            200,
-            dtype="float32"
-        )
+        v_lons = output_file.create_dataset("longitude", 200, dtype="float32")
         v_lons[:] = lons
         v_lats = output_file.create_dataset(
-            'latitude',
+            "latitude",
             200,
             dtype="float32",
         )
@@ -223,7 +208,7 @@ def write_hdf5_product_data(path):
 
         surface_precip = np.random.rand(200, 200)
         v_sp = output_file.create_dataset(
-            'surface_precip',
+            "surface_precip",
             (200, 200),
             dtype="float32",
         )
@@ -254,9 +239,7 @@ class ExampleProduct(Product):
             r"(?P<lat_max>[\+\-\d\.]{7})"
             f".{suffix}"
         )
-        self.product_description = ProductDescription(
-            EXAMPLE_PRODUCT_DESCRIPTION
-        )
+        self.product_description = ProductDescription(EXAMPLE_PRODUCT_DESCRIPTION)
         super().__init__()
 
     @property
@@ -312,15 +295,9 @@ class ExampleProduct(Product):
         return self.description.to_xarray_dataset(file_handle)
 
 
-hdf4_product = ExampleProduct(
-    "hdf4_product",
-    suffix="hdf"
-)
+hdf4_product = ExampleProduct("hdf4_product", suffix="hdf")
 
-hdf5_product = ExampleProduct(
-    "hdf5_product",
-    suffix="h5"
-)
+hdf5_product = ExampleProduct("hdf5_product", suffix="h5")
 
 ######################################################################
 # Granule product
@@ -368,6 +345,7 @@ description = The time coordinate.
 callback = _parse_times
 """
 
+
 def write_hdf4_granule_product_data(path):
     """
     Populates a temporary directory with a GranuleProduct test data file
@@ -390,12 +368,10 @@ def write_hdf4_granule_product_data(path):
         end_time = start_time + delta_t
 
         lats = np.linspace(-5, 5, 100, dtype="float32")
-        lats =  np.tile(lats, (200, 1))
+        lats = np.tile(lats, (200, 1))
 
         lons = np.linspace(i * 10, (i + 1) * 10, 200, dtype="float32")
         lons = np.tile(lons[..., None], (1, 200))
-
-
 
         filename = get_filename(
             start_time=start_time,
@@ -404,27 +380,19 @@ def write_hdf4_granule_product_data(path):
             lat_min=lats.min(),
             lon_max=lons.max(),
             lat_max=lats.max(),
-            suffix="hdf"
+            suffix="hdf",
         )
         file_path = path / filename
         output_file = SD(str(file_path), SDC.WRITE | SDC.CREATE)
 
-        v_lons = output_file.create(
-            'longitude',
-            SDC.FLOAT32,
-            (200, 100)
-        )
+        v_lons = output_file.create("longitude", SDC.FLOAT32, (200, 100))
         v_lons[:] = lons
         dim_1 = v_lons.dim(0)
         dim_1.setname("scans")
         dim_2 = v_lons.dim(1)
         dim_2.setname("pixels")
 
-        v_lats = output_file.create(
-            'latitude',
-            SDC.FLOAT32,
-            (200, 100)
-        )
+        v_lats = output_file.create("latitude", SDC.FLOAT32, (200, 100))
         v_lats[:] = lats
         dim_1 = v_lats.dim(0)
         dim_1.setname("scans")
@@ -432,22 +400,14 @@ def write_hdf4_granule_product_data(path):
         dim_2.setname("pixels")
 
         surface_precip = np.random.rand(200, 100).astype("float32")
-        v_sp = output_file.create(
-            'surface_precip',
-            SDC.FLOAT32,
-            (200, 100)
-        )
+        v_sp = output_file.create("surface_precip", SDC.FLOAT32, (200, 100))
         v_sp[:] = surface_precip
         dim_1 = v_sp.dim(0)
         dim_1.setname("scans")
         dim_2 = v_sp.dim(1)
         dim_2.setname("pixels")
 
-        v_time = output_file.create(
-            'time',
-            SDC.INT32,
-            (200,)
-        )
+        v_time = output_file.create("time", SDC.INT32, (200,))
         dim_1 = v_time.dim(0)
         dim_1.setname("scans")
 
@@ -481,7 +441,7 @@ def write_hdf5_granule_product_data(path):
         end_time = start_time + delta_t
 
         lats = np.linspace(-5, 5, 100, dtype="float32")
-        lats =  np.tile(lats, (200, 1))
+        lats = np.tile(lats, (200, 1))
         lons = np.linspace(i * 10, (i + 1) * 10, 200, dtype="float32")
         lons = np.tile(lons[..., None], (1, 100))
 
@@ -492,19 +452,15 @@ def write_hdf5_granule_product_data(path):
             lat_min=lats.min(),
             lon_max=lons.max(),
             lat_max=lats.max(),
-            suffix="h5"
+            suffix="h5",
         )
         file_path = path / filename
         output_file = File(file_path, "w")
 
-        v_lons = output_file.create_dataset(
-            'longitude',
-            (200, 100),
-            dtype="float32"
-        )
+        v_lons = output_file.create_dataset("longitude", (200, 100), dtype="float32")
         v_lons[:] = lons
         v_lats = output_file.create_dataset(
-            'latitude',
+            "latitude",
             (200, 100),
             dtype="float32",
         )
@@ -512,14 +468,14 @@ def write_hdf5_granule_product_data(path):
 
         surface_precip = np.random.rand(200, 100)
         v_sp = output_file.create_dataset(
-            'surface_precip',
+            "surface_precip",
             (200, 100),
             dtype="float32",
         )
         v_sp[:] = surface_precip
 
         v_time = output_file.create_dataset(
-            'time',
+            "time",
             (200,),
             dtype="int64",
         )
@@ -636,20 +592,20 @@ class ExampleGranuleProduct(GranuleProduct):
         """
         if self.suffix == "h5":
             from pansat.formats.hdf5 import HDF5File
+
             file_handle = HDF5File(str(rec.local_path))
         else:
             from pansat.formats.hdf4 import HDF4File
+
             file_handle = HDF4File(str(rec.local_path))
 
         granules = []
         for granule_data in self.product_description.get_granule_data(
-                file_handle,
-                context=globals()
+            file_handle, context=globals()
         ):
             granules.append(Granule(rec, *granule_data))
 
         return granules
-
 
     def open(self, rec: FileRecord) -> xr.Dataset:
         return self.description.to_xarray_dataset(file_handle)
@@ -658,15 +614,9 @@ class ExampleGranuleProduct(GranuleProduct):
         pass
 
 
-hdf4_granule_product = ExampleGranuleProduct(
-    "hdf4_granule_product",
-    suffix="hdf"
-)
+hdf4_granule_product = ExampleGranuleProduct("hdf4_granule_product", suffix="hdf")
 
-hdf5_granule_product = ExampleGranuleProduct(
-    "hdf5_granule_product",
-    suffix="h5"
-)
+hdf5_granule_product = ExampleGranuleProduct("hdf5_granule_product", suffix="h5")
 
 ######################################################################
 # Thin-swath product
@@ -710,6 +660,7 @@ description = The time coordinate.
 callback = _parse_times
 """
 
+
 def write_thin_swath_product_data(path: Path) -> list[Path]:
     """
     Populates a temporary directory with a ThinSwathProduct test data file
@@ -751,19 +702,15 @@ def write_thin_swath_product_data(path: Path) -> list[Path]:
             lat_min=lats.min(),
             lon_max=lons.max(),
             lat_max=lats.max(),
-            suffix="h5"
+            suffix="h5",
         )
         file_path = path / filename
         output_file = File(file_path, "w")
 
-        v_lons = output_file.create_dataset(
-            'longitude',
-            (100,),
-            dtype="float32"
-        )
+        v_lons = output_file.create_dataset("longitude", (100,), dtype="float32")
         v_lons[:] = lons
         v_lats = output_file.create_dataset(
-            'latitude',
+            "latitude",
             (100,),
             dtype="float32",
         )
@@ -771,14 +718,14 @@ def write_thin_swath_product_data(path: Path) -> list[Path]:
 
         surface_precip = np.random.rand(100)
         v_sp = output_file.create_dataset(
-            'surface_precip',
+            "surface_precip",
             (100,),
             dtype="float32",
         )
         v_sp[:] = surface_precip
 
         v_time = output_file.create_dataset(
-            'time',
+            "time",
             (100,),
             dtype="int64",
         )
@@ -798,10 +745,12 @@ class ThinSwathProduct(ExampleGranuleProduct):
     The thins-swath product defines a product whose data is organized
     along a single dimension as is the case for CloudSat.
     """
+
     def __init__(self):
         super().__init__("thin_swath_product", "h5")
         self.product_description = ProductDescription(
             EXAMPLE_THIN_SWATH_PRODUCT_DESCRIPTION
         )
+
 
 thin_swath_product = ThinSwathProduct()

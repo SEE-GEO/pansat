@@ -28,6 +28,7 @@ class Catalog:
     A catalog manages collections of data files from different
     products.
     """
+
     def __init__(self, path):
         self.path = Path(path)
         self.indices = self._load_indices(self.path)
@@ -50,16 +51,12 @@ class Catalog:
                 index = Index.load(path)
                 indices[index.product.name] = index
             except ValueError:
-                LOGGER.warning(
-                    f"Loading of the index file '%s' failed.",
-                    path
-                )
+                LOGGER.warning(f"Loading of the index file '%s' failed.", path)
         return indices
 
     def __repr__(self):
         products = ", ".join(self.indices.keys())
         return f"Catalog(path='{self.path}')"
-
 
     def find_local_path(self, rec: FileRecord):
         """
@@ -78,7 +75,6 @@ class Catalog:
             return None
         index = self.indices[pname]
         return index.find_local_path(rec)
-
 
 
 def find_files(product: "pansat.products.Prodcut", path: Path):

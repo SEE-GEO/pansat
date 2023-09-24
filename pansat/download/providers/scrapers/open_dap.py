@@ -106,7 +106,8 @@ def map_pages(function, parent_url, depth=10):
 
 
 GPM_PRODUCT_REGEXP = re.compile(
-    r'"(\w*)(?:-([\w\-]*))?\.(\w*)\.(\w*)\.([\w\-]*)\..*\.([\w\-]*)\.\w+\.ddx"', re.MULTILINE
+    r'"(\w*)(?:-([\w\-]*))?\.(\w*)\.(\w*)\.([\w\-]*)\..*\.([\w\-]*)\.\w+\.ddx"',
+    re.MULTILINE,
 )
 
 

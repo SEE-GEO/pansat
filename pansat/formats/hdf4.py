@@ -95,6 +95,7 @@ class VData:
         data = self.file().vdata_table.attach(self.name).__getitem__(*args)
         return np.array(data)
 
+
 @dataclass
 class Dimension:
     size: int
@@ -170,10 +171,12 @@ class HDF4File:
         dimensions = {}
         for name in datasets:
             dataset = self.scientific_dataset.select(name)
-            dimensions.update({
-                name: Dimension(*dim_info) for name, dim_info
-                in dataset.dimensions(full=1).items()
-            })
+            dimensions.update(
+                {
+                    name: Dimension(*dim_info)
+                    for name, dim_info in dataset.dimensions(full=1).items()
+                }
+            )
         self.dimensions = dimensions
 
         self.vdata_table = VS(self.file_handle)
@@ -182,7 +185,6 @@ class HDF4File:
             for info in self.vdata_table.vdatainfo()
         }
         self.vdata = vdata_dict
-
 
     def __del__(self):
         if self.file_handle:

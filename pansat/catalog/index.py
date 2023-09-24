@@ -44,9 +44,6 @@ def find_pansat_catalog(path):
     return None
 
 
-
-    
-
 def _get_index_data(product, path):
     """
     Extracts index data from a single path.
@@ -76,10 +73,7 @@ def _get_index_data(product, path):
     return [Granule(rec, TimeRange(start_time, end_time), geom)]
 
 
-def _pandas_to_granule(
-        product,
-        data
-):
+def _pandas_to_granule(product, data):
     """
     Converts a pandas dataframe of file indices into a list
     of file records.
@@ -108,25 +102,22 @@ def _pandas_to_granule(
             secondary_index_start = row.secondary_index_start
             secondary_index_end = row.secondary_index_end
             geo = ShapelyGeometry(row.geometry)
-            granules.append(Granule(
-                rec,
-                TimeRange(start_time, end_time),
-                geo,
-                primary_index_name,
-                (primary_index_start, primary_index_end),
-                secondary_index_name,
-                (secondary_index_start, secondary_index_end),
-            ))
+            granules.append(
+                Granule(
+                    rec,
+                    TimeRange(start_time, end_time),
+                    geo,
+                    primary_index_name,
+                    (primary_index_start, primary_index_end),
+                    secondary_index_name,
+                    (secondary_index_start, secondary_index_end),
+                )
+            )
     elif "remote_path" in data.columns:
         for row in data.itertuples():
             remote_path = row.remote_path
             filename = row.filename
-            rec = FileRecord.from_remote(
-                product,
-                None,
-                remote_path,
-                filename
-            )
+            rec = FileRecord.from_remote(product, None, remote_path, filename)
             start_time = row.start_time
             end_time = row.end_time
             primary_index_name = row.primary_index_name
@@ -136,15 +127,17 @@ def _pandas_to_granule(
             secondary_index_start = row.secondary_index_start
             secondary_index_end = row.secondary_index_end
             geo = ShapelyGeometry(row.geometry)
-            granules.append(Granule(
-                rec,
-                TimeRange(start_time, end_time),
-                geo,
-                primary_index_name,
-                (primary_index_start, primary_index_end),
-                secondary_index_name,
-                (secondary_index_start, secondary_index_end),
-            ))
+            granules.append(
+                Granule(
+                    rec,
+                    TimeRange(start_time, end_time),
+                    geo,
+                    primary_index_name,
+                    (primary_index_start, primary_index_end),
+                    secondary_index_name,
+                    (secondary_index_start, secondary_index_end),
+                )
+            )
     else:
         raise ValueError(
             "Index data must provide either a 'local_path' column or "
@@ -162,6 +155,7 @@ class Index:
         data: A 'geopandas.Dataframe' containing coverage information
             of all indexed files.
     """
+
     @classmethod
     def load(cls, path):
         """
@@ -182,7 +176,6 @@ class Index:
         product_name = path.stem
         product = get_product(product_name)
         return cls(product, data)
-
 
     @classmethod
     def index(cls, product, files, n_processes=None):
@@ -214,7 +207,6 @@ class Index:
 
         if n_processes is None:
             for path in files:
-
                 index_data = _get_index_data(product, path)
 
                 for granule in index_data:
@@ -230,9 +222,7 @@ class Index:
                     secondary_index_end.append(granule.secondary_index_range[1])
                     geoms.append(granule.geometry.to_shapely())
         else:
-            pool = ProcessPoolExecutor(
-                max_workers=n_processes
-            )
+            pool = ProcessPoolExecutor(max_workers=n_processes)
             tasks = []
             for path in files:
                 tasks.append(pool.submit(_get_index_data, product, path))
@@ -241,13 +231,10 @@ class Index:
 
             with rich.progress.Progress() as prog:
                 prog_task = prog.add_task(
-                    description="Indexing files: ",
-                    start=True,
-                    total=n_tasks
+                    description="Indexing files: ", start=True, total=n_tasks
                 )
 
                 for ind, task in enumerate(as_completed(tasks)):
-
                     index_data = task.result()
                     prog.update(prog_task, advance=1)
                     if index_data is None:
@@ -281,7 +268,7 @@ class Index:
                 "secondary_index_start": secondary_index_start,
                 "secondary_index_end": secondary_index_end,
             },
-            geometry=geoms
+            geometry=geoms,
         )
         data.sort_values("start_time", inplace=True)
         return cls(product, data)
@@ -296,7 +283,6 @@ class Index:
         """
         self.product = product
         self.data = data
-
 
     def __add__(self, other):
         """Merge two indices."""
@@ -314,7 +300,6 @@ class Index:
             f"<Index of '{self.product.name}' containing "
             f"{self.data.start_time.size} entries>"
         )
-
 
     def find_local_path(self, file_record: FileRecord):
         """
@@ -335,16 +320,12 @@ class Index:
             return path
         return None
 
-
     def find(self, time_range=None, roi=None):
         """
         Find entries in Index within given time range and location.
         """
         if time_range is None and roi is None:
-            return _pandas_to_granule(
-                self.product,
-                self.data
-            )
+            return _pandas_to_granule(self.product, self.data)
 
         if time_range is None:
             selected = self.data
@@ -352,23 +333,19 @@ class Index:
             if not isinstance(time_range, TimeRange):
                 time_range = TimeRange(time_range, time_range)
             selected = self.data.loc[
-                ~((self.data.start_time > time_range.end) |
-                  (self.data.end_time < time_range.start))
+                ~(
+                    (self.data.start_time > time_range.end)
+                    | (self.data.end_time < time_range.start)
+                )
             ]
 
         if roi is None:
-            return _pandas_to_granule(
-                self.product,
-                selected
-            )
+            return _pandas_to_granule(self.product, selected)
 
         roi = roi.to_shapely()
         indices = selected.intersects(roi)
 
-        return _pandas_to_granule(
-            self.product,
-            selected.loc[indices]
-        )
+        return _pandas_to_granule(self.product, selected.loc[indices])
 
     def save(self, path):
         """
@@ -382,15 +359,14 @@ class Index:
         """
         path = Path(path)
         if not path.is_dir():
-            raise ValueError(
-                "'path' must point to a directory."
-            )
+            raise ValueError("'path' must point to a directory.")
         output_file = path / f"{self.product.name}.idx"
         data = self.data.to_parquet(output_file)
         return output_file
 
     def search_interactive(self):
         from pansat.catalog.interactive import visualize_index
+
         return visualize_index(self)
 
 
@@ -437,13 +413,7 @@ def merge_matches(match_1, match_2):
 
 
 def _find_matches_rec(
-        prod_l,
-        index_data_l,
-        prod_r,
-        index_data_r,
-        time_diff,
-        merge=True,
-        done_queue=None
+    prod_l, index_data_l, prod_r, index_data_r, time_diff, merge=True, done_queue=None
 ):
     """
     Recursively search for matching granules in two given index
@@ -474,25 +444,22 @@ def _find_matches_rec(
     # If we have more than 2 granules in left block,
     # split.
     if index_data_l.shape[0] > 1:
-
         n_l = index_data_l.shape[0]
 
-        split_1_l = index_data_l.iloc[:n_l // 2]
-        split_2_l = index_data_l.iloc[n_l // 2:]
+        split_1_l = index_data_l.iloc[: n_l // 2]
+        split_2_l = index_data_l.iloc[n_l // 2 :]
 
         split_1_start = split_1_l.start_time.iloc[0] - time_diff
         split_1_end = split_1_l.end_time.iloc[-1] + time_diff
-        inds_1_r = (
-            (index_data_r.end_time > split_1_start) *
-            (index_data_r.start_time < split_1_end)
+        inds_1_r = (index_data_r.end_time > split_1_start) * (
+            index_data_r.start_time < split_1_end
         )
         split_1_r = index_data_r.loc[inds_1_r]
 
         split_2_start = split_2_l.start_time.iloc[0] - time_diff
         split_2_end = split_2_l.end_time.iloc[-1] + time_diff
-        inds_2_r = (
-            (index_data_r.end_time > split_2_start) *
-            (index_data_r.start_time < split_2_end)
+        inds_2_r = (index_data_r.end_time > split_2_start) * (
+            index_data_r.start_time < split_2_end
         )
         split_2_r = index_data_r.loc[inds_2_r]
 
@@ -503,7 +470,7 @@ def _find_matches_rec(
             split_1_r,
             time_diff,
             merge=merge,
-            done_queue=done_queue
+            done_queue=done_queue,
         )
         matches_2 = _find_matches_rec(
             prod_l,
@@ -512,7 +479,7 @@ def _find_matches_rec(
             split_2_r,
             time_diff,
             merge=merge,
-            done_queue=done_queue
+            done_queue=done_queue,
         )
 
         if len(matches_1) == 0:
@@ -523,18 +490,17 @@ def _find_matches_rec(
 
         if merge:
             return (
-                matches_1[:-1] +
-                merge_matches(matches_1[-1], matches_2[0]) +
-                matches_2[1:]
+                matches_1[:-1]
+                + merge_matches(matches_1[-1], matches_2[0])
+                + matches_2[1:]
             )
         return matches_1 + matches_2
 
     start_time = index_data_l.start_time.iloc[0] - time_diff
     end_time = index_data_l.end_time.iloc[0] + time_diff
 
-    matches = (
-        (index_data_r.end_time > start_time) *
-        (index_data_r.start_time < end_time)
+    matches = (index_data_r.end_time > start_time) * (
+        index_data_r.start_time < end_time
     )
     selected = index_data_r.loc[matches]
     matches = selected.intersects(index_data_l.geometry.iloc[0])
@@ -556,11 +522,11 @@ def _find_matches_rec(
 
 
 def find_matches(
-        index_l: Index,
-        index_r: Index,
-        time_diff: Optional[np.timedelta64] = None,
-        n_processes: Optional[int] = None,
-        merge: bool = True
+    index_l: Index,
+    index_r: Index,
+    time_diff: Optional[np.timedelta64] = None,
+    n_processes: Optional[int] = None,
+    merge: bool = True,
 ) -> List[Tuple[Granule, Set[Granule]]]:
     """
     Find matching observations between two indices.
@@ -590,7 +556,7 @@ def find_matches(
             index_r.product,
             index_r.data,
             time_diff=time_diff,
-            merge=merge
+            merge=merge,
         )
 
     pool = ProcessPoolExecutor(max_workers=n_processes)
@@ -606,7 +572,6 @@ def find_matches(
     tasks = []
 
     for i in range(n_processes):
-
         ind_start = i * granules_per_proc + min(i, rem)
         ind_end = ind_start + granules_per_proc
         if i < rem:
@@ -615,31 +580,30 @@ def find_matches(
         index_data_l = index_l.data.iloc[ind_start:ind_end]
         start_time = index_data_l.start_time.iloc[0] - time_diff
         end_time = index_data_l.end_time.iloc[-1] + time_diff
-        inds_r = (
-            (index_r.data.end_time > start_time) *
-            (index_r.data.start_time < end_time)
+        inds_r = (index_r.data.end_time > start_time) * (
+            index_r.data.start_time < end_time
         )
         index_data_r = index_r.data.loc[inds_r]
 
-        tasks.append(pool.submit(
-            _find_matches_rec,
-            index_l.product,
-            index_data_l,
-            index_r.product,
-            index_data_r,
-            time_diff=time_diff,
-            merge=merge,
-            done_queue=done_queue,
-        ))
+        tasks.append(
+            pool.submit(
+                _find_matches_rec,
+                index_l.product,
+                index_data_l,
+                index_r.product,
+                index_data_r,
+                time_diff=time_diff,
+                merge=merge,
+                done_queue=done_queue,
+            )
+        )
 
     assert ind_end == n_granules_l
 
     matches = []
     with rich.progress.Progress() as prog:
         prog_task = prog.add_task(
-            description="Matching indices: ",
-            start=True,
-            total=n_granules_l
+            description="Matching indices: ", start=True, total=n_granules_l
         )
 
         for task in tasks:
@@ -661,9 +625,9 @@ def find_matches(
 
             if merge:
                 matches = (
-                    matches[:-1] +
-                    merge_matches(matches[-1], matches_t[0]) +
-                    matches_t[1:]
+                    matches[:-1]
+                    + merge_matches(matches[-1], matches_t[0])
+                    + matches_t[1:]
                 )
             else:
                 matches += matches_t
@@ -674,7 +638,6 @@ def find_matches(
             prog.update(prog_task, advance=elems)
 
     return matches
-
 
 
 def matches_to_geopandas(matches):
@@ -691,7 +654,6 @@ def matches_to_geopandas(matches):
     """
     dframes = []
     for ind in range(2):
-
         match_indices = []
         geoms = []
         start_times = []
@@ -707,7 +669,6 @@ def matches_to_geopandas(matches):
         secondary_index_end = []
 
         for match_ind, match in enumerate(matches):
-
             granules = match[ind]
             if isinstance(granules, Granule):
                 granules = [granules]
@@ -752,7 +713,7 @@ def matches_to_geopandas(matches):
                     "secondary_index_end": secondary_index_end,
                 },
                 geometry=geoms,
-                index=match_indices
+                index=match_indices,
             )
         )
     return tuple(dframes)
