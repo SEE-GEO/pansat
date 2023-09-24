@@ -51,4 +51,4 @@ def test_extract_gpm_products():
     response = open_dap.retrieve_page(url)
     results = open_dap.extract_gpm_products(response.text)
 
-    assert results == ("1C", "R", "GPM", "GMI")
+    assert results == ("1C", "R", "GPM", "GMI", "XCAL2016-C", "V07A")
