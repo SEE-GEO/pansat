@@ -55,8 +55,6 @@ class MODISProduct(Product):
                 "Not implemented."
             )
 
-
-
     def filename_to_date(self, filename):
         """
         Extract timestamp from filename.
@@ -101,6 +99,10 @@ class MODISProduct(Product):
         if self.product_name[:2] == "MY":
             platform = "Aqua"
         return f"MODIS_{platform}_{self.product_name}"
+
+    @property
+    def name(self):
+        return str(self)
 
     def download(self, start_time, end_time, destination=None, provider=None):
         """

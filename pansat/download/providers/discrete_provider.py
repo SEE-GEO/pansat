@@ -48,7 +48,6 @@ class DiscreteProvider(DataProvider):
             for the given day.
         """
 
-    @abstractmethod
     def download_file(self, filename, destination):
         """
         Download file from data provider.
@@ -428,7 +427,11 @@ class DiscreteProviderMonth(DiscreteProviderBase):
         return timedelta(days=days)
 
     @abstractmethod
-    def find_files_by_month(self, time: datetime) -> list[FileRecord]:
+    def find_files_by_month(
+            self,
+            product: "pansat.Product",
+            time: datetime
+    ) -> list[FileRecord]:
         pass
 
     def find_files(

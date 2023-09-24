@@ -27,7 +27,8 @@ setuptools.setup(
         "appdirs",
         "boto3",
         "paramiko",
-        "shapely"
+        "shapely",
+        "rich"
     ],
     setup_requires=["pytest-runner"],
     tests_require=[
