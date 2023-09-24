@@ -4,7 +4,7 @@ pansat.time
 
 This module provides functionality for dealing with times.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass
 import json
 from typing import Union
@@ -25,7 +25,9 @@ def to_datetime(time):
     try:
         return pd.to_datetime(time).to_pydatetime()
     except ValueError:
-        raise ValueError("Could not convert '%s' to datetime object.")
+        raise ValueError(
+            f"Could not convert '{time}' to datetime object.",
+        )
 
 
 def to_datetime64(time):
@@ -133,3 +135,36 @@ class TimeRange:
         """
         yield self.start
         yield self.end
+
+    def expand(self, delta):
+        """
+        Expand time range.
+
+        Args:
+            delta: A time delta specifying the time by which to expand the
+                time range. This should be a 'datetime.timedelta', a numpy
+                timedelta64 object or a tuple. If it is a tuple, it should
+                contain two deltas. The first of these deltas will be
+                subtracted from the start of the range and the second will
+                added to the end of the range.
+
+        Return:
+            A new TimeRange object expanded by the given timedelta.
+        """
+        if isinstance(delta, tuple):
+            left, right = delta
+        else:
+            left = delta
+            right = delta
+        if isinstance(left, timedelta):
+            start = to_datetime(self.start) - left
+            end = to_datetime(self.end) + right
+        elif isinstance(left, np.timedelta64):
+            start = to_datetime64(self.start) - left
+            end = to_datetime64(self.end) + right
+        else:
+            raise ValueError(
+                "Time deltas must be 'datetime.timedelta' or numpy "
+                "datetime64 objects."
+            )
+        return TimeRange(start, end)

@@ -2,7 +2,7 @@
 Tests for the pansat.time module
 ================================
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 import numpy as np
@@ -44,6 +44,29 @@ def test_time_range_covers():
 
     outside = "2020-01-02T00:00:01"
     assert not time_range.covers(outside)
+
+def test_time_range_expand():
+    """
+    Test expansion of time ranges.
+    """
+    start = "2020-01-01T00:00:00"
+    end = "2020-01-02T00:00:00"
+    time_range = TimeRange(start, end)
+
+    left = np.datetime64("2019-12-31T23:00:00")
+    assert not time_range.covers(left)
+    right = np.datetime64("2020-01-02T01:00:00")
+    assert not time_range.covers(right)
+    new_range = time_range.expand(
+        timedelta(hours=1)
+    )
+    assert new_range.covers(left)
+    assert new_range.covers(right)
+    new_range = time_range.expand(
+        (timedelta(hours=1), timedelta(hours=0))
+    )
+    assert new_range.covers(left)
+    assert not new_range.covers(right)
 
 
 def test_json_serialization():
