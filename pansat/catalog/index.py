@@ -9,6 +9,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Manager, TimeoutError
 from pathlib import Path
 import queue
+from typing import List, Optional, Tuple, Set
 
 import numpy as np
 import xarray as xr
@@ -555,12 +556,12 @@ def _find_matches_rec(
 
 
 def find_matches(
-        index_l,
-        index_r,
-        time_diff=None,
-        n_processes=None,
-        merge=True
-):
+        index_l: Index,
+        index_r: Index,
+        time_diff: Optional[np.timedelta64] = None,
+        n_processes: Optional[int] = None,
+        merge: bool = True
+) -> List[Tuple[Granule, Set[Granule]]]:
     """
     Find matching observations between two indices.
 
@@ -707,30 +708,33 @@ def matches_to_geopandas(matches):
 
         for match_ind, match in enumerate(matches):
 
-            granule = match[ind]
+            granules = match[ind]
+            if isinstance(granules, Granule):
+                granules = [granules]
 
-            match_indices.append(match_ind)
-            geoms.append(granule.geometry.to_shapely())
-            start_times.append(granule.time_range.start)
-            end_times.append(granule.time_range.end)
+            for granule in granules:
+                match_indices.append(match_ind)
+                geoms.append(granule.geometry.to_shapely())
+                start_times.append(granule.time_range.start)
+                end_times.append(granule.time_range.end)
 
-            if granule.file_record.local_path is not None:
-                local_paths.append(str(granule.file_record.local_path))
-            else:
-                local_paths.append("")
+                if granule.file_record.local_path is not None:
+                    local_paths.append(str(granule.file_record.local_path))
+                else:
+                    local_paths.append("")
 
-            if granule.file_record.remote_path is not None:
-                remote_paths.append(str(granule.file_record.remote_path))
-            else:
-                remote_paths.append("")
-            filenames.append(str(granule.file_record.filename))
+                if granule.file_record.remote_path is not None:
+                    remote_paths.append(str(granule.file_record.remote_path))
+                else:
+                    remote_paths.append("")
+                filenames.append(str(granule.file_record.filename))
 
-            primary_index_name.append(granule.primary_index_name)
-            primary_index_start.append(granule.primary_index_range[0])
-            primary_index_end.append(granule.primary_index_range[1])
-            secondary_index_name.append(granule.secondary_index_name)
-            secondary_index_start.append(granule.secondary_index_range[0])
-            secondary_index_end.append(granule.secondary_index_range[1])
+                primary_index_name.append(granule.primary_index_name)
+                primary_index_start.append(granule.primary_index_range[0])
+                primary_index_end.append(granule.primary_index_range[1])
+                secondary_index_name.append(granule.secondary_index_name)
+                secondary_index_start.append(granule.secondary_index_range[0])
+                secondary_index_end.append(granule.secondary_index_range[1])
 
         dframes.append(
             geopandas.GeoDataFrame(

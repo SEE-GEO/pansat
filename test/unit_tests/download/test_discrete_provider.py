@@ -1,4 +1,4 @@
- """
+"""
 This file contains tests for the discrete provider base class.
 """
 from calendar import monthrange
@@ -11,7 +11,7 @@ import pytest
 from pansat.download.providers import IcareProvider
 from pansat.products.satellite.modis import modis_terra_1km
 from pansat.products.satellite.dardar import dardar_cloud
-from pansat.products.example import get_filename, example_product_hdf4
+from pansat.products.example import get_filename, hdf4_product
 from pansat.time import TimeRange, to_datetime
 from pansat.file_record import FileRecord
 from pansat.download.providers.discrete_provider import (
