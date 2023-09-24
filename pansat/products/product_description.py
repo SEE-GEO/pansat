@@ -307,7 +307,7 @@ class GranuleInfo:
             partitions = json.loads(config_dict["granule_partitions"])
         self.partitions = [int(part) for part in partitions]
         if not "granule_resolution" in config_dict:
-            resolution = [2] * len(self.dimensions)
+            resolution = [2, 2]
         else:
             resolution = json.loads(config_dict["granule_resolution"])
         self.resolution = resolution
