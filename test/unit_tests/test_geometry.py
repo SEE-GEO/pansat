@@ -1,9 +1,4 @@
-from pansat.geometry import (
-    LineString,
-    MultiLineString,
-    Polygon,
-    MultiPolygon
-)
+from pansat.geometry import LineString, MultiLineString, Polygon, MultiPolygon
 
 
 def test_line_string():
@@ -54,10 +49,12 @@ def test_multi_polygon():
     """
     Ensure the intersecting line strings cover each other.
     """
-    poly_1 = MultiPolygon([
-        [(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)],
-        [(11, 0), (21, 0), (21, 10), (11, 10), (11, 0)]
-    ])
+    poly_1 = MultiPolygon(
+        [
+            [(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)],
+            [(11, 0), (21, 0), (21, 10), (11, 10), (11, 0)],
+        ]
+    )
     poly_2 = Polygon([(5, 0), (15, 0), (15, 10), (5, 10), (5, 0)])
 
     assert poly_1.covers(poly_2)

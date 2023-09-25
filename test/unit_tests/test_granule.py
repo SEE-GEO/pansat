@@ -5,12 +5,7 @@ import pytest
 import numpy as np
 
 from pansat.geometry import LonLatRect
-from pansat.granule import (
-    Granule,
-    merge_granules,
-    GranuleEncoder,
-    granule_hook
-)
+from pansat.granule import Granule, merge_granules, GranuleEncoder, granule_hook
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 
@@ -37,7 +32,7 @@ def test_granules():
         "scans",
         (0, 100),
         "pixels",
-        (0, 100)
+        (0, 100),
     )
 
     granule_2 = Granule(
@@ -50,7 +45,7 @@ def test_granules():
         "scans",
         (0, 100),
         "pixels",
-        (100, 200)
+        (100, 200),
     )
 
     granule_3 = Granule(
@@ -63,7 +58,7 @@ def test_granules():
         "scans",
         (100, 200),
         "pixels",
-        (0, 100)
+        (0, 100),
     )
 
     granule_4 = Granule(
@@ -76,7 +71,7 @@ def test_granules():
         "scans",
         (100, 200),
         "pixels",
-        (100, 200)
+        (100, 200),
     )
 
     granule_5 = Granule(
@@ -89,7 +84,7 @@ def test_granules():
         "scans",
         (0, 100),
         "pixels",
-        (0, 100)
+        (0, 100),
     )
 
     granule_6 = Granule(
@@ -102,17 +97,10 @@ def test_granules():
         "scans",
         (0, 100),
         "pixels",
-        (100, 200)
+        (100, 200),
     )
 
-    return [
-        granule_1,
-        granule_2,
-        granule_3,
-        granule_4,
-        granule_5,
-        granule_6
-    ]
+    return [granule_1, granule_2, granule_3, granule_4, granule_5, granule_6]
 
 
 def test_equality(test_granules):
@@ -130,7 +118,6 @@ def test_hash(test_granules):
 
 
 def test_adjacent(test_granules):
-
     g_1, g_2, g_3, g_4, g_5, g_6 = test_granules
 
     assert g_1.is_adjacent(g_1)
@@ -180,14 +167,15 @@ def test_merge_granules(test_granules):
     """
     granules = merge_granules(test_granules)
 
+
 def test_granule_json_serialization(test_granules):
     for granule in test_granules:
         json_repr = granule.to_json()
         granule_loaded = json.loads(json_repr, object_hook=granule_hook)
         assert granule_loaded == granule
 
-def test_granule_list_json_serialization(test_granules):
 
+def test_granule_list_json_serialization(test_granules):
     test_granules_json = json.dumps(test_granules, cls=GranuleEncoder)
     test_granules_loaded = json.loads(test_granules_json, object_hook=granule_hook)
     for granule_loaded, granule in zip(test_granules, test_granules_loaded):

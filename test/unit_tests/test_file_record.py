@@ -8,10 +8,7 @@ def test_json_serialization():
     """
     Test serialization of file records.
     """
-    rec = FileRecord(
-        "/local_path/product.h5",
-        product=hdf5_product
-    )
+    rec = FileRecord("/local_path/product.h5", product=hdf5_product)
     json_repr = rec.to_json()
 
     def object_hook(dct):

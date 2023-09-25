@@ -45,6 +45,7 @@ def test_time_range_covers():
     outside = "2020-01-02T00:00:01"
     assert not time_range.covers(outside)
 
+
 def test_time_range_expand():
     """
     Test expansion of time ranges.
@@ -57,14 +58,10 @@ def test_time_range_expand():
     assert not time_range.covers(left)
     right = np.datetime64("2020-01-02T01:00:00")
     assert not time_range.covers(right)
-    new_range = time_range.expand(
-        timedelta(hours=1)
-    )
+    new_range = time_range.expand(timedelta(hours=1))
     assert new_range.covers(left)
     assert new_range.covers(right)
-    new_range = time_range.expand(
-        (timedelta(hours=1), timedelta(hours=0))
-    )
+    new_range = time_range.expand((timedelta(hours=1), timedelta(hours=0)))
     assert new_range.covers(left)
     assert not new_range.covers(right)
 
@@ -85,9 +82,6 @@ def test_json_serialization():
             return TimeRange.from_dict(dct["TimeRange"])
         return dct
 
-    time_range_loaded = json.loads(
-        json_repr,
-        object_hook=object_hook
-    )
+    time_range_loaded = json.loads(json_repr, object_hook=object_hook)
 
     assert time_range == time_range_loaded
