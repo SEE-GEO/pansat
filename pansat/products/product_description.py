@@ -91,13 +91,7 @@ from pathlib import Path
 import numpy as np
 import xarray
 
-from pansat.geometry import (
-    Geometry,
-    LineString,
-    MultiLineString,
-    Polygon,
-    MultiPolygon
-)
+from pansat.geometry import Geometry, LineString, MultiLineString, Polygon, MultiPolygon
 from pansat.time import TimeRange
 
 
@@ -198,7 +192,6 @@ class Variable:
         self.description = config_dict.get("description", "")
         self.callback = config_dict.get("callback", [])
 
-
     def _extract_slices(self, slcs):
         """
         Transforms the dictionary of slices given by 'slcs' to a tuple
@@ -214,10 +207,7 @@ class Variable:
         """
         if slcs is None:
             slcs = {}
-        return tuple(
-            (slcs.get(name, slice(0, None)) for name in self.dimensions)
-        )
-
+        return tuple((slcs.get(name, slice(0, None)) for name in self.dimensions))
 
     def get_attributes(self, file_handle):
         """
@@ -290,6 +280,7 @@ class GranuleInfo:
     Holds information about the splitting of a data file into
     granules.
     """
+
     dimensions: list[str]
     partitions: list[int]
     resolution: list[int]
@@ -348,8 +339,6 @@ class ProductDescription(ConfigParser):
             self.read_string(ini_file)
         self._parse_config_file()
 
-
-
     def _parse_config_file(self):
         for section_name in self.sections():
             section = self[section_name]
@@ -361,43 +350,22 @@ class ProductDescription(ConfigParser):
             if section_type == "properties":
                 self._parse_properties(section_name, section)
             elif section_type == "dimension":
-                self.dimensions[section_name] = Dimension(
-                    section_name,
-                    section
-                )
+                self.dimensions[section_name] = Dimension(section_name, section)
             elif section_type == "coordinate":
-                self.coordinates[section_name] = Variable(
-                    section_name,
-                    section
-                )
+                self.coordinates[section_name] = Variable(section_name, section)
             elif section_type == "latitude_coordinate":
-                self.coordinates[section_name] = Variable(
-                    section_name,
-                    section
-                )
+                self.coordinates[section_name] = Variable(section_name, section)
                 self.latitude_coordinate = self.coordinates[section_name]
             elif section_type == "longitude_coordinate":
-                self.coordinates[section_name] = Variable(
-                    section_name,
-                    section
-                )
+                self.coordinates[section_name] = Variable(section_name, section)
                 self.longitude_coordinate = self.coordinates[section_name]
             elif section_type == "time_coordinate":
-                self.coordinates[section_name] = Variable(
-                    section_name,
-                    section
-                )
+                self.coordinates[section_name] = Variable(section_name, section)
                 self.time_coordinate = self.coordinates[section_name]
             elif section_type == "variable":
-                self.variables[section_name] = Variable(
-                    section_name,
-                    section
-                )
+                self.variables[section_name] = Variable(section_name, section)
             elif section_type == "attribute":
-                self.attributes[section_name] = Variable(
-                    section_name,
-                    section
-                )
+                self.attributes[section_name] = Variable(section_name, section)
             elif section_type == "callback":
                 self.callback = section.get("callback", None)
             elif section_type == "granules":
@@ -477,12 +445,7 @@ class ProductDescription(ConfigParser):
 
         return variables, coordinates, attributes
 
-    def to_xarray_dataset(
-            self,
-            file_handle,
-            context=None,
-            slcs=None
-    ):
+    def to_xarray_dataset(self, file_handle, context=None, slcs=None):
         """
         Convert data from file handle to xarray dataset.
 
@@ -501,9 +464,7 @@ class ProductDescription(ConfigParser):
         if not context:
             context = {}
         variables, dimensions, attributes = self._get_data(
-            file_handle,
-            context,
-            slcs=slcs
+            file_handle, context, slcs=slcs
         )
         dataset = xarray.Dataset(
             data_vars=variables, coords=dimensions, attrs=attributes
@@ -514,7 +475,6 @@ class ProductDescription(ConfigParser):
             callback(dataset, file_handle)
 
         return dataset
-
 
     def load_lonlats(self, file_handle, context=None, slcs=None):
         """
@@ -542,7 +502,6 @@ class ProductDescription(ConfigParser):
 
         return lons, lats
 
-
     def load_time(self, file_handle, context=None, slcs=None):
         """
         Load time coordinates from a file.
@@ -564,7 +523,6 @@ class ProductDescription(ConfigParser):
             )
         time = self.time_coordinate.get_data(file_handle, context, slcs)
         return time
-
 
     def get_granule_data(self, file_handle, context=None):
         """
@@ -616,21 +574,14 @@ class ProductDescription(ConfigParser):
         granule_data = []
 
         outer_start = 0
-        while(outer_start < sizes[0] - 1):
-
-            outer_end = (min(
-                outer_start + max(
-                    sizes[0] // self.granule_info.partitions[0],
-                    2
-                ),
+        while outer_start < sizes[0] - 1:
+            outer_end = min(
+                outer_start + max(sizes[0] // self.granule_info.partitions[0], 2),
                 sizes[0],
-            ))
+            )
 
             outer_slc = get_slice(
-                outer_start,
-                outer_end,
-                sizes[0],
-                self.granule_info.resolution[0]
+                outer_start, outer_end, sizes[0], self.granule_info.resolution[0]
             )
 
             if outer_start == outer_end:
@@ -644,23 +595,23 @@ class ProductDescription(ConfigParser):
             inner_start = 0
 
             while inner_start < inner_stop:
-
                 if len(sizes) == 1:
-                    slcs = {dim_names[0]: outer_slc,}
+                    slcs = {
+                        dim_names[0]: outer_slc,
+                    }
                     inner_start = inner_stop
                 else:
                     if len(self.granule_info.partitions) == 1:
                         inner_end = sizes[1]
                     else:
-                        inner_end = (
-                            inner_start +
-                            max(sizes[1] // self.granule_info.partitions[1], 2)
+                        inner_end = inner_start + max(
+                            sizes[1] // self.granule_info.partitions[1], 2
                         )
                     inner_slc = get_slice(
                         inner_start,
                         inner_end,
                         inner_stop,
-                        self.granule_info.resolution[1]
+                        self.granule_info.resolution[1],
                     )
                     slcs = {
                         dim_names[0]: outer_slc,
@@ -670,42 +621,37 @@ class ProductDescription(ConfigParser):
                         break
                     inner_start = inner_end
 
-                time = self.load_time(
-                    file_handle,
-                    context=context,
-                    slcs=slcs
-                )
+                time = self.load_time(file_handle, context=context, slcs=slcs)
                 start_time = time.min()
                 end_time = time.max()
                 time_range = TimeRange(start_time, end_time)
 
-                lons, lats = self.load_lonlats(
-                    file_handle,
-                    context=context,
-                    slcs=slcs
-                )
+                lons, lats = self.load_lonlats(file_handle, context=context, slcs=slcs)
 
                 geom = _geometry_from_coords(lons, lats)
 
                 if len(dim_names) == 1:
-                    granule_data.append((
-                        time_range,
-                        geom,
-                        dim_names[0],
-                        (outer_slc.start, outer_slc.stop),
-                    ))
+                    granule_data.append(
+                        (
+                            time_range,
+                            geom,
+                            dim_names[0],
+                            (outer_slc.start, outer_slc.stop),
+                        )
+                    )
                 else:
-                    granule_data.append((
-                        time_range,
-                        geom,
-                        dim_names[0],
-                        (outer_slc.start, outer_slc.stop),
-                        dim_names[1],
-                        (inner_slc.start, inner_slc.stop),
-                    ))
+                    granule_data.append(
+                        (
+                            time_range,
+                            geom,
+                            dim_names[0],
+                            (outer_slc.start, outer_slc.stop),
+                            dim_names[1],
+                            (inner_slc.start, inner_slc.stop),
+                        )
+                    )
 
         return granule_data
-
 
     def open_granule(self, file_handle, granule, context=None):
         """
@@ -724,11 +670,7 @@ class ProductDescription(ConfigParser):
         """
 
 
-
-def _geometry_from_coords(
-        lons: np.ndarray,
-        lats: np.ndarray
-) -> Geometry:
+def _geometry_from_coords(lons: np.ndarray, lats: np.ndarray) -> Geometry:
     """
     Create a geometry object representing given longitude and
     latitude boundaries.
@@ -758,39 +700,48 @@ def _geometry_from_coords(
 
         return geom
 
-    lon_seq = np.concatenate([
-        lons[0, :],
-        lons[:, -1],
-        lons[-1, ::-1],
-        lons[::-1, 0],
-    ])
+    lon_seq = np.concatenate(
+        [
+            lons[0, :],
+            lons[:, -1],
+            lons[-1, ::-1],
+            lons[::-1, 0],
+        ]
+    )
     d_lon = np.abs(np.diff(lon_seq))
     if np.any(d_lon > 180):
-
         lons_r = lons.copy()
         lons_r[lons_r < 0] += 360
         lons_l = lons_r - 360
 
-        geom_l = np.concatenate([
-            np.stack([lons_l[0, :], lats[0, :]], -1),
-            np.stack([lons_l[:, -1], lats[:, -1]], -1),
-            np.stack([lons_l[-1, ::-1], lats[-1, ::-1]], -1),
-            np.stack([lons_l[::-1, 0], lats[::-1, 0]], -1),
-        ])
-        geom_r = np.concatenate([
-            np.stack([lons_r[0, :], lats[0, :]], -1),
-            np.stack([lons_r[:, -1], lats[:, -1]], -1),
-            np.stack([lons_r[-1, ::-1], lats[-1, ::-1]], -1),
-            np.stack([lons_r[::-1, 0], lats[::-1, 0]], -1),
-        ])
+        geom_l = np.concatenate(
+            [
+                np.stack([lons_l[0, :], lats[0, :]], -1),
+                np.stack([lons_l[:, -1], lats[:, -1]], -1),
+                np.stack([lons_l[-1, ::-1], lats[-1, ::-1]], -1),
+                np.stack([lons_l[::-1, 0], lats[::-1, 0]], -1),
+            ]
+        )
+        geom_r = np.concatenate(
+            [
+                np.stack([lons_r[0, :], lats[0, :]], -1),
+                np.stack([lons_r[:, -1], lats[:, -1]], -1),
+                np.stack([lons_r[-1, ::-1], lats[-1, ::-1]], -1),
+                np.stack([lons_r[::-1, 0], lats[::-1, 0]], -1),
+            ]
+        )
         return MultiPolygon([geom_l, geom_r])
 
-    geom = Polygon(np.concatenate([
-        np.stack([lons[0, :], lats[0, :]], -1),
-        np.stack([lons[:, -1], lats[:, -1]], -1),
-        np.stack([lons[-1, ::-1], lats[-1, ::-1]], -1),
-        np.stack([lons[::-1, 0], lats[::-1, 0]], -1),
-    ]))
+    geom = Polygon(
+        np.concatenate(
+            [
+                np.stack([lons[0, :], lats[0, :]], -1),
+                np.stack([lons[:, -1], lats[:, -1]], -1),
+                np.stack([lons[-1, ::-1], lats[-1, ::-1]], -1),
+                np.stack([lons[::-1, 0], lats[::-1, 0]], -1),
+            ]
+        )
+    )
     return geom
 
 

@@ -50,12 +50,8 @@ class CloudnetProvider(DiscreteProvider):
         urls = [res["downloadUrl"] for res in response.json()]
         filenames = [url.split("/")[-1] for url in urls]
         frecs = [
-            FileRecord.from_remote(
-                self.product,
-                self,
-                url,
-                filename
-            ) for url, filename in zip(urls, filenames)
+            FileRecord.from_remote(self.product, self, url, filename)
+            for url, filename in zip(urls, filenames)
         ]
         return frecs
 

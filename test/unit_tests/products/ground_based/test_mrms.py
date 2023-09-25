@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from pansat.time import TimeRange
 from pansat.products.ground_based.mrms import (
     mrms_precip_rate,
     mrms_precip_flag,
@@ -36,9 +37,10 @@ def test_download_and_open(tmp_path, filename):
     Ensure that the download method work as expected.
     """
     product = _PRODUCTS[filename]
-    start_time = datetime(2021, 1, 1, 0, 0, 0)
-    end_time = datetime(2021, 1, 1, 0, 0, 1)
-    files = product.download(start_time, end_time, destination=tmp_path)
+    start_time = datetime(2021, 1, 1, 0, 1, 0)
+    end_time = datetime(2021, 1, 1, 0, 1, 1)
+    time_range = TimeRange(start_time, end_time)
+    files = product.download(product, time_range, destination=tmp_path)
     assert len(files) == 1
 
     dataset = mrms_precip_rate.open(files[0])

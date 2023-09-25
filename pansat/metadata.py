@@ -19,6 +19,6 @@ class Metadata:
     of the file and, optionally, a geometry object describing its
     spatial coverage.
     """
+
     time_range: TimeRange
     spatial_coverage: Optional[Geometry]
-

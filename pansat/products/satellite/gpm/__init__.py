@@ -33,15 +33,9 @@ class GPMProduct(Product, products.GranuleProduct):
     """
     Base class representing GPM products.
     """
+
     def __init__(
-            self,
-            level,
-            platform,
-            sensor,
-            algorithm,
-            version,
-            variant,
-            description
+        self, level, platform, sensor, algorithm, version, variant, description
     ):
         self.level = level.lower()
         self.platform = platform.lower()
@@ -82,7 +76,7 @@ class GPMProduct(Product, products.GranuleProduct):
         """
         module = Path(__file__).parent
         root = Path(pansat.products.__file__).parent
-        prefix = str(module.relative_to(root)).replace('/', ".")
+        prefix = str(module.relative_to(root)).replace("/", ".")
         algo = self.algorithm.replace("-", "")
         lvl = self.level
         sensor = self.sensor
@@ -93,10 +87,8 @@ class GPMProduct(Product, products.GranuleProduct):
             name = f"l{lvl}_{algo}_{pltfrm}_{sensor}_v{version}"
         else:
             variant = self.variant
-            name = (
-                f"l{lvl}_{variant}_{algo}_{pltfrm}_{sensor}_v{version}"
-            )
-        return ".".join([prefix , name])
+            name = f"l{lvl}_{variant}_{algo}_{pltfrm}_{sensor}_v{version}"
+        return ".".join([prefix, name])
 
     def matches(self, filename):
         """
@@ -161,9 +153,7 @@ class GPMProduct(Product, products.GranuleProduct):
             )
 
         with HDF5File(rec.local_path, "r") as file_handle:
-            lons, lats = self.description.load_lonlats(
-                file_handle, slice(0, None, 1)
-            )
+            lons, lats = self.description.load_lonlats(file_handle, slice(0, None, 1))
         poly = geometry.parse_swath(lons, lats, m=10, n=1)
         return geometry.ShapelyGeometry(poly)
 
@@ -246,9 +236,7 @@ class GPMProduct(Product, products.GranuleProduct):
 
         with HDF5File(filename, "r") as file_handle:
             return self.description.to_xarray_dataset(
-                file_handle,
-                context=globals(),
-                slcs=slcs
+                file_handle, context=globals(), slcs=slcs
             )
 
     def get_granules(self, rec):
@@ -260,19 +248,18 @@ class GPMProduct(Product, products.GranuleProduct):
         granules = []
         with HDF5File(rec.local_path, "r") as file_handle:
             for granule_data in self.description.get_granule_data(
-                    file_handle,
-                    globals()):
+                file_handle, globals()
+            ):
                 granules.append(Granule(rec, *granule_data))
         return granules
 
     def open_granule(self, granule):
         from pansat.formats.hdf5 import HDF5File
+
         filename = granule.file_record.local_path
         with HDF5File(filename, "r") as file_handle:
             return self.description.to_xarray_dataset(
-                file_handle,
-                context=globals(),
-                slcs=granule.get_slices()
+                file_handle, context=globals(), slcs=granule.get_slices()
             )
 
 
@@ -357,17 +344,12 @@ class GPROFProduct(GPMProduct):
     Specialization of GPM product for GPROF products, which all have the same
     data format.
     """
+
     def __init__(self, gprof_algorithm, platform, sensor, version, variant=""):
         module_path = Path(__file__).parent
         description = ProductDescription(module_path / "gprof.ini")
         super().__init__(
-            "2A",
-            platform,
-            sensor,
-            gprof_algorithm,
-            version,
-            variant,
-            description
+            "2A", platform, sensor, gprof_algorithm, version, variant, description
         )
 
 
@@ -429,7 +411,6 @@ class GPMMergedIR:
         """
         return LonLatRect(-180, -90, 180, 90)
 
-
     @property
     def default_destination(self):
         """
@@ -437,7 +418,6 @@ class GPMMergedIR:
         ``GPM/<product_name>``>
         """
         return Path("gpm") / "merged_ir"
-
 
     def download(self, start_time, end_time, destination=None, provider=None):
         """

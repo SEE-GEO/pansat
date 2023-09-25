@@ -142,12 +142,14 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
             lon_1_0 = lons[min(ind_i + d_i, n_i - 1), ind_j]
             lat_1_0 = lats[min(ind_i + d_i, n_i - 1), ind_j]
 
-            d_lon = max([
-                abs(lon_0_0 - lon_0_1),
-                abs(lon_0_1 - lon_1_1),
-                abs(lon_1_1 - lon_1_0),
-                abs(lon_1_0 - lon_0_0)
-            ])
+            d_lon = max(
+                [
+                    abs(lon_0_0 - lon_0_1),
+                    abs(lon_0_1 - lon_1_1),
+                    abs(lon_1_1 - lon_1_0),
+                    abs(lon_1_0 - lon_0_0),
+                ]
+            )
             if d_lon < 240:
                 polys.append(
                     Polygon(
@@ -194,6 +196,7 @@ def parse_swath(lons, lats, m=10, n=1) -> MultiPolygon:
 # Geometries classes
 ###############################################################################
 
+
 class Geometry(ABC):
     """
     Generic interface for objects representation the spatial coverage
@@ -204,6 +207,7 @@ class Geometry(ABC):
     potential switching to a geometry backend that is more adept for
     handling spherical geometries.
     """
+
     @abstractmethod
     def covers(self, other: "Geometry") -> bool:
         """
@@ -244,6 +248,7 @@ class ShapelyGeometry(Geometry):
     """
     A geometry class that internally uses a shapely.Geometry
     """
+
     def __init__(self, geometry):
         """
         Args: A shapely geometry object.
@@ -267,10 +272,12 @@ class ShapelyGeometry(Geometry):
         """
         return cls(shapely.from_geojson(dct))
 
+
 class LonLatRect(ShapelyGeometry):
     """
     A rectangular domain in latitude and longitude coordinates.
     """
+
     def __init__(self, lon_min, lat_min, lon_max, lat_max):
         """
         Args:
@@ -296,30 +303,27 @@ class LineString(ShapelyGeometry):
     """
     A string of points connected by a line.
     """
+
     def __init__(self, coords):
-        super().__init__(
-            shapely.LineString(coords)
-        )
+        super().__init__(shapely.LineString(coords))
 
 
 class MultiLineString(ShapelyGeometry):
     """
     A combination of multiple line strings.
     """
+
     def __init__(self, coords):
-        super().__init__(
-            shapely.MultiLineString(coords)
-        )
+        super().__init__(shapely.MultiLineString(coords))
 
 
 class Polygon(ShapelyGeometry):
     """
     A polygon geometry that internally uses a shapely polygon.
     """
+
     def __init__(self, coords):
-        super().__init__(
-            shapely.validation.make_valid(shapely.Polygon(coords))
-        )
+        super().__init__(shapely.validation.make_valid(shapely.Polygon(coords)))
 
 
 class MultiPolygon(ShapelyGeometry):
@@ -327,11 +331,11 @@ class MultiPolygon(ShapelyGeometry):
     A multi-polygon geometry that internally uses a shapely
     multi-polygon.
     """
+
     def __init__(self, polys):
         super().__init__(
             shapely.validation.make_valid(
-                shapely.MultiPolygon(
-                    [shapely.Polygon(poly) for poly in polys])
+                shapely.MultiPolygon([shapely.Polygon(poly) for poly in polys])
             )
         )
 
@@ -340,5 +344,6 @@ class SatelliteSwath(ShapelyGeometry):
     """
     A satellite swath represented using a shapely geometry.
     """
+
     def __init__(self, geometry):
         super().__init__(geometry)

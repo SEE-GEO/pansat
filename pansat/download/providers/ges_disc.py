@@ -23,7 +23,7 @@ from pansat.download import accounts
 from pansat.download.providers.discrete_provider import (
     DiscreteProviderDay,
     DiscreteProviderMonth,
-    DiscreteProviderYear
+    DiscreteProviderYear,
 )
 from pansat.file_record import FileRecord
 from pansat.time import to_datetime
@@ -35,11 +35,13 @@ with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
 
 LOGGER = logging.getLogger(__file__)
 
-class GesDiscProviderBase():
+
+class GesDiscProviderBase:
     """
     Dataprovider class for for products available from the
     the gesdisc.eosdis.nasa.gov servers.
     """
+
     file_pattern = re.compile('"[^"]*\.(?:HDF5|h5|nc|nc4)"')
 
     @classmethod
@@ -52,7 +54,6 @@ class GesDiscProviderBase():
             be downloaded from this data provider.
         """
         return GPM_PRODUCTS.keys()
-
 
     def download_url(self, url, destination):
         """
@@ -78,7 +79,6 @@ class GesDiscProviderBase():
             with open(destination, "wb") as f:
                 for chunk in response:
                     f.write(chunk)
-
 
     def get_base_url(self, product):
         """
@@ -110,7 +110,9 @@ class GesDiscProviderBase():
             A list of strings containing the filenames that are available
             for the given year.
         """
-        request_string = self._request_string(product).format(year=year, day="", filename="")
+        request_string = self._request_string(product).format(
+            year=year, day="", filename=""
+        )
         auth = accounts.get_identity("GES DISC")
         response = requests.get(request_string, auth=auth)
         files = list(set(GesDiscProvider.file_pattern.findall(response.text)))
@@ -133,7 +135,9 @@ class GesDiscProviderBase():
             day = ""
         if product.variant.startswith("DAY"):
             day = f"{time.month:02}"
-        url = self._request_string(product).format(year=year, day=day, filename=filename)
+        url = self._request_string(product).format(
+            year=year, day=day, filename=filename
+        )
         self.download_url(url, destination)
 
     def download_metadata(self, filename):
@@ -159,7 +163,6 @@ class GesDiscProviderBase():
 
 
 class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
-
     def provides(self, product):
         name = product.name
         if not name.startswith("satellite.gpm"):
@@ -170,7 +173,6 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
             if product.variant.startswith("day"):
                 return False
         return True
-
 
     def find_files_by_day(self, product, time, roi=None):
         """
@@ -238,6 +240,7 @@ class GesDiscProviderMonth(GesDiscProviderBase, DiscreteProviderMonth):
         ]
         return recs
 
+
 class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
     def provides(self, product):
         name = product.name
@@ -248,12 +251,7 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
                 return True
         return False
 
-    def find_files_by_year(
-            self,
-            product,
-            time,
-            roi=None
-    ) -> list[FileRecord]:
+    def find_files_by_year(self, product, time, roi=None) -> list[FileRecord]:
         """
         Return list of available files for a given day of a year.
 

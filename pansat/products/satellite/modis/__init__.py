@@ -51,9 +51,7 @@ class MODISProduct(Product):
 
     def get_spatial_coverage(self, rec):
         if rec.local_path is None:
-            raise ValueError(
-                "Not implemented."
-            )
+            raise ValueError("Not implemented.")
 
     def filename_to_date(self, filename):
         """

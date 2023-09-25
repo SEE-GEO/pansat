@@ -4,15 +4,12 @@ import pytest
 
 import conftest
 
-from pansat.products.product_description import (
-    ProductDescription,
-    get_slice
-)
+from pansat.products.product_description import ProductDescription, get_slice
 
-from pansat.products.example import  (
+from pansat.products.example import (
     thin_swath_product,
     write_thin_swath_product_data,
-    _parse_times
+    _parse_times,
 )
 from pansat.file_record import FileRecord
 from pansat.geometry import LineString
@@ -21,6 +18,7 @@ HAS_HDF4 = False
 try:
     import pyhdf
     from pansat.formats.hdf4 import HDF4File
+
     HAS_HDF4 = True
 except Exception:
     pass
@@ -29,6 +27,7 @@ HAS_HDF5 = False
 try:
     import pyhdf
     from pansat.formats.hdf5 import HDF5File
+
     HAS_HDF5 = True
 except Exception:
     pass
@@ -74,9 +73,7 @@ def test_open_hdf4_product(hdf4_product_data):
         assert np.all(lats > -10)
         assert np.all(lats < 10)
 
-        lons, lats = description.load_lonlats(
-            file_handle, slice(0, None, 10)
-        )
+        lons, lats = description.load_lonlats(file_handle, slice(0, None, 10))
         assert lons.size == 20
         assert lats.size == 20
 
@@ -98,9 +95,7 @@ def test_open_hdf5_product(hdf5_product_data):
         assert np.all(lats > -10)
         assert np.all(lats < 10)
 
-        lons, lats = description.load_lonlats(
-            file_handle, slice(0, None, 10)
-        )
+        lons, lats = description.load_lonlats(file_handle, slice(0, None, 10))
         assert lons.size == 20
         assert lats.size == 20
 
@@ -122,13 +117,8 @@ def test_open_hdf4_product(hdf4_product_data):
         assert np.all(lats > -10)
         assert np.all(lats < 10)
 
-        slcs = {
-            "dimension_1": slice(0, None, 10),
-            "dimension_2": slice(0, None, 20)
-        }
-        lons, lats = description.load_lonlats(
-            file_handle, slcs=slcs
-        )
+        slcs = {"dimension_1": slice(0, None, 10), "dimension_2": slice(0, None, 20)}
+        lons, lats = description.load_lonlats(file_handle, slcs=slcs)
         assert lons.size == 20
         assert lats.size == 10
 
@@ -150,13 +140,8 @@ def test_open_hdf5_product(hdf5_product_data):
         assert np.all(lats > -10)
         assert np.all(lats < 10)
 
-        slcs = {
-            "dimension_1": slice(0, None, 10),
-            "dimension_2": slice(0, None, 20)
-        }
-        lons, lats = description.load_lonlats(
-            file_handle, slcs=slcs
-        )
+        slcs = {"dimension_1": slice(0, None, 10), "dimension_2": slice(0, None, 20)}
+        lons, lats = description.load_lonlats(file_handle, slcs=slcs)
         assert lons.size == 20
         assert lats.size == 10
 
@@ -199,7 +184,6 @@ def test_get_granule_data_hdf4_product(hdf4_granule_product_data):
 
 
 def test_get_slice():
-
     arr = np.arange(0, 20)
 
     slc = get_slice(5, 15, 20, 2)

@@ -54,6 +54,7 @@ class TimeRange:
     If the temporal extent of a data file cannot be deduced from the
     filename alone or it is not known, the 'end' attribute can be 'None'.
     """
+
     start: np.datetime64
     end: np.datetime64 = None
 
@@ -70,6 +71,10 @@ class TimeRange:
             end: The end time of the time range as a string, Python
                 datetime object or a numpy.datetime64 object.
         """
+        if isinstance(start, str):
+            start = np.datetime64(start)
+        if isinstance(end, str):
+            start = np.datetime64(end)
         self.start = to_datetime(start)
         self.end = to_datetime(end)
 
@@ -97,37 +102,29 @@ class TimeRange:
 
     @classmethod
     def from_dict(cls, dct):
-        """ Create TimeRange object from dictionary representaiton. """
+        """Create TimeRange object from dictionary representaiton."""
         return TimeRange(dct["start"], dct["end"])
 
     def to_dict(self):
         """
         Return a dictionary representation containing only primitive types.
         """
-        return {
-            "start": self.start.isoformat(),
-            "end": self.end.isoformat()
-        }
+        return {"start": self.start.isoformat(), "end": self.end.isoformat()}
 
     def to_json(self):
-        """ Return json representation of time range object. """
-        return json.dumps({
-            "TimeRange": self.to_dict()
-        })
+        """Return json representation of time range object."""
+        return json.dumps({"TimeRange": self.to_dict()})
 
     def __repr__(self):
         start = self.start.isoformat()
         end = self.end.isoformat()
         return f"TimeRange(start='{start}', end='{end}')"
 
-
-
     def __lt__(self, other):
         """
         TimeRange objects are compared by their start time.
         """
         return self.start <= other.start
-
 
     def __iter__(self):
         """

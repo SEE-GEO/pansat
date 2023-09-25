@@ -13,8 +13,7 @@ from pansat.products.example import (
     write_hdf4_granule_product_data,
     write_hdf5_granule_product_data,
     EXAMPLE_PRODUCT_DESCRIPTION,
-    EXAMPLE_GRANULE_PRODUCT_DESCRIPTION
-
+    EXAMPLE_GRANULE_PRODUCT_DESCRIPTION,
 )
 from pansat.products.example import write_hdf5_product_data
 
@@ -22,6 +21,7 @@ from pansat.products.example import write_hdf5_product_data
 HAS_HDF4 = False
 try:
     from pyhdf.SD import SD, SDC
+
     HAS_HDF4 = True
 except ImportError:
     pass
@@ -30,6 +30,7 @@ except ImportError:
 HAS_HDF5 = False
 try:
     from h5py import File
+
     HAS_HDF5 = True
 except ImportError:
     HAS_HDF5 = False
@@ -88,20 +89,14 @@ def hdf5_product_data(product_description):
 
 
 PRODUCT_DATA = [
-        pytest.param(
-            'hdf4_product_data',
-            marks=pytest.mark.skipif(
-                not HAS_HDF4,
-                reason="HDF4 library not available."
-            )
-        ),
-        pytest.param(
-            'hdf5_product_data',
-            marks=pytest.mark.skipif(
-                not HAS_HDF5,
-                reason="HDF5 library not available."
-            )
-        ),
+    pytest.param(
+        "hdf4_product_data",
+        marks=pytest.mark.skipif(not HAS_HDF4, reason="HDF4 library not available."),
+    ),
+    pytest.param(
+        "hdf5_product_data",
+        marks=pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available."),
+    ),
 ]
 
 
@@ -140,19 +135,14 @@ def hdf5_granule_product_data(granule_product_description):
     write_hdf5_granule_product_data(remote_path)
     yield tmp_path
 
+
 GRANULE_PRODUCT_DATA = [
-        pytest.param(
-            'hdf4_granule_product_data',
-            marks=pytest.mark.skipif(
-                not HAS_HDF4,
-                reason="HDF4 library not available."
-            )
-        ),
-        pytest.param(
-            'hdf5_granule_product_data',
-            marks=pytest.mark.skipif(
-                not HAS_HDF5,
-                reason="HDF5 library not available."
-            )
-        ),
+    pytest.param(
+        "hdf4_granule_product_data",
+        marks=pytest.mark.skipif(not HAS_HDF4, reason="HDF4 library not available."),
+    ),
+    pytest.param(
+        "hdf5_granule_product_data",
+        marks=pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available."),
+    ),
 ]
