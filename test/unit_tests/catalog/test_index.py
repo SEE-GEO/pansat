@@ -6,25 +6,20 @@ import conftest
 
 import numpy as np
 
-from pansat.products.example import  (
+from pansat.products.example import (
     hdf5_product,
     hdf5_granule_product,
     thin_swath_product,
-    write_thin_swath_product_data
+    write_thin_swath_product_data,
 )
 
 
-from pansat.catalog.index import (
-    Index,
-    find_matches,
-    matches_to_geopandas
-)
+from pansat.catalog.index import Index, find_matches, matches_to_geopandas
 from pansat.geometry import LonLatRect
 from pansat.time import TimeRange
 
 
 def test_indexing(hdf5_product_data):
-
     files = (hdf5_product_data / "remote").glob("*")
 
     index = Index.index(hdf5_product, files)
@@ -44,7 +39,6 @@ def test_indexing(hdf5_product_data):
 
 
 def test_granule_indexing(hdf5_granule_product_data):
-
     files = (hdf5_granule_product_data / "remote").glob("*")
 
     index = Index.index(hdf5_granule_product, files)
@@ -70,7 +64,6 @@ def test_granule_indexing(hdf5_granule_product_data):
 
 
 def test_save_and_load_index(tmp_path, hdf5_product_data):
-
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files)
 
@@ -92,8 +85,8 @@ def test_save_and_load_index(tmp_path, hdf5_product_data):
     found = index_loaded.find(time_range=t_range, roi=roi)
     assert len(found) == 2
 
-def test_match_indices(tmp_path, hdf5_granule_product_data):
 
+def test_match_indices(tmp_path, hdf5_granule_product_data):
     files = (hdf5_granule_product_data / "remote").glob("*")
     index_1 = Index.index(hdf5_granule_product, files)
 
@@ -104,18 +97,12 @@ def test_match_indices(tmp_path, hdf5_granule_product_data):
     index_2 = Index.index(thin_swath_product, files)
 
     matches = find_matches(
-        index_1,
-        index_2,
-        time_diff=np.timedelta64(60, "m"),
-        merge=True
+        index_1, index_2, time_diff=np.timedelta64(60, "m"), merge=True
     )
     assert len(matches) == 2
 
     matches = find_matches(
-        index_2,
-        index_1,
-        time_diff=np.timedelta64(60, "m"),
-        merge=False
+        index_2, index_1, time_diff=np.timedelta64(60, "m"), merge=False
     )
     assert len(matches) == 11
 

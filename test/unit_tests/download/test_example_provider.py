@@ -13,7 +13,6 @@ from pansat.download.providers.example import ExampleProvider
 
 @pytest.mark.parametrize("product_data", conftest.PRODUCT_DATA)
 def test_example_provider(tmp_path, product_data, request):
-
     product_data = request.getfixturevalue(product_data)
 
     hdf4_files = list(product_data.glob("remote/*.hdf"))
@@ -30,17 +29,11 @@ def test_example_provider(tmp_path, product_data, request):
 
     assert provider.provides(product)
 
-    t_range = TimeRange(
-        datetime(2020, 1, 1),
-        datetime(2020, 1, 2)
-    )
+    t_range = TimeRange(datetime(2020, 1, 1), datetime(2020, 1, 2))
     files = provider.find_files(product, t_range)
     assert len(files) == 4
 
-    t_range = TimeRange(
-        datetime(2020, 1, 1),
-        datetime(2020, 1, 1, 2)
-    )
+    t_range = TimeRange(datetime(2020, 1, 1), datetime(2020, 1, 1, 2))
     files = provider.find_files(product, t_range)
     assert len(files) == 4
 

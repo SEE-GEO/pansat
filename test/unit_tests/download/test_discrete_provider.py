@@ -17,19 +17,18 @@ from pansat.file_record import FileRecord
 from pansat.download.providers.discrete_provider import (
     DiscreteProviderDay,
     DiscreteProviderMonth,
-    DiscreteProviderYear
+    DiscreteProviderYear,
 )
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
-class TestProviderDay(
-        DiscreteProviderDay
-):
+class TestProviderDay(DiscreteProviderDay):
     """
     Dummy provider to test the DiscreteProvider functionality.
     """
+
     def find_files_by_day(self, product, time):
         """
         Return list of hourly filenames.
@@ -49,26 +48,20 @@ class TestProviderDay(
         recs = []
 
         while time < end:
-            filename = get_filename(
-                time,
-                time + timedelta(hours=1),
-                suffix="hdf"
+            filename = get_filename(time, time + timedelta(hours=1), suffix="hdf")
+            recs.append(
+                FileRecord.from_remote(
+                    product, self, Path("remote") / filename, filename
+                )
             )
-            recs.append(FileRecord.from_remote(
-                product,
-                self,
-                Path("remote") / filename,
-                filename
-            ))
             time += timedelta(hours=1)
         return recs
 
     def download_file(self):
         pass
 
-class TestProviderMonth(
-        DiscreteProviderMonth
-):
+
+class TestProviderMonth(DiscreteProviderMonth):
     def find_files_by_month(self, product, time):
         """
         Return list of daily files within a month.
@@ -89,18 +82,13 @@ class TestProviderMonth(
         recs = []
 
         while time < end:
-            filename = get_filename(
-                time,
-                time + timedelta(days=1),
-                suffix="hdf"
-            )
+            filename = get_filename(time, time + timedelta(days=1), suffix="hdf")
             print(filename)
-            recs.append(FileRecord.from_remote(
-                product,
-                self,
-                Path("remote") / filename,
-                filename
-            ))
+            recs.append(
+                FileRecord.from_remote(
+                    product, self, Path("remote") / filename, filename
+                )
+            )
             time += timedelta(days=1)
         return recs
 
@@ -111,9 +99,7 @@ class TestProviderMonth(
         return []
 
 
-class TestProviderYear(
-        DiscreteProviderYear
-):
+class TestProviderYear(DiscreteProviderYear):
     def find_files_by_year(self, product, time):
         """
         Return list of daily files within a year.
@@ -134,17 +120,12 @@ class TestProviderYear(
 
         while time < end:
             dom = monthrange(time.year, time.month)[-1]
-            filename = get_filename(
-                time,
-                time + timedelta(days=dom),
-                suffix="hdf"
+            filename = get_filename(time, time + timedelta(days=dom), suffix="hdf")
+            recs.append(
+                FileRecord.from_remote(
+                    product, self, Path("remote") / filename, filename
+                )
             )
-            recs.append(FileRecord.from_remote(
-                product,
-                self,
-                Path("remote") / filename,
-                filename
-            ))
             time += timedelta(days=dom)
         return recs
 
@@ -165,20 +146,14 @@ def test_files_in_range_day():
     t_1 = datetime(2018, 1, 14, 0, 42)
     t_range = TimeRange(t_0, t_1)
 
-    files = provider.find_files(
-        hdf4_product,
-        t_range
-    )
+    files = provider.find_files(hdf4_product, t_range)
     assert len(files) == 1
 
     t_0 = datetime(2018, 1, 14, 23, 55)
     t_1 = datetime(2018, 1, 15, 0, 5)
     t_range = TimeRange(t_0, t_1)
 
-    files = provider.find_files(
-        hdf4_product,
-        t_range
-    )
+    files = provider.find_files(hdf4_product, t_range)
     assert len(files) == 2
 
 
@@ -192,21 +167,16 @@ def test_files_in_range_month():
     t_1 = datetime(2018, 1, 14, 0, 42)
     t_range = TimeRange(t_0, t_1)
 
-    files = provider.find_files(
-        hdf4_product,
-        t_range
-    )
+    files = provider.find_files(hdf4_product, t_range)
     assert len(files) == 1
 
     t_0 = datetime(2018, 1, 14, 23, 55)
     t_1 = datetime(2018, 1, 15, 0, 5)
     t_range = TimeRange(t_0, t_1)
 
-    files = provider.find_files(
-        hdf4_product,
-        t_range
-    )
+    files = provider.find_files(hdf4_product, t_range)
     assert len(files) == 2
+
 
 def test_files_in_range_year():
     """
@@ -218,18 +188,12 @@ def test_files_in_range_year():
     t_1 = datetime(2018, 1, 14, 0, 42)
     t_range = TimeRange(t_0, t_1)
 
-    files = provider.find_files(
-        hdf4_product,
-        t_range
-    )
+    files = provider.find_files(hdf4_product, t_range)
     assert len(files) == 1
 
     t_0 = datetime(2018, 1, 31, 23, 55)
     t_1 = datetime(2018, 2, 1, 0, 5)
     t_range = TimeRange(t_0, t_1)
 
-    files = provider.find_files(
-        hdf4_product,
-        t_range
-    )
+    files = provider.find_files(hdf4_product, t_range)
     assert len(files) == 2
