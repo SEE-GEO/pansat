@@ -156,6 +156,8 @@ class Product(ABC):
         pass
 
     def download(self, start_time, end_time=None, destination=None):
+        from pansat.download.providers.data_provider import ALL_PROVIDERS
+
         if end_time is None:
             end_time = start_time
 
@@ -163,10 +165,18 @@ class Product(ABC):
             destination = self.default_destination
 
         t_range = TimeRange(start_time, end_time)
+        product_provider = None
         for provider in ALL_PROVIDERS:
-            if provider.provides(self):
-                provider.download(self, t_range, destination)
+            try:
+                if hasattr(provider, "provides"):
+                    if provider.provides(self):
+                        product_provider = provider
+            except Exception:
+                pass
 
+        if product_provider is None:
+            raise RuntimeError(f"Could not find a provider for the product '{self}'.")
+        return product_provider.download(self, t_range, destination)
 
 class NetcdfProduct(ABC):
     """

@@ -290,7 +290,7 @@ class DiscreteProviderBase(DataProvider):
         downloaded = []
         for rec in files:
             path = destination / rec.filename
-            self.download_file(product, rec.filename, path)
+            self.download_file(rec, path)
             downloaded.append(path)
         return downloaded
 
@@ -361,14 +361,19 @@ class DiscreteProviderDay(DiscreteProviderBase):
     which organize available files by days.
     """
 
+    def __init__(self):
+        super().__init__()
+
     @abstractmethod
     def find_files_by_day(
-        self, time: Time, roi: Optional[Geometry] = None
+        self, product: "pansat.Product", time: Time, roi: Optional[Geometry] = None
     ) -> list[FileRecord]:
         """
         Compile a list of file records available for a given day.
 
         Args:
+            product: A 'pansat.Product' object representing the product
+                whose data files to find.
             time: A time object specifying the day for which to return
             roi: If given, return only files covering the region represented
                 by the given geometry object.

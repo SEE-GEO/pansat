@@ -10,6 +10,8 @@ data provider classes.
 """
 from abc import ABC, abstractmethod, abstractclassmethod
 
+ALL_PROVIDERS = []
+
 
 class DataProvider(ABC):
     """
@@ -17,10 +19,7 @@ class DataProvider(ABC):
     """
 
     def __init__(self):
-        from pansat.download.providers import ALL_PROVIDERS
-
-        if not self in ALL_PROVIDERS:
-            ALL_PROVIDERS.append(self)
+        ALL_PROVIDERS.append(self)
 
     def get_available_products(cls):
         """
@@ -35,6 +34,7 @@ class DataProvider(ABC):
             be downloaded from this data provider.
         """
 
+    @abstractmethod
     def provides(self, product):
         """
         Whether or not the given product is provided by this

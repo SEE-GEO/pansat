@@ -10,27 +10,32 @@ Department of Geological and atmospheric sciences at Iowa State University.
 This provider doesn't require any user authentication to download data.
 """
 from datetime import datetime, timedelta
+from pathlib import Path
 import shutil
+from typing import Optional
 
 import requests
 
-from pansat.download.providers.discrete_provider import DiscreteProvider
+from pansat.time import to_datetime, Time
+from pansat.geometry import Geometry
+from pansat.file_record import FileRecord
+from pansat.download.providers.discrete_provider import DiscreteProviderDay
 
 PRODUCTS = {
-    "MRMS_PrecipRate": ["mrms", "ncep", "PrecipRate"],
-    "MRMS_RadarQualityIndex": ["mrms", "ncep", "RadarQualityIndex"],
-    "MRMS_PrecipFlag": ["mrms", "ncep", "PrecipFlag"],
+    "ground_based.mrms.precip_rate": ["mrms", "ncep", "PrecipRate"],
+    "ground_based.mrms.radar_quality_index": ["mrms", "ncep", "RadarQualityIndex"],
+    "ground_based.mrms.precip_flag": ["mrms", "ncep", "PrecipFlag"],
 }
 
 
-class IowaStateProvider(DiscreteProvider):
+class IowaStateProvider(DiscreteProviderDay):
     """
     Base class for data products available from htps://mtarchive.geol.iastate.edu/
     """
 
     base_url = "https://mtarchive.geol.iastate.edu/"
 
-    def __init__(self, product):
+    def __init__(self):
         """
         Create a new product instance.
 
@@ -39,26 +44,24 @@ class IowaStateProvider(DiscreteProvider):
             product(``Product``): Product class object available from the archive.
 
         """
-        if str(product) not in PRODUCTS:
-            available_products = list(PRODUCTS.keys())
-            raise ValueError(
-                f"The product {product} is  not a available from the Iowa State"
-                f"archive provider. Currently available products are: "
-                f"{available_products}."
-            )
-        super().__init__(product)
-        self.url_suffix = "/".join(PRODUCTS[str(product)])
+        super().__init__()
 
     @classmethod
     def get_available_products(cls):
         return PRODUCTS.keys()
 
-    def get_url(self, date):
+    def get_url(self, product, date):
+        suffix = "/".join(PRODUCTS[product.name])
         url = f"{self.base_url}/{date.year}/{date.month:02}/{date.day:02}/"
-        url += self.url_suffix
+        url += suffix
         return url
 
-    def get_files_by_day(self, year, day):
+    def provides(self, product):
+        return product.name in PRODUCTS.keys()
+
+    def find_files_by_day(
+        self, product: "pansat.Product", time: Time, roi: Optional[Geometry] = None
+    ):
         """
         Return all files from given year and julian day.
 
@@ -70,24 +73,36 @@ class IowaStateProvider(DiscreteProvider):
         Return:
             List of the filenames of this product on the given day.
         """
-        date = datetime(year=year, month=1, day=1) + timedelta(days=day - 1)
-        url = self.get_url(date)
-        with requests.get(url) as r:
-            files_unique = set(self.product.filename_regexp.findall(r.text))
-            return sorted(list(files_unique))
+        url = self.get_url(product, to_datetime(time))
+        with requests.get(url) as resp:
+            resp.raise_for_status()
+            files_unique = set(product.filename_regexp.findall(resp.text))
+            filenames = sorted(list(files_unique))
+            return [
+                FileRecord.from_remote(product, self, url + "/" + fname, fname)
+                for fname in filenames
+            ]
 
-    def download_file(self, filename, destination):
+    def download_file(self, rec: FileRecord, destination: Path) -> Path:
         """
         Download file from data provider.
 
         Args:
+            product:
             filename(``str``): The name of the file to download.
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
-        date = self.product.filename_to_date(filename)
-        url = self.get_url(date) + "/" + filename
+        url = rec.remote_path
+        destination = Path(destination)
+        if destination.is_dir():
+            destination = destination / rec.filename
 
-        with requests.get(url, stream=True) as r:
-            with open(destination, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
+        with requests.get(url, stream=True) as resp:
+            resp.raise_for_status()
+            with open(destination, "wb") as output:
+                shutil.copyfileobj(resp.raw, output)
+        return destination
+
+
+iowa_state_provider = IowaStateProvider()

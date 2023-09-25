@@ -20,11 +20,22 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 
+import numpy as np
 import xarray as xr
 
+import pansat
 from pansat.download import providers
-from pansat.products.product import Product
+from pansat.file_record import FileRecord
+from pansat.products import Product
 from pansat.exceptions import NoAvailableProvider, MissingDependency
+from pansat.time import TimeRange, to_datetime64
+
+
+PRODUCT_NAMES = {
+    "precip_rate": "PrecipRate",
+    "radar_quality_index": "RadarQualityIndex",
+    "precip_flag": "PrecipFlag",
+}
 
 
 class MRMSProduct(Product):
@@ -32,23 +43,41 @@ class MRMSProduct(Product):
     This class represents MRMS products.
     """
 
-    def __init__(self, name, variable_name):
+    def __init__(
+        self, name: str, variable_name: str, temporal_resolution: np.timedelta64
+    ):
         """
         Create new MRMS product.
 
         Args:
+            product_name: The name of the product used within pansat.
+            mrms_name: The name of the product
             name: The name of the MRMS product as it appears in the file signature.
             variable_name: The name to use for the data variable when opened as
                   xarray Dataset.
         """
-        self.name = f"MRMS_{name}"
+        self._name = name
         self.variable_name = variable_name
-        self.filename_regexp = re.compile(name + r"_00\.00_\d{8}-\d{6}.grib2\.?g?z?")
+        mrms_name = PRODUCT_NAMES[self._name]
+        self.filename_regexp = re.compile(
+            mrms_name + r"_00\.00_\d{8}-\d{6}.grib2\.?g?z?"
+        )
+        self.temporal_resolution = temporal_resolution
 
     @property
     def default_destination(self):
         """Stores MRMS files in a folder called MRMS."""
         return Path("MRMS")
+
+    @property
+    def name(self):
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+        return ".".join([prefix, "mrms", self._name])
+
+    def matches(self, path):
+        return self.filename_regexp(path.filename) is not None
 
     def filename_to_date(self, filename):
         """
@@ -56,6 +85,14 @@ class MRMSProduct(Product):
         """
         name = Path(filename).name.split(".")[1]
         return datetime.strptime(name, "00_%Y%m%d-%H%M%S")
+
+    def get_temporal_coverage(self, rec: FileRecord):
+        start_time = self.filename_to_date(rec.filename)
+        end_time = to_datetime64(start_time) + self.temporal_resolution
+        return TimeRange(start_time, end_time)
+
+    def get_spatial_coverage(self, rec: FileRecord):
+        return LonLatRect(-130, 20, -60, 55)
 
     def __str__(self):
         return self.name
@@ -72,31 +109,6 @@ class MRMSProduct(Product):
                 f"Could not find a provider for the" f" product {self.name}."
             )
         return available_providers[0]
-
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
 
     def open(self, filename):
         """
@@ -135,9 +147,15 @@ class MRMSProduct(Product):
                 rmtree(temp)
         else:
             dataset = xr.load_dataset(filename, engine="cfgrib")
+
+        lons = dataset.longitude.data
+        lons[lons > 180] = lons - 360
+
         return dataset.rename({"unknown": self.variable_name})
 
 
-mrms_precip_rate = MRMSProduct("PrecipRate", "precip_rate")
-mrms_radar_quality_index = MRMSProduct("RadarQualityIndex", "radar_quality_index")
-mrms_precip_flag = MRMSProduct("PrecipFlag", "precip_flag")
+precip_rate = MRMSProduct("precip_rate", "precip_rate", np.timedelta64(120, "s"))
+radar_quality_index = MRMSProduct(
+    "radar_quality_index", "radar_quality_index", np.timedelta64(120, "s")
+)
+precip_flag = MRMSProduct("precip_flag", "precip_flag", np.timedelta64(120, "s"))

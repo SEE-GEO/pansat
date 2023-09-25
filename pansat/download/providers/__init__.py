@@ -42,6 +42,7 @@ from pansat.download.providers.uci import UciProvider
 from pansat.download.providers.noaa_ncei import NOAANCEIProvider
 from pansat.download.providers.cloudnet import CloudnetProvider
 from pansat.download.providers.cloudsat_dpc import CloudSatDPCProvider
+import pansat.download.providers.iowa_state
 
 
 ALL_PROVIDERS = [
