@@ -3,11 +3,11 @@
 Catalogue
 =========
 
-.. automodule:: pansat.catalogue
+.. automodule:: pansat.catalog
   :members:
 
 .. toctree::
    :maxdepth: 1
    :caption: Sub-Modules             
 
-   catalogue/local
+   catalog/index

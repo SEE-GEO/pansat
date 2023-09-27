@@ -6,6 +6,6 @@ API Reference
 
    download
    products
-   catalogue
+   catalog
    examples
    formats

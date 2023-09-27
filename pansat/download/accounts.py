@@ -235,8 +235,9 @@ def add_identity(provider, user_name):
         provider(``str``): Name of the data provider class for which the user
             name is valid.
         user(``str``): User name for the data provider.
-                       ! Note that for Copernicus,you have to use the url from your $HOME/.cdsapirc
-                         For more info: https://cds.climate.copernicus.eu/api-how-to
+
+    ! Note that for Copernicus,you have to use the url from your $HOME/.cdsapirc
+        For more info: https://cds.climate.copernicus.eu/api-how-to
     """
     if not _PANSAT_SECRET:
         authenticate()

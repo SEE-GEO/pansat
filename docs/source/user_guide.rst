@@ -67,7 +67,7 @@ Command line interface
 
 There is also a command line interface included in the package, see :ref:`command-line-tool`.
 
-Catalogue
----------
+Catalog
+-------
 
-It is possible to list and search through the files downloaded with Pansat, see :ref:`catalogue`.
+It is possible to list and search through the files downloaded with Pansat, see :ref:`catalog`.
