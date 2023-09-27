@@ -178,6 +178,9 @@ class Product(ABC):
             raise RuntimeError(f"Could not find a provider for the product '{self}'.")
         return product_provider.download(self, t_range, destination)
 
+        if product_provider is None:
+            raise RuntimeError(f"Could not find a provider for the product '{self}'.")
+        return product_provider.download(self, t_range, destination)
 
 class NetcdfProduct(ABC):
     """
