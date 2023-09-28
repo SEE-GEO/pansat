@@ -6,6 +6,7 @@ This module providers the ``DiscreteProvider`` class, which is a base class for
 providers where available cannot be determined a priori but need to be looked
 up on a per-day basis.
 """
+
 from abc import abstractmethod
 from calendar import monthrange, isleap
 from datetime import datetime, timedelta
@@ -238,15 +239,17 @@ class DiscreteProviderBase(DataProvider):
         pass
 
     @abstractmethod
-    def download_file(self, file_record, destination):
+    def download_file(self, product, file_record, destination):
         """
         Download file from data provider.
 
         Args:
-            filename(``str``): The name of the file to download.
+            file_record: The file record identifying the file to download. 
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
+
+
 
     @abstractmethod
     def find_files(self, product, time):
@@ -289,10 +292,10 @@ class DiscreteProviderBase(DataProvider):
 
         downloaded = []
         for rec in files:
-            path = destination / rec.filename
-            self.download_file(rec, path)
+            path = self.download_file(product, rec, destination)
             downloaded.append(path)
         return downloaded
+
 
     def find_files_in_range(self, product, time_range):
         """

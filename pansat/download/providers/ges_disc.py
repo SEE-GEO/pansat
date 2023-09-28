@@ -55,7 +55,7 @@ class GesDiscProviderBase:
         """
         return GPM_PRODUCTS.keys()
 
-    def download_url(self, url, destination):
+    def download_url(self, url, path):
         """
         Downloads file from GES DISC server using the 'GES DISC' identity
         and taking care of the URL redirection.
@@ -76,7 +76,7 @@ class GesDiscProviderBase:
             response.raise_for_status()
 
             # Write to disk
-            with open(destination, "wb") as f:
+            with open(path, "wb") as f:
                 for chunk in response:
                     f.write(chunk)
 
@@ -118,15 +118,17 @@ class GesDiscProviderBase:
         files = list(set(GesDiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
 
-    def download_file(self, product, filename, destination):
+
+    def download_file(self, product, file_record, destination):
         """
         Download file from data provider.
 
         Args:
-            filename(``str``): The name of the file to download.
+            file_record: The file record identifying the file to download.
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
+        filename  = file_record.filename
         time = product.filename_to_date(filename)
         year = time.year
         day = time.strftime("%j")
@@ -138,7 +140,10 @@ class GesDiscProviderBase:
         url = self._request_string(product).format(
             year=year, day=day, filename=filename
         )
-        self.download_url(url, destination)
+        path = pathlib.Path(destination) / file_record.filename
+        self.download_url(url, path )
+        return path
+
 
     def download_metadata(self, filename):
         """
