@@ -9,6 +9,8 @@ Store, are represented as classes of data providers. This module provides the
 data provider classes.
 """
 from abc import ABC, abstractmethod, abstractclassmethod
+from typing import Optional, List
+from pathlib import Path
 
 ALL_PROVIDERS = []
 
@@ -17,7 +19,6 @@ class DataProvider(ABC):
     """
     Abstract base class for data provider classes.
     """
-
     def __init__(self):
         ALL_PROVIDERS.append(self)
 
@@ -35,7 +36,10 @@ class DataProvider(ABC):
         """
 
     @abstractmethod
-    def provides(self, product):
+    def provides(
+            self,
+            product: "pansat.Product"
+    ) -> bool:
         """
         Whether or not the given product is provided by this
         dataprovider.
@@ -50,7 +54,12 @@ class DataProvider(ABC):
         return False
 
     @abstractmethod
-    def download(self, start, end, destination=None):
+    def download(
+            self,
+            product: "pansat.Product",
+            time_range: "pansat.TimeRange",
+            destination: Optional[Path] = None
+    ) -> List[Path]:
         """
         This method downloads data for a given time range from respective the
         data provider.
@@ -60,14 +69,16 @@ class DataProvider(ABC):
             end(``datetime.datetime``): date and time for end
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
+
+        Return:
+            A list of the downloaded files.
         """
 
 
 class MetaDataprovider(ABC):
     """
-    Abstract base class for metadata provider.
+    Abstract base class for data providers that also provide meta data.
     """
-
     @abstractclassmethod
     def get_available_products(cls):
         """

@@ -68,12 +68,11 @@ def get_product(product_name):
 
 class Product(ABC):
     """
-    Generic interface for datasets managed by pansat.
+    Generic interface for all data products managed by pansat.
 
     This class defines the essential functionality that a product must
     implement to be used inside the pansat framework.
     """
-
     PRODUCTS = {}
 
     def __init__(self):

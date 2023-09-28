@@ -4,8 +4,10 @@ API Reference
 .. toctree::
    :maxdepth: 1
 
-   download
-   products
    catalog
-   examples
+   download
+   file_record
    formats
+   granule
+   products
+   time

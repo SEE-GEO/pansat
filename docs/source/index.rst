@@ -3,11 +3,20 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Pansat's documentation!
-==================================
+Welcome to ``pansat``'s documentation!
+======================================
 
 
-**pansat** provides a unified interface for a wide range of satellite, reanalysis and other meteorological data with a focus on data that is relevant for atmospheric research. Many of these datasets appear in different formats and are difficult to download and access in a consistent way. Therefore,  **pansat** tries to overcome this difficulties and provides user-friendly download functionalities that can be used within python or from the command line. Currently, **pansat** supports various gridded and ungridded datasets from different data providers and allows for a quick implementation of new data products. The user can specify time ranges, regions and variables for the datasets to be downloaded, which facilitates the access the data needed for case studies, climatological time series or collocations of different datasets. 
+``pansat`` aims to provide a unified interface to download, manage, and access a
+wide range of satellite, reanalysis and other meteorological data. The project
+was born out of the observation that scientists spend too much time figuring out
+how to download and access data from the wide array of products available to
+them. While it is not clear whether ``pansat`` can stand up to this challenge it
+aims to at least encourage the development of reusable code to access certain
+datasets.
+
+Motivation
+----------
 
 
 .. toctree::
