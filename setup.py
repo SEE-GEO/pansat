@@ -28,7 +28,8 @@ setuptools.setup(
         "boto3",
         "paramiko",
         "shapely",
-        "rich"
+        "rich",
+        "click"
     ],
     setup_requires=["pytest-runner"],
     tests_require=[
@@ -41,6 +42,6 @@ setuptools.setup(
         "netcdf4",
     ],
     python_requires=">=3.7",
-    entry_points={"console_scripts": ["pansat=pansat.download.commandline:download"]},
+    entry_points={"console_scripts": ["pansat=pansat.cli:pansat_cli"]},
     include_package_data=True,
 )
