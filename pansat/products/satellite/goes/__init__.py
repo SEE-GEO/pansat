@@ -14,9 +14,9 @@ import xarray as xr
 
 import pansat
 from pansat.products import Product
-from pansat.exceptions import NoAvailableProvider
+from pansat.exceptions import NoAvailableProvider, MissingInformation
 from pansat.file_record import FileRecord
-from pansat.geometry import Geometry
+from pansat.geometry import Geometry, lonlats_to_polygon, MultiPolygon
 from pansat.time import TimeRange
 
 REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
@@ -90,16 +90,16 @@ class GOESProduct(Product):
             elif set(self.channel) == {1, 2, 3}:
                 channel_str = "rgb"
             else:
-                channel_str = "".join([f"{chan:02}" for chan in self.channel])
+                channel_str = "c" + "".join([f"{chan:02}" for chan in self.channel])
         else:
-            channel_str = f"{self.channel:02}"
+            channel_str = f"c{self.channel:02}"
 
         region_str = REGIONS[self.region]
         prod_str = self.product_name.lower()
 
         name = (
             f"{prefix}.l{self.level}_goes{self.series_index}_{prod_str}"
-            f"_{region_str}_{channel_str}"
+            f"_{channel_str}_{region_str}"
         )
         return name
 
@@ -133,6 +133,31 @@ class GOESProduct(Product):
         end_time = datetime.strptime(match.group(3)[:-1], "%Y%j%H%M%S")
         return TimeRange(start_time, end_time)
 
+    def _load_geometry_from_file(self, rec: FileRecord) -> Geometry:
+        """
+        Parse geometry object representing the spatial coverage of a
+        file from a locally available file.
+
+        NOTE: Needs satpy.
+
+        Args:
+            rec: A file record pointing to a local file.
+
+        Return:
+            A geometry object representing the spatial coverage of the
+            file.
+        """
+        try:
+            from satpy import Scene
+            scn = Scene(files=[rec.local_path])
+            lons, lats = scn.coarsest_area().get_lonlats()
+            return lonlats_to_polygon(lons, lats, n_points=8)
+        except ImportError:
+            raise RuntimeError(
+                "Parsing the spatial extent of a GOES meso-scale sector"
+                " file requires 'satpy' to be installed."
+            )
+
     def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
         Determine the spatial coverage of a data file.
@@ -145,7 +170,20 @@ class GOESProduct(Product):
             A 'Geometry' object representing the spatial that the given
             datafile covers.
         """
-        pass
+        if self.region.lower() == "M":
+            if rec.local_path is not None:
+                raise MissingInformation(
+                    """
+                    Cannot determing the spatial coverage of a GOES meso scale
+                    sector file without downloading the file.
+                    """
+                )
+            return self._load_geometry_from_file(rec)
+
+        filename = f"goes_{self.series_index:02}_{REGIONS[self.region]}.json"
+        path = Path(__file__).parent / filename
+        return MultiPolygon.load(path)
+
 
     def open(self, rec: FileRecord) -> xr.Dataset:
         """
@@ -192,59 +230,32 @@ class GOES18L1BRadiances(GOESProduct):
         super().__init__("1b", 18, "ABI", "Rad", region, channel)
 
 
-l1b_goes_16_rad_c01_full_disk = GOES16L1BRadiances("F", 1)
-l1b_goes_16_rad_c02_full_disk = GOES16L1BRadiances("F", 2)
-l1b_goes_16_rad_c03_full_disk = GOES16L1BRadiances("F", 3)
-l1b_goes_16_rad_c04_full_disk = GOES16L1BRadiances("F", 4)
 l1b_goes_16_rad_rgb_full_disk = GOES16L1BRadiances("F", [1, 2, 3])
 l1b_goes_16_rad_all_full_disk = GOES16L1BRadiances("F", list(range(1, 17)))
-l1b_goes_16_rad_c01_conus = GOES16L1BRadiances("C", 1)
-l1b_goes_16_rad_c02_conus = GOES16L1BRadiances("C", 2)
-l1b_goes_16_rad_c03_conus = GOES16L1BRadiances("C", 3)
-l1b_goes_16_rad_c04_conus = GOES16L1BRadiances("C", 4)
 l1b_goes_16_rad_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
 l1b_goes_16_rad_all_conus = GOES16L1BRadiances("C", list(range(1, 17)))
-l1b_goes_16_rad_c01_meso_scale_sector = GOES16L1BRadiances("M", 1)
-l1b_goes_16_rad_c02_meso_scale_sector = GOES16L1BRadiances("M", 2)
-l1b_goes_16_rad_c03_meso_scale_sector = GOES16L1BRadiances("M", 3)
-l1b_goes_16_rad_c04_meso_scale_sector = GOES16L1BRadiances("M", 4)
 l1b_goes_16_rad_rgb_meso_scale_sector = GOES16L1BRadiances("M", [1, 2, 3])
 l1b_goes_16_rad_all_meso_scale_sector = GOES16L1BRadiances("M", list(range(1, 17)))
 
-l1b_goes_17_rad_c01_full_disk = GOES17L1BRadiances("F", 1)
-l1b_goes_17_rad_c02_full_disk = GOES17L1BRadiances("F", 2)
-l1b_goes_17_rad_c03_full_disk = GOES17L1BRadiances("F", 3)
-l1b_goes_17_rad_c04_full_disk = GOES17L1BRadiances("F", 4)
 l1b_goes_17_rad_rgb_full_disk = GOES17L1BRadiances("F", [1, 2, 3])
 l1b_goes_17_rad_all_full_disk = GOES17L1BRadiances("F", list(range(1, 17)))
-l1b_goes_17_rad_c01_conus = GOES17L1BRadiances("C", 1)
-l1b_goes_17_rad_c02_conus = GOES17L1BRadiances("C", 2)
-l1b_goes_17_rad_c03_conus = GOES17L1BRadiances("C", 3)
-l1b_goes_17_rad_c04_conus = GOES17L1BRadiances("C", 4)
 l1b_goes_17_rad_rgb_conus = GOES17L1BRadiances("C", [1, 2, 3])
 l1b_goes_17_rad_all_conus = GOES17L1BRadiances("C", list(range(1, 17)))
-l1b_goes_17_rad_c01_meso_scale_sector = GOES17L1BRadiances("M", 1)
-l1b_goes_17_rad_c02_meso_scale_sector = GOES17L1BRadiances("M", 2)
-l1b_goes_17_rad_c03_meso_scale_sector = GOES17L1BRadiances("M", 3)
-l1b_goes_17_rad_c04_meso_scale_sector = GOES17L1BRadiances("M", 4)
 l1b_goes_17_rad_rgb_meso_scale_sector = GOES17L1BRadiances("M", [1, 2, 3])
 l1b_goes_17_rad_all_meso_scale_sector = GOES17L1BRadiances("M", list(range(1, 17)))
 
-l1b_goes_18_rad_c01_full_disk = GOES18L1BRadiances("F", 1)
-l1b_goes_18_rad_c02_full_disk = GOES18L1BRadiances("F", 2)
-l1b_goes_18_rad_c03_full_disk = GOES18L1BRadiances("F", 3)
-l1b_goes_18_rad_c04_full_disk = GOES18L1BRadiances("F", 4)
 l1b_goes_18_rad_rgb_full_disk = GOES18L1BRadiances("F", [1, 2, 3])
 l1b_goes_18_rad_all_full_disk = GOES18L1BRadiances("F", list(range(1, 17)))
-l1b_goes_18_rad_c01_conus = GOES18L1BRadiances("C", 1)
-l1b_goes_18_rad_c02_conus = GOES18L1BRadiances("C", 2)
-l1b_goes_18_rad_c03_conus = GOES18L1BRadiances("C", 3)
-l1b_goes_18_rad_c04_conus = GOES18L1BRadiances("C", 4)
 l1b_goes_18_rad_rgb_conus = GOES18L1BRadiances("C", [1, 2, 3])
 l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
-l1b_goes_18_rad_c01_mese_scale_sector = GOES18L1BRadiances("M", 1)
-l1b_goes_18_rad_c02_mese_scale_sector = GOES18L1BRadiances("M", 2)
-l1b_goes_18_rad_c03_mese_scale_sector = GOES18L1BRadiances("M", 3)
-l1b_goes_18_rad_c04_mese_scale_sector = GOES18L1BRadiances("M", 4)
 l1b_goes_18_rad_rgb_mese_scale_sector = GOES18L1BRadiances("M", [1, 2, 3])
 l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
+
+for chan in range(1, 17):
+    for reg in ["F", "C", "M"]:
+        name = f"l1b_goes_16_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES16L1BRadiances(reg, chan)
+        name = f"l1b_goes_17_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES17L1BRadiances(reg, chan)
+        name = f"l1b_goes_18_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES18L1BRadiances(reg, chan)

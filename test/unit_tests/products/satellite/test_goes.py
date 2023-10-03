@@ -6,6 +6,8 @@ import pytest
 
 from pansat.file_record import FileRecord
 from pansat.time import to_datetime, TimeRange
+from pansat import geometry
+
 from pansat.products.satellite.goes import (
     l1b_goes_16_rad_c01_full_disk,
     l1b_goes_16_rad_c02_full_disk,
@@ -106,6 +108,11 @@ def test_get_temporal_coverage(product):
     date = to_datetime(time_range.start)
     assert date == datetime(2017, 3, 3, 3, 10, 8)
 
+@pytest.mark.parametrize("product", PRODUCTS)
+def test_get_spatial_coverage(product):
+    rec = FileRecord(FILENAMES[product.name])
+    geom = product.get_spatial_coverage(rec)
+    assert isinstance(geom, geometry.Geometry)
 
 @pytest.mark.slow
 def test_download(tmp_path):
