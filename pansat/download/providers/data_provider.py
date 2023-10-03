@@ -12,6 +12,12 @@ from abc import ABC, abstractmethod, abstractclassmethod
 from typing import Optional, List
 from pathlib import Path
 
+from pansat.geometry import Geometry
+from pansat.time import TimeRange
+from pansat.file_record import FileRecord
+from pansat.products import Product
+
+
 ALL_PROVIDERS = []
 
 
@@ -38,7 +44,7 @@ class DataProvider(ABC):
     @abstractmethod
     def provides(
             self,
-            product: "pansat.Product"
+            product: Product
     ) -> bool:
         """
         Whether or not the given product is provided by this
@@ -56,23 +62,45 @@ class DataProvider(ABC):
     @abstractmethod
     def download(
             self,
-            product: "pansat.Product",
-            time_range: "pansat.TimeRange",
+            file_record: FileRecord,
             destination: Optional[Path] = None
-    ) -> List[Path]:
+    ) -> FileRecord:
         """
-        This method downloads data for a given time range from respective the
-        data provider.
+        Download a product file to a given destination.
 
         Args:
-            start(``datetime.datetime``): date and time for start
-            end(``datetime.datetime``): date and time for end
-            destination(``str`` or ``pathlib.Path``): path to directory where
-                the downloaded files should be stored.
+            file_record: A FileRecord identifying the
 
         Return:
-            A list of the downloaded files.
+            An updated file record whose 'local_path' attribute points
+            to the downloaded file.
         """
+
+    @abstractmethod
+    def find_files(
+            self,
+            product: Product,
+            time_range: TimeRange,
+            roi: Optional[Geometry]
+
+    ) -> List[FileRecord]:
+        """
+        Find available files within a given time range and optional geographic
+        region.
+
+        Args:
+            product: A 'pansat.Product' object representing the product to
+                download.
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
+
+        Return:
+            A list of 'pansat.FileRecords' specifying the available
+            files.
+        """
+
 
 
 class MetaDataprovider(ABC):

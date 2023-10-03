@@ -28,8 +28,8 @@ def test_download_file(tmp_path):
     provider = IowaStateProvider()
     time = np.datetime64("2021-01-01T00:00:00")
     files = provider.find_files_by_day(precip_rate, time)
-    fname = provider.download_file(files[0], destination)
+    rec = provider.download(files[0], destination)
 
-    data = precip_rate.open(fname)
-    assert fname.exists()
+    assert rec.local_path.exists()
+    data = precip_rate.open(rec)
     assert "precip_rate" in data

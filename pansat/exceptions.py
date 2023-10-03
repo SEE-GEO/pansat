@@ -32,3 +32,8 @@ class MissingDependency(PansatException):
     """
     Thrown when an optional dependency is found to be missing.
     """
+
+class MissingInformation(PansatException):
+    """
+    Thrown when requested information cannot be obtained.
+    """

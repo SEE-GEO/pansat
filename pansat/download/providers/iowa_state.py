@@ -9,6 +9,7 @@ Department of Geological and atmospheric sciences at Iowa State University.
 
 This provider doesn't require any user authentication to download data.
 """
+from copy import copy
 from datetime import datetime, timedelta
 from pathlib import Path
 import shutil
@@ -61,7 +62,7 @@ class IowaStateProvider(DiscreteProviderDay):
 
     def find_files_by_day(
         self, product: "pansat.Product", time: Time, roi: Optional[Geometry] = None
-    ):
+    ) -> [FileRecord]:
         """
         Return all files from given year and julian day.
 
@@ -83,7 +84,7 @@ class IowaStateProvider(DiscreteProviderDay):
                 for fname in filenames
             ]
 
-    def download_file(self, rec: FileRecord, destination: Path) -> Path:
+    def download(self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
         """
         Download file from data provider.
 
@@ -93,6 +94,12 @@ class IowaStateProvider(DiscreteProviderDay):
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
+        if destination is None:
+            destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
+
         url = rec.remote_path
         destination = Path(destination)
         if destination.is_dir():
@@ -102,7 +109,11 @@ class IowaStateProvider(DiscreteProviderDay):
             resp.raise_for_status()
             with open(destination, "wb") as output:
                 shutil.copyfileobj(resp.raw, output)
-        return destination
+
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+
+        return new_rec
 
 
 iowa_state_provider = IowaStateProvider()

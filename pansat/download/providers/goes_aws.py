@@ -173,6 +173,7 @@ class GOESAWSProvider(DiscreteProviderDay):
         """
         if destination is None:
             destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
         else:
             destination = Path(destination)
 

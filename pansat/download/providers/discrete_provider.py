@@ -10,7 +10,7 @@ from abc import abstractmethod
 from calendar import monthrange, isleap
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 
@@ -231,68 +231,36 @@ class DiscreteProviderBase(DataProvider):
         super().__init__()
 
     @abstractmethod
-    def get_time_step(self, time):
+    def get_time_step(self, time: datetime) -> timedelta:
         """
         The time step between consecutive, discrete time slots.
         """
         pass
 
-    @abstractmethod
-    def download_file(self, file_record, destination):
-        """
-        Download file from data provider.
-
-        Args:
-            filename(``str``): The name of the file to download.
-            destination(``str`` or ``pathlib.Path``): path to directory where
-                the downloaded files should be stored.
-        """
 
     @abstractmethod
-    def find_files(self, product, time):
+    def find_files(
+            self,
+            product: "pansat.Product",
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ) -> List[FileRecord]:
         """
-        Find all files available at a given time.
+        Find available files within a given time range and optional geographic
+        region.
 
         Args:
             product: A 'pansat.Product' object representing the product to
-                 download.
-            time: The time for to return available files.
+                download.
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
 
         Return:
             A list of 'pansat.FileRecords' specifying the available
             files.
         """
-
-    def download(self, product, time_range, roi=None, destination=None):
-        """
-        This method downloads data for a given time range from respective the
-        data provider.
-
-        Args:
-            product: pansat Product object representing the data product to
-                download.
-            time_range(``datetime.datetime``): Time range object specifying the
-                time range for which to download files.
-            roi: If given only files whose geographical coverage overlaps with
-                the given geometry will be downloaded.
-            destination(``str`` or ``pathlib.Path``): path to directory where
-                the downloaded files should be stored.
-        """
-
-        if not destination:
-            destination = product.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-
-        files = self.find_files(product, time_range)
-
-        downloaded = []
-        for rec in files:
-            path = destination / rec.filename
-            self.download_file(rec, path)
-            downloaded.append(path)
-        return downloaded
 
     def find_files_in_range(self, product, time_range):
         """

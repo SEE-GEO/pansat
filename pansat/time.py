@@ -74,7 +74,7 @@ class TimeRange:
         if isinstance(start, str):
             start = np.datetime64(start)
         if isinstance(end, str):
-            start = np.datetime64(end)
+            end = np.datetime64(end)
         self.start = to_datetime(start)
         self.end = to_datetime(end)
 

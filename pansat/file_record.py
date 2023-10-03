@@ -5,6 +5,8 @@ pansat.file_record
 Defines a file record class that contains information about a local or remote
 file.
 """
+from typing import Optional
+
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -76,9 +78,12 @@ class FileRecord:
         self.provider = provider
         self.remote_path = remote_path
 
-    def download(self, destination):
+    def download(
+            self,
+            destination: Optional[Path] = None
+    ) -> "FileRecord":
         """
-        Download corresponding file.
+        Download a remote corresponding file.
 
         Downloading a remote file requires that record to have an associated
         remote path and corresponding data_provider.
@@ -88,7 +93,8 @@ class FileRecord:
                  to write the downloaded file.
 
         Return:
-            The local path of the downloaded file.
+            This file record but updated so that its 'local_path' attribute
+            points to the path of the downloaded file.
         """
         if self.remote_path is None:
             raise ValueError(
@@ -102,7 +108,9 @@ class FileRecord:
                 " Downloading the corresponding file is therefore not "
                 " possible."
             )
-        return self.provider.download(self, destination)
+        new_rec = self.provider.download(self, destination=destination)
+        self.local_path = new_rec.local_path
+        return self
 
     @classmethod
     def from_dict(cls, dct):

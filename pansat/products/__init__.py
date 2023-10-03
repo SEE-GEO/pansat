@@ -8,25 +8,14 @@ from abc import ABC, abstractmethod, abstractproperty
 from dataclasses import dataclass
 import importlib
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import xarray as xr
 
-from pansat.download.providers.copernicus import COPERNICUS_PRODUCTS
-from pansat.download.providers.noaa import NOAA_PRODUCTS
-from pansat.download.providers.icare import ICARE_PRODUCTS
-from pansat.download.providers.ges_disc import GPM_PRODUCTS
 from pansat.file_record import FileRecord
 from pansat.granule import Granule
 from pansat.time import TimeRange
 from pansat import geometry
-
-ALL_PRODUCTS = [
-    *COPERNICUS_PRODUCTS,
-    *NOAA_PRODUCTS,
-    *list(ICARE_PRODUCTS.keys()),
-    *list(GPM_PRODUCTS.keys()),
-]
 
 
 class Geometry:
@@ -79,27 +68,27 @@ class Product(ABC):
         Product.PRODUCTS[self.name] = self
 
     @abstractproperty
-    def default_destination(self):
+    def default_destination(self) -> str:
         """
-        A relative directory to use to store files from this product
+        Name of a relative directory to use to store files from this product
         to.
         """
         pass
 
     @abstractproperty
-    def name(self):
+    def name(self) -> str:
         """
         A name that uniquely identifies a product.
         """
         pass
 
     @abstractmethod
-    def matches(self, path: Path) -> bool:
+    def matches(self, rec: FileRecord) -> bool:
         """
         Determine wheter a given file belongs to this product.
 
         Args:
-            path: A path object pointing to a local file.
+            rec: A file record object pointing to a local file.
 
         Return:
             'True' if the file belongs to this product. 'False' otherwise.
@@ -154,16 +143,56 @@ class Product(ABC):
         """
         pass
 
-    def download(self, start_time, end_time=None, destination=None):
+    def download(
+            self,
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None,
+            destination=None
+    ) -> List[FileRecord]:
+        """
+        Find and download available files within a given time range and
+        optional geographic region.
+
+        Args:
+            product: A 'pansat.Product' object representing the product to
+                download.
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
+
+        Return:
+            A list of 'pansat.FileRecords' specifying the downloaded
+            files.
+        """
+        files = self.find_files(time_range, roi=roi)
+        downloaded = []
+        for rec in files:
+            downloaded.append(rec.provider.download(rec, destination=destination))
+        return downloaded
+
+    def find_files(
+            self,
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ) -> List[FileRecord]:
+        """
+        Find available files within a given time range and optional geographic
+        region.
+
+        Args:
+            product: A 'pansat.Product' object representing the product to
+                download.
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
+
+        Return:
+            A list of 'pansat.FileRecords' specifying the available
+            files.
+        """
         from pansat.download.providers.data_provider import ALL_PROVIDERS
-
-        if end_time is None:
-            end_time = start_time
-
-        if destination is None:
-            destination = self.default_destination
-
-        t_range = TimeRange(start_time, end_time)
         product_provider = None
         for provider in ALL_PROVIDERS:
             try:
@@ -175,11 +204,12 @@ class Product(ABC):
 
         if product_provider is None:
             raise RuntimeError(f"Could not find a provider for the product '{self}'.")
-        return product_provider.download(self, t_range, destination)
+        return product_provider.find_files(self, time_range, roi=roi)
 
-        if product_provider is None:
-            raise RuntimeError(f"Could not find a provider for the product '{self}'.")
-        return product_provider.download(self, t_range, destination)
+
+    def __str__(self):
+        return f"Product(name='{self.name}')"
+
 
 class NetcdfProduct(ABC):
     """
@@ -310,3 +340,19 @@ class GranuleProduct(Product):
         Return:
             An xarray.Dataset containing the loaded data.
         """
+
+def list_products(module):
+    """
+    List all product instances that are available in a given module.
+
+    Args:
+        module: A module object containing Product objects.
+
+    Return:
+        A list of object products found within the given module.
+    """
+    products = []
+    for obj in module.__dict__.values():
+        if isinstance(obj, Product):
+            products.append(obj)
+    return sorted(products, key=lambda prod: prod.name)

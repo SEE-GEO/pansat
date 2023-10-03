@@ -87,6 +87,10 @@ class MRMSProduct(Product):
         return datetime.strptime(name, "00_%Y%m%d-%H%M%S")
 
     def get_temporal_coverage(self, rec: FileRecord):
+
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(Path(rec))
+
         start_time = self.filename_to_date(rec.filename)
         end_time = to_datetime64(start_time) + self.temporal_resolution
         return TimeRange(start_time, end_time)
@@ -110,12 +114,13 @@ class MRMSProduct(Product):
             )
         return available_providers[0]
 
-    def open(self, filename):
+    def open(self, rec):
         """
         Open a grib2 file containing MRMS precipitation rates using xarray.
 
         Args:
-             filename: The path to the file.
+             rec: A string, pathlib.Path of FileRecord pointing to the local
+                 file to open.
 
         Return:
              An xarray dataset containing the data in the file.
@@ -132,12 +137,14 @@ class MRMSProduct(Product):
                 {e}
                 """
             )
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
 
-        filename = Path(filename)
-        if filename.suffix == ".gz":
+        path = rec.local_path
+        if path.suffix == ".gz":
             try:
                 temp = Path(mkdtemp())
-                with open(filename, "rb") as source:
+                with open(path, "rb") as source:
                     bs = gzip.decompress(source.read())
                     dest = temp / "temp.grib2"
                     with open(dest, "wb") as dest_file:
@@ -146,7 +153,7 @@ class MRMSProduct(Product):
             finally:
                 rmtree(temp)
         else:
-            dataset = xr.load_dataset(filename, engine="cfgrib")
+            dataset = xr.load_dataset(path, engine="cfgrib")
 
         lons = dataset.longitude.data
         lons[lons > 180] = lons - 360
