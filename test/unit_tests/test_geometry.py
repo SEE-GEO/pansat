@@ -1,4 +1,15 @@
-from pansat.geometry import LineString, MultiLineString, Polygon, MultiPolygon
+"""
+Tests for the pansat.geometry module.
+"""
+import numpy as np
+
+from pansat.geometry import (
+    LineString,
+    MultiLineString,
+    Polygon,
+    MultiPolygon,
+    lonlats_to_polygon
+)
 
 
 def test_line_string():
@@ -69,3 +80,16 @@ def test_save_and_load(tmp_path):
     loaded = Polygon.load(tmp_path / "poly.json")
 
     assert poly.geometry == loaded.geometry
+
+
+def test_lonlats_to_polygon():
+    """
+    Ensure that parsing of coverage polygon from lon and lat fields works.
+    """
+    poly_1 = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
+    lats = np.linspace(0, 10, 100)
+    lons = np.linspace(0, 10, 100)
+    lons, lats = np.meshgrid(lons, lats)
+    poly_2 = lonlats_to_polygon(lons, lats)
+
+    assert poly_1.geometry == poly_2.geometry

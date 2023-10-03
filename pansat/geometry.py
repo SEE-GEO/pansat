@@ -15,6 +15,7 @@ from shapely.geometry import Polygon, MultiPolygon
 from shapely.validation import make_valid
 from shapely.ops import unary_union
 from shapely.validation import make_valid
+import xarray as xr
 
 
 def parse_point(xml_point):
@@ -349,8 +350,10 @@ class Polygon(ShapelyGeometry):
     A polygon geometry that internally uses a shapely polygon.
     """
 
-    def __init__(self, coords):
-        super().__init__(shapely.validation.make_valid(shapely.Polygon(coords)))
+    def __init__(self, poly):
+        if not isinstance(poly, shapely.Polygon):
+            poly = shapely.validation.make_valid(shapely.Polygon(poly))
+        super().__init__(poly)
 
 
 class MultiPolygon(ShapelyGeometry):
@@ -360,11 +363,11 @@ class MultiPolygon(ShapelyGeometry):
     """
 
     def __init__(self, polys):
-        super().__init__(
-            shapely.validation.make_valid(
+        if not isinstance(polys, shapely.MultiPolygon):
+            polys = shapely.validation.make_valid(
                 shapely.MultiPolygon([shapely.Polygon(poly) for poly in polys])
             )
-        )
+        super().__init__(polys)
 
 
 class SatelliteSwath(ShapelyGeometry):
@@ -374,3 +377,160 @@ class SatelliteSwath(ShapelyGeometry):
 
     def __init__(self, geometry):
         super().__init__(geometry)
+
+
+def calc_intersect_antimeridian(p_1, p_2):
+    """
+    Calculate latitude coordinate of a line intersecting the antimeridian.
+
+    Args:
+        p_1: Starting point of the line.
+        p_2: End point of the line.
+
+    Return:
+        The latitude coordinate of the intersection with the antimerdian.
+    """
+    if p_1[0] > p_2[0]:
+        p_1, p_2 = p_2, p_1
+
+    lon_1 = p_1[0]
+    lon_2 = p_2[0]
+    delta_lon = 360 - (lon_2 - lon_1)
+
+
+    lat_1 = p_1[1]
+    lat_2 = p_2[1]
+    delta_lat = lat_1 - lat_2
+
+
+    return lat_2 + delta_lat * (180 - lon_2) / delta_lon
+
+
+def split_at_antimeridian(coords):
+    """
+    Split a polygon reprsented by tuples of coords at antimeridian.
+
+    Args:
+        coords: A list of tuples containing each longitude and latitude
+            coordinates of the points in the polygon.
+
+    Return:
+        A list the parts of the polygon so that none of the crosses
+        the antimeridian.
+    """
+    parts = {0: []}
+    loc = 0
+
+    curr_point = coords[0]
+    for next_point in coords[1:] + [curr_point]:
+
+        parts[loc].append(curr_point)
+
+        if abs(curr_point[0] - next_point[0]) > 180:
+
+            lat_new = calc_intersect_antimeridian(curr_point, next_point)
+            # Leaving to the left
+            if curr_point[0] < next_point[0]:
+                parts[loc].append((-180, lat_new))
+                loc -= 1
+                parts.setdefault(loc, []).append((180, lat_new))
+            # Leaving to the right
+            else:
+                parts[loc].append((180, lat_new))
+                loc += 1
+                parts.setdefault(loc, []).append((-180, lat_new))
+
+        curr_point = next_point
+
+    return list(parts.values())
+
+
+def get_first_valid(data: np.ndarray):
+    """
+    Get first valid element in an array.
+    """
+    ind = np.where(np.isfinite(data))[0][0]
+    return data[ind]
+
+def get_last_valid(data: np.ndarray):
+    """
+    Get last valid element in an array.
+    """
+    ind = np.where(np.isfinite(data))[0][-1]
+    return data[ind]
+
+def lonlats_to_polygon(
+        lons: np.ndarray,
+        lats: np.ndarray,
+        n_points: int = 2
+) -> Polygon:
+    """
+    Parse polygon from 2D longitude and latitude fields.
+
+    This function assumes that lons and lats reprsent a continuous
+    field of coordinates.
+
+    Args:
+        lons: A 2D numpy array containing longitude coordinates
+        lats: A 2D numpy array containing latitude coordinates.
+        n_points: The number of points to use along each edge of
+            the array.
+
+    Return:
+        A Polygon object outlining the spatial coverage
+        represented by the two coordinate arrays.
+    """
+
+    lon_coords = []
+    lat_coords = []
+
+    mask = np.isfinite(lons) * np.isfinite(lats)
+
+    if not np.all(mask):
+        valid = np.where(np.mean(mask, 0) > np.sqrt(0.5))[0]
+        inds = np.linspace(0, len(valid) - 1, n_points).astype(np.int64)
+        lon_coords += [get_first_valid(lons[:, ind]) for ind in valid[inds]]
+        lat_coords += [get_first_valid(lats[:, ind]) for ind in valid[inds]]
+
+        valid = np.where(np.mean(mask, 1) > np.sqrt(0.5))[0]
+        inds = np.linspace(0, len(valid) - 1, n_points).astype(np.int64)
+        lon_coords += [get_last_valid(lons[ind, :]) for ind in valid[inds[1:]]]
+        lat_coords += [get_last_valid(lats[ind, :]) for ind in valid[inds[1:]]]
+
+        valid = np.where(np.mean(mask, 0) > np.sqrt(0.5))[0]
+        inds = np.linspace(len(valid) - 1, 0, n_points).astype(np.int64)
+        lon_coords += [get_last_valid(lons[:, ind]) for ind in valid[inds[1:]]]
+        lat_coords += [get_last_valid(lats[:, ind]) for ind in valid[inds[1:]]]
+
+        valid = np.where(np.mean(mask, 1) > np.sqrt(0.5))[0]
+        inds = np.linspace(len(valid) - 1, 0, n_points).astype(np.int64)
+        lon_coords += [get_first_valid(lons[ind, :]) for ind in valid[inds[1:-1]]]
+        lat_coords += [get_first_valid(lats[ind, :]) for ind in valid[inds[1:-1]]]
+    else:
+        inds = np.linspace(0, lons.shape[1] - 1, n_points).astype(np.int64)
+        lon_coords += [lons[0, ind] for ind in inds]
+        lat_coords += [lats[0, ind] for ind in inds]
+
+        inds = np.linspace(0, lons.shape[0] - 1, n_points).astype(np.int64)
+        lon_coords += [lons[ind, -1] for ind in inds[1:]]
+        lat_coords += [lats[ind, -1] for ind in inds[1:]]
+
+        inds = np.linspace(lons.shape[1] - 1, 0, n_points).astype(np.int64)
+        lon_coords += [lons[-1, ind] for ind in inds[1:]]
+        lat_coords += [lats[-1, ind] for ind in inds[1:]]
+
+        inds = np.linspace(lons.shape[0] - 1, 0, n_points).astype(np.int64)
+        lon_coords += [lons[ind, 0] for ind in inds[1:-1]]
+        lat_coords += [lats[ind, 0] for ind in inds[1:-1]]
+
+
+    coords = list(zip(lon_coords, lat_coords))
+    print(coords)
+    coords = split_at_antimeridian(coords)
+
+    if len(coords) == 1:
+        print(coords[0])
+        return Polygon(coords[0])
+
+    mpolygon = MultiPolygon(coords)
+    return mpolygon
