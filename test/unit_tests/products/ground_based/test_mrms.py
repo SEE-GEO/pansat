@@ -3,15 +3,17 @@ from datetime import datetime
 import pytest
 from pansat.time import TimeRange
 from pansat.products.ground_based.mrms import (
-    mrms_precip_rate,
-    mrms_precip_flag,
-    mrms_radar_quality_index,
+    precip_rate,
+    precip_flag,
+    radar_quality_index,
 )
+from pansat import FileRecord
+
 
 _PRODUCTS = {
-    "PrecipRate_00.00_20210101-020400.grib2.gz": mrms_precip_rate,
-    "PrecipType_00.00_20210101-020400.grib2.gz": mrms_precip_flag,
-    "RadarQualityIndex_00.00_20210101-020400.grib2.gz": mrms_radar_quality_index,
+    "PrecipRate_00.00_20210101-020400.grib2.gz": precip_rate,
+    "PrecipType_00.00_20210101-020400.grib2.gz": precip_flag,
+    "RadarQualityIndex_00.00_20210101-020400.grib2.gz": radar_quality_index,
 }
 
 
@@ -22,12 +24,14 @@ def test_filename_to_date(filename):
     filename.
     """
     product = _PRODUCTS[filename]
-    time = product.filename_to_date(filename)
-    assert time.year == 2021
-    assert time.month == 1
-    assert time.day == 1
-    assert time.hour == 2
-    assert time.minute == 4
+    time_range = product.get_temporal_coverage(filename)
+    start_time = time_range.start
+
+    assert start_time.year == 2021
+    assert start_time.month == 1
+    assert start_time.day == 1
+    assert start_time.hour == 2
+    assert start_time.minute == 4
 
 
 @pytest.mark.slow
@@ -40,7 +44,11 @@ def test_download_and_open(tmp_path, filename):
     start_time = datetime(2021, 1, 1, 0, 1, 0)
     end_time = datetime(2021, 1, 1, 0, 1, 1)
     time_range = TimeRange(start_time, end_time)
-    files = product.download(product, time_range, destination=tmp_path)
-    assert len(files) == 1
+    files = product.download(time_range, destination=tmp_path)
 
-    dataset = mrms_precip_rate.open(files[0])
+    assert len(files) == 1
+    for rec in files:
+        assert isinstance(rec, FileRecord)
+
+    dataset = product.open(files[0])
+    assert product.variable_name in dataset

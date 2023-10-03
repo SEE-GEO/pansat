@@ -8,148 +8,161 @@ products from the GOES series of geostationary satellites.
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import Union, List
 
-import xarray
+import xarray as xr
 
-import pansat.download.providers as providers
-from pansat.products.product import Product
+import pansat
+from pansat.products import Product
 from pansat.exceptions import NoAvailableProvider
+from pansat.file_record import FileRecord
+from pansat.geometry import Geometry
+from pansat.time import TimeRange
+
+REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
 
 
 class GOESProduct(Product):
     """
     Base class for products from any of the currently operational
-    GOES satellites (GOES 16 and 17).
-
-    Attributes:
-        series_index(``int``): Index identifying the GOES satellite
-            in the GOES seris.
-        level(``int``): The operational level of the product.
-        name(``str``): The name of the product.
-        channel(``int``): The channel index.
+    GOES satellites (GOES 16, 17 and 18).
     """
 
-    def __init__(self, series_index, level, name, region, channel):
-        self.series_index = series_index
+    def __init__(
+        self,
+        level: str,
+        series_index: int,
+        instrument: str,
+        product_name: str,
+        region: str,
+        channel: Union[int, List[int]],
+    ):
+        """
+        Args:
+            level: Level string specifying the processing level, i.e.,
+                '1b' for level 1B products.
+            series_index: Series index identifying the satellite.
+            instrument: Name of the underlying instrument.
+            product_name: Name of the GOES product.
+            region: Single letter specifying the GOES region.
+            channel: Single integer of list of integers specifying the
+                one or multiple channels.
+        """
         self.level = level
-        self.name = name
+        self.series_index = series_index
+        self.instrument = instrument
+        self.product_name = product_name
         self.region = region
         self.channel = channel
-        if type(channel) == list:
+        instr_str = instrument.upper()
+
+        if isinstance(channel, list):
             channels = "(" + "|".join([f"{c:02}" for c in channel]) + ")"
 
             self.filename_regexp = re.compile(
-                rf"OR_ABI-L{self.level}-{self.name}{self.region}-\w\wC{channels}"
+                rf"OR_{instr_str}-L{level}-{product_name}{region}-\w\wC{channels}"
                 r"_\w\w\w_s(\d*)_e(\d*)_c(\d*).nc"
             )
         else:
             self.filename_regexp = re.compile(
-                rf"OR_ABI-L{self.level}-{self.name}{self.region}-\w\wC"
+                rf"OR_{instr_str}-L{level}-{product_name}{region}-\w\wC"
                 rf"({self.channel:02})_\w\w\w_s(\d*)_e(\d*)_c(\d*).nc"
             )
+        super().__init__()
 
     @property
-    def variables(self):
-        return []
+    def default_destination(self):
+        name = f"goes_{self.series_index:02}"
+        return Path(name)
 
-    def matches(self, filename):
+    @property
+    def name(self):
+        """
+        The product name that uniquely identifies the product within pansat.
+        """
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+
+        if isinstance(self.channel, list):
+            if len(self.channel) == 16:
+                channel_str = "all"
+            elif set(self.channel) == {1, 2, 3}:
+                channel_str = "rgb"
+            else:
+                channel_str = "".join([f"{chan:02}" for chan in self.channel])
+        else:
+            channel_str = f"{self.channel:02}"
+
+        region_str = REGIONS[self.region]
+        prod_str = self.product_name.lower()
+
+        name = (
+            f"{prefix}.l{self.level}_goes{self.series_index}_{prod_str}"
+            f"_{region_str}_{channel_str}"
+        )
+        return name
+
+    def matches(self, rec: FileRecord) -> bool:
         """
         Determines whether a given filename matches the pattern used for
         the product.
 
         Args:
-            filename(``str``): The filename
+            rec: A file record pointing to a local or remote file.
 
         Return:
             True if the filename matches the product, False otherwise.
         """
-        return self.filename_regexp.match(filename)
+        return self.filename_regexp.match(rec.filename) is not None
 
-    def filename_to_date(self, filename):
+    def get_temporal_coverage(self, rec: FileRecord):
         """
-        Extract timestamp from filename.
+        Determine the temporal coverage of a GOES file.
 
         Args:
-            filename(``str``): Filename of a GOES product.
+            rec: A 'FileRecord' object pointing to the file from which to
+                deduce the temporal coverage.
 
-        Returns:
-            ``datetime`` object representing the timestamp of the
-                filename.
+        Return:
+            A 'TimeRange' object representing the time range covered by the
+            data file.
         """
-        path = Path(filename)
-        match = self.filename_regexp.match(path.name)
-        date_string = match.group(2)[:-1]
-        date = datetime.strptime(date_string, "%Y%j%H%M%S")
-        return date
+        match = self.filename_regexp.match(rec.filename)
+        start_time = datetime.strptime(match.group(2)[:-1], "%Y%j%H%M%S")
+        end_time = datetime.strptime(match.group(3)[:-1], "%Y%j%H%M%S")
+        return TimeRange(start_time, end_time)
 
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {self.name}."
-            )
-        return available_providers[0]
-
-    @property
-    def default_destination(self):
+    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
-        The default destination for GOES product is
-        ``GOES-<index>/<product_name>``>
-        """
-        return Path(f"GOES-{self.series_index}") / Path(str(self))
-
-    def __str__(self):
-        """The full product name."""
-        return f"GOES-{self.series_index}-ABI-L{self.level}-{self.name}{self.region}"
-
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
+        Determine the spatial coverage of a data file.
 
         Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
+            rec: A file record representing the file of which to determine
+                the spatial extent.
+
+        Return:
+            A 'Geometry' object representing the spatial that the given
+            datafile covers.
         """
+        pass
 
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-
-        if isinstance(self.channel, list):
-            files = []
-            for c in self.channel:
-                prod = GOESProduct(
-                    self.series_index, self.level, self.name, self.region, c
-                )
-                p = provider(prod)
-                files += p.download(start_time, end_time, destination)
-            return files
-
-        provider = provider(self)
-        return provider.download(start_time, end_time, destination)
-
-    def open(self, filename):
+    def open(self, rec: FileRecord) -> xr.Dataset:
         """
-        Open file as xarray dataset.
+        Open file as xarray Dataset.
 
         Args:
             filename(``pathlib.Path`` or ``str``): The GOES file to open.
+
+        Return:
+            An xarray.Dataset containing the loaded product data.
         """
-        return xarray.open_dataset(filename)
+        path = rec.local_path
+        if path is None:
+            raise RuntimeError(
+                f"The file {rec.filename} does not seem to be available locally."
+            )
+        return xr.open_dataset(path)
 
 
 class GOES16L1BRadiances(GOESProduct):
@@ -158,7 +171,7 @@ class GOES16L1BRadiances(GOESProduct):
     """
 
     def __init__(self, region, channel):
-        super().__init__(16, "1b", "Rad", region, channel)
+        super().__init__("1b", 16, "ABI", "Rad", region, channel)
 
 
 class GOES17L1BRadiances(GOESProduct):
@@ -167,7 +180,7 @@ class GOES17L1BRadiances(GOESProduct):
     """
 
     def __init__(self, region, channel):
-        super().__init__(17, "1b", "Rad", region, channel)
+        super().__init__("1b", 17, "ABI", "Rad", region, channel)
 
 
 class GOES18L1BRadiances(GOESProduct):
@@ -176,44 +189,62 @@ class GOES18L1BRadiances(GOESProduct):
     """
 
     def __init__(self, region, channel):
-        super().__init__(18, "1b", "Rad", region, channel)
+        super().__init__("1b", 18, "ABI", "Rad", region, channel)
 
 
-goes_16_l1b_radiances_c01_full_disk = GOES16L1BRadiances("F", 1)
-goes_16_l1b_radiances_c02_full_disk = GOES16L1BRadiances("F", 2)
-goes_16_l1b_radiances_c03_full_disk = GOES16L1BRadiances("F", 3)
-goes_16_l1b_radiances_c04_full_disk = GOES16L1BRadiances("F", 4)
-goes_16_l1b_radiances_rgb_full_disk = GOES16L1BRadiances("F", [1, 2, 3])
-goes_16_l1b_radiances_all_full_disk = GOES16L1BRadiances("F", list(range(1, 17)))
-goes_16_l1b_radiances_c01_conus = GOES16L1BRadiances("C", 1)
-goes_16_l1b_radiances_c02_conus = GOES16L1BRadiances("C", 2)
-goes_16_l1b_radiances_c03_conus = GOES16L1BRadiances("C", 3)
-goes_16_l1b_radiances_c04_conus = GOES16L1BRadiances("C", 4)
-goes_16_l1b_radiances_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
-goes_16_l1b_radiances_all_conus = GOES16L1BRadiances("C", list(range(16)))
+l1b_goes_16_rad_c01_full_disk = GOES16L1BRadiances("F", 1)
+l1b_goes_16_rad_c02_full_disk = GOES16L1BRadiances("F", 2)
+l1b_goes_16_rad_c03_full_disk = GOES16L1BRadiances("F", 3)
+l1b_goes_16_rad_c04_full_disk = GOES16L1BRadiances("F", 4)
+l1b_goes_16_rad_rgb_full_disk = GOES16L1BRadiances("F", [1, 2, 3])
+l1b_goes_16_rad_all_full_disk = GOES16L1BRadiances("F", list(range(1, 17)))
+l1b_goes_16_rad_c01_conus = GOES16L1BRadiances("C", 1)
+l1b_goes_16_rad_c02_conus = GOES16L1BRadiances("C", 2)
+l1b_goes_16_rad_c03_conus = GOES16L1BRadiances("C", 3)
+l1b_goes_16_rad_c04_conus = GOES16L1BRadiances("C", 4)
+l1b_goes_16_rad_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
+l1b_goes_16_rad_all_conus = GOES16L1BRadiances("C", list(range(1, 17)))
+l1b_goes_16_rad_c01_meso_scale_sector = GOES16L1BRadiances("M", 1)
+l1b_goes_16_rad_c02_meso_scale_sector = GOES16L1BRadiances("M", 2)
+l1b_goes_16_rad_c03_meso_scale_sector = GOES16L1BRadiances("M", 3)
+l1b_goes_16_rad_c04_meso_scale_sector = GOES16L1BRadiances("M", 4)
+l1b_goes_16_rad_rgb_meso_scale_sector = GOES16L1BRadiances("M", [1, 2, 3])
+l1b_goes_16_rad_all_meso_scale_sector = GOES16L1BRadiances("M", list(range(1, 17)))
 
-goes_17_l1b_radiances_c01_full_disk = GOES17L1BRadiances("F", 1)
-goes_17_l1b_radiances_c02_full_disk = GOES17L1BRadiances("F", 2)
-goes_17_l1b_radiances_c03_full_disk = GOES17L1BRadiances("F", 3)
-goes_17_l1b_radiances_c04_full_disk = GOES17L1BRadiances("F", 4)
-goes_17_l1b_radiances_rgb_full_disk = GOES17L1BRadiances("F", [1, 2, 3])
-goes_17_l1b_radiances_all_full_disk = GOES17L1BRadiances("F", list(range(1, 17)))
-goes_17_l1b_radiances_c01_conus = GOES17L1BRadiances("C", 1)
-goes_17_l1b_radiances_c02_conus = GOES17L1BRadiances("C", 2)
-goes_17_l1b_radiances_c03_conus = GOES17L1BRadiances("C", 3)
-goes_17_l1b_radiances_c04_conus = GOES17L1BRadiances("C", 4)
-goes_17_l1b_radiances_rgb_conus = GOES17L1BRadiances("C", [1, 2, 3])
-goes_17_l1b_radiances_all_conus = GOES17L1BRadiances("C", list(range(1, 17)))
+l1b_goes_17_rad_c01_full_disk = GOES17L1BRadiances("F", 1)
+l1b_goes_17_rad_c02_full_disk = GOES17L1BRadiances("F", 2)
+l1b_goes_17_rad_c03_full_disk = GOES17L1BRadiances("F", 3)
+l1b_goes_17_rad_c04_full_disk = GOES17L1BRadiances("F", 4)
+l1b_goes_17_rad_rgb_full_disk = GOES17L1BRadiances("F", [1, 2, 3])
+l1b_goes_17_rad_all_full_disk = GOES17L1BRadiances("F", list(range(1, 17)))
+l1b_goes_17_rad_c01_conus = GOES17L1BRadiances("C", 1)
+l1b_goes_17_rad_c02_conus = GOES17L1BRadiances("C", 2)
+l1b_goes_17_rad_c03_conus = GOES17L1BRadiances("C", 3)
+l1b_goes_17_rad_c04_conus = GOES17L1BRadiances("C", 4)
+l1b_goes_17_rad_rgb_conus = GOES17L1BRadiances("C", [1, 2, 3])
+l1b_goes_17_rad_all_conus = GOES17L1BRadiances("C", list(range(1, 17)))
+l1b_goes_17_rad_c01_meso_scale_sector = GOES17L1BRadiances("M", 1)
+l1b_goes_17_rad_c02_meso_scale_sector = GOES17L1BRadiances("M", 2)
+l1b_goes_17_rad_c03_meso_scale_sector = GOES17L1BRadiances("M", 3)
+l1b_goes_17_rad_c04_meso_scale_sector = GOES17L1BRadiances("M", 4)
+l1b_goes_17_rad_rgb_meso_scale_sector = GOES17L1BRadiances("M", [1, 2, 3])
+l1b_goes_17_rad_all_meso_scale_sector = GOES17L1BRadiances("M", list(range(1, 17)))
 
-goes_18_l1b_radiances_c01_full_disk = GOES18L1BRadiances("F", 1)
-goes_18_l1b_radiances_c02_full_disk = GOES18L1BRadiances("F", 2)
-goes_18_l1b_radiances_c03_full_disk = GOES18L1BRadiances("F", 3)
-goes_18_l1b_radiances_c04_full_disk = GOES18L1BRadiances("F", 4)
-goes_18_l1b_radiances_rgb_full_disk = GOES18L1BRadiances("F", [1, 2, 3])
-goes_18_l1b_radiances_all_full_disk = GOES18L1BRadiances("F", list(range(1, 17)))
-goes_18_l1b_radiances_c01_conus = GOES18L1BRadiances("C", 1)
-goes_18_l1b_radiances_c02_conus = GOES18L1BRadiances("C", 2)
-goes_18_l1b_radiances_c03_conus = GOES18L1BRadiances("C", 3)
-goes_18_l1b_radiances_c04_conus = GOES18L1BRadiances("C", 4)
-goes_18_l1b_radiances_rgb_conus = GOES18L1BRadiances("C", [1, 2, 3])
-goes_18_l1b_radiances_all_conus = GOES18L1BRadiances("C", list(range(1, 17)))
+l1b_goes_18_rad_c01_full_disk = GOES18L1BRadiances("F", 1)
+l1b_goes_18_rad_c02_full_disk = GOES18L1BRadiances("F", 2)
+l1b_goes_18_rad_c03_full_disk = GOES18L1BRadiances("F", 3)
+l1b_goes_18_rad_c04_full_disk = GOES18L1BRadiances("F", 4)
+l1b_goes_18_rad_rgb_full_disk = GOES18L1BRadiances("F", [1, 2, 3])
+l1b_goes_18_rad_all_full_disk = GOES18L1BRadiances("F", list(range(1, 17)))
+l1b_goes_18_rad_c01_conus = GOES18L1BRadiances("C", 1)
+l1b_goes_18_rad_c02_conus = GOES18L1BRadiances("C", 2)
+l1b_goes_18_rad_c03_conus = GOES18L1BRadiances("C", 3)
+l1b_goes_18_rad_c04_conus = GOES18L1BRadiances("C", 4)
+l1b_goes_18_rad_rgb_conus = GOES18L1BRadiances("C", [1, 2, 3])
+l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
+l1b_goes_18_rad_c01_mese_scale_sector = GOES18L1BRadiances("M", 1)
+l1b_goes_18_rad_c02_mese_scale_sector = GOES18L1BRadiances("M", 2)
+l1b_goes_18_rad_c03_mese_scale_sector = GOES18L1BRadiances("M", 3)
+l1b_goes_18_rad_c04_mese_scale_sector = GOES18L1BRadiances("M", 4)
+l1b_goes_18_rad_rgb_mese_scale_sector = GOES18L1BRadiances("M", [1, 2, 3])
+l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))

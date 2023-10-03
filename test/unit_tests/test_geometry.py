@@ -58,3 +58,14 @@ def test_multi_polygon():
     poly_2 = Polygon([(5, 0), (15, 0), (15, 10), (5, 10), (5, 0)])
 
     assert poly_1.covers(poly_2)
+
+
+def test_save_and_load(tmp_path):
+    """
+    Ensure the saving and loading of Polygons works.
+    """
+    poly = Polygon([(0, 0), (10, 0), (10, 10), (0, 10), (0, 0)])
+    poly.save(tmp_path / "poly.json")
+    loaded = Polygon.load(tmp_path / "poly.json")
+
+    assert poly.geometry == loaded.geometry

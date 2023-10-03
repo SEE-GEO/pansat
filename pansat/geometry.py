@@ -6,6 +6,8 @@ The pansat geometry provides functions to represent the spatial coverage
 of data files using geometrical objects.
 """
 from abc import ABC, abstractmethod
+import json
+from pathlib import Path
 
 import numpy as np
 import shapely
@@ -271,6 +273,31 @@ class ShapelyGeometry(Geometry):
         Parse object from geojson.
         """
         return cls(shapely.from_geojson(dct))
+
+    @classmethod
+    def load(cls, path: Path):
+        """
+        Load geometry object from geojson file.
+
+        Args:
+            path: A path object pointing to the file to load.
+
+        Return:
+            The loaded shapely geometry object.
+        """
+        with open(path, "r") as input:
+            return cls.from_geojson(json.load(input))
+
+    def save(self, path: Path):
+        """
+        Save geometry object as geojson file.
+
+        Args:
+            path: A path object pointing to the file to which to write
+                this geometry.
+        """
+        with open(path, "w") as output:
+            json.dump(shapely.to_geojson(self.geometry), output)
 
 
 class LonLatRect(ShapelyGeometry):
