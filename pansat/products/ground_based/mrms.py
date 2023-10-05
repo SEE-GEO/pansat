@@ -166,3 +166,31 @@ radar_quality_index = MRMSProduct(
     "radar_quality_index", "radar_quality_index", np.timedelta64(120, "s")
 )
 precip_flag = MRMSProduct("precip_flag", "precip_flag", np.timedelta64(120, "s"))
+
+######################################################################
+# Utility functions
+######################################################################
+
+PRECIP_TYPES = {
+    "No rain": [0],
+    "Stratiform, warm": [1.0, 2.0],
+    "Stratiform, cool": [10.0],
+    "Snow": [3.0, 4.0],
+    "Convective": [6.0],
+    "Hail": [7.0],
+    "Tropical/stratiform mix": [91.0],
+    "Tropical/convective rain mix": [96.0],
+}
+
+def extract_precip_class_map(mrms_precip_flag):
+    """
+    Convert MRMS precipitation classification into a class map with
+    continuous integer values from 0 - 8.
+    """
+    result = np.nan * np.zeros_like(mrms_precip_flag)
+    for ind, vals in enumerate(PRECIP_TYPES.values()):
+        mask = np.zeros_like(result, dtype=bool)
+        for val in vals:
+            mask += np.isclose(mrms_precip_flag, val)
+        result[mask] = ind
+    return result
