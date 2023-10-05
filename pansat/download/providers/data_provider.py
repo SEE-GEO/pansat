@@ -133,3 +133,14 @@ class MetaDataprovider(ABC):
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
+
+
+def get_providers() -> List["DataProvider"]:
+    """
+    Return a list of all currently know providers.
+    """
+    import pansat.download.providers.ges_disc
+    import pansat.download.providers.iowa_state
+    import pansat.download.providers.goes_aws
+
+    return ALL_PROVIDERS

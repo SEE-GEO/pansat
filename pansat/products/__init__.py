@@ -192,9 +192,9 @@ class Product(ABC):
             A list of 'pansat.FileRecords' specifying the available
             files.
         """
-        from pansat.download.providers.data_provider import ALL_PROVIDERS
+        from pansat.download.providers.data_provider import get_providers
         product_provider = None
-        for provider in ALL_PROVIDERS:
+        for provider in get_providers():
             try:
                 if hasattr(provider, "provides"):
                     if provider.provides(self):

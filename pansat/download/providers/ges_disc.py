@@ -206,7 +206,6 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
         rel_url = time.strftime("/%Y/%j")
         url = self.get_base_url(product) + rel_url
         auth = accounts.get_identity("GES DISC")
-        print(url)
         response = requests.get(url, auth=auth)
         response.raise_for_status()
 
