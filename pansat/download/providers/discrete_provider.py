@@ -6,6 +6,7 @@ This module providers the ``DiscreteProvider`` class, which is a base class for
 providers where available cannot be determined a priori but need to be looked
 up on a per-day basis.
 """
+
 from abc import abstractmethod
 from calendar import monthrange, isleap
 from datetime import datetime, timedelta
@@ -236,7 +237,6 @@ class DiscreteProviderBase(DataProvider):
         The time step between consecutive, discrete time slots.
         """
         pass
-
 
     @abstractmethod
     def find_files(

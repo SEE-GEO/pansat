@@ -8,13 +8,15 @@ Information Services Center (`GES DISC <https://disc.gsfc.nasa.gov/>`_).
 Reference
 ---------
 """
+from copy import copy
 import datetime
 import json
 import logging
 import os
-import pathlib
+from pathlib import Path
 import re
 import tempfile
+from typing import Optional
 import xml.etree.ElementTree as ET
 
 import requests
@@ -28,7 +30,7 @@ from pansat.download.providers.discrete_provider import (
 from pansat.file_record import FileRecord
 from pansat.time import to_datetime
 
-_DATA_FOLDER = pathlib.Path(__file__).parent / "data"
+_DATA_FOLDER = Path(__file__).parent / "data"
 with open(_DATA_FOLDER / "gpm_products.json", "r") as file:
     GPM_PRODUCTS = json.load(file)
 
@@ -55,7 +57,7 @@ class GesDiscProviderBase:
         """
         return GPM_PRODUCTS.keys()
 
-    def download_url(self, url, destination):
+    def download_url(self, url, path):
         """
         Downloads file from GES DISC server using the 'GES DISC' identity
         and taking care of the URL redirection.
@@ -76,7 +78,7 @@ class GesDiscProviderBase:
             response.raise_for_status()
 
             # Write to disk
-            with open(destination, "wb") as f:
+            with open(path, "wb") as f:
                 for chunk in response:
                     f.write(chunk)
 
@@ -118,27 +120,37 @@ class GesDiscProviderBase:
         files = list(set(GesDiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
 
-    def download_file(self, product, filename, destination):
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
         """
-        Download file from data provider.
+        Download a product file to a given destination.
 
         Args:
-            filename(``str``): The name of the file to download.
-            destination(``str`` or ``pathlib.Path``): path to directory where
-                the downloaded files should be stored.
+            rec: A FileRecord identifying the
+            destination:
+
+        Return:
+            An updated file record whose 'local_path' attribute points
+            to the downloaded file.
         """
-        time = product.filename_to_date(filename)
-        year = time.year
-        day = time.strftime("%j")
-        day = "0" * (3 - len(day)) + day
-        if product.variant in ["MO"]:
-            day = ""
-        if product.variant.startswith("DAY"):
-            day = f"{time.month:02}"
-        url = self._request_string(product).format(
-            year=year, day=day, filename=filename
-        )
+        if destination is None:
+            destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
+
+        if destination.is_dir():
+            destination = destination / rec.filename
+
+        url = rec.remote_path
         self.download_url(url, destination)
+
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+
+        return new_rec
+
 
     def download_metadata(self, filename):
         """
@@ -194,6 +206,7 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
         rel_url = time.strftime("/%Y/%j")
         url = self.get_base_url(product) + rel_url
         auth = accounts.get_identity("GES DISC")
+        print(url)
         response = requests.get(url, auth=auth)
         response.raise_for_status()
 

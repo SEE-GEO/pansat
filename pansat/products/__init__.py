@@ -68,7 +68,7 @@ class Product(ABC):
         Product.PRODUCTS[self.name] = self
 
     @abstractproperty
-    def default_destination(self) -> str:
+    def default_destination(self) -> Path:
         """
         Name of a relative directory to use to store files from this product
         to.

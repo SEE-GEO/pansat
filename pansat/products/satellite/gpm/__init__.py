@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from itertools import dropwhile
 from pathlib import Path
 from traceback import print_exc
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -29,7 +30,7 @@ from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
 
-class GPMProduct(Product, products.GranuleProduct):
+class GPMProduct(products.GranuleProduct):
     """
     Base class representing GPM products.
     """
@@ -200,41 +201,29 @@ class GPMProduct(Product, products.GranuleProduct):
         s = f"GPM_{self.level}{variant}_{self.platform}_{self.sensor}"
         return s
 
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
-
-    def open(self, filename, slcs=None):
+    def open(
+            self,
+            rec: FileRecord,
+            slcs: Optional[dict[str, slice]] = None
+    ):
         """
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The GPM file to open.
+            rec: A FileRecord whose local_path attribute points to a local
+                GPM file to open.
+            slcs: An optional dictionary of slices to use to subset the
+                data to load.
+
+        Return:
+            An xarray.Dataset containing the loaded data.
         """
         from pansat.formats.hdf5 import HDF5File
 
-        with HDF5File(filename, "r") as file_handle:
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
+        with HDF5File(rec.local_path, "r") as file_handle:
             return self.description.to_xarray_dataset(
                 file_handle, context=globals(), slcs=slcs
             )
