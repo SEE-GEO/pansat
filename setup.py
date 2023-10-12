@@ -22,6 +22,7 @@ setuptools.setup(
         "numpy",
         "cdsapi",
         "requests",
+        "requests-cache",
         "xarray",
         "pyproj",
         "appdirs",
