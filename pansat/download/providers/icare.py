@@ -44,6 +44,7 @@ ICARE_PRODUCTS = {
 }
 
 
+
 class IcareProvider(DiscreteProvider):
     """
     Base class for data products available from the ICARE ftp server.
@@ -135,6 +136,24 @@ class IcareProvider(DiscreteProvider):
         files = [name for name in listing if self.product.matches(name)]
         LOGGER.info("Found %s files.", len(files))
         return files
+
+    def provides(self, product):
+        name = product.name
+        if not name.startswith("satellite.cloud_sat"):
+            return False
+        else:
+            return True
+        return False
+
+    
+    def find_files(self, product, time_range, roi):
+        """
+        Find available files within a given time range.
+
+        """
+
+
+        
 
     def download_file(self, filename, destination):
         """
