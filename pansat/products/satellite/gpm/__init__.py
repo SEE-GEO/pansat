@@ -36,8 +36,26 @@ class GPMProduct(products.GranuleProduct):
     """
 
     def __init__(
-        self, level, platform, sensor, algorithm, version, variant, description
+        self,
+        level: str,
+        platform: str,
+        sensor: str,
+        algorithm: str,
+        version: str,
+        variant: str = "",
+        description: str = ""
     ):
+        """
+        Args:
+            level: The processing level of the product, i.e., 1A, 2A, ...
+            platform: The name of the satellite platform that from which
+                this product is derived.
+            sensor: The name of the sensor that this product is derived
+                from.
+            variant: The variant of the product, i.e., R for resampled
+                L1C product, or CLIM for the 2A climate products.
+            description: An informative description of the product.
+        """
         self.level = level.lower()
         self.platform = platform.lower()
         self.sensor = sensor.lower()
@@ -50,15 +68,15 @@ class GPMProduct(products.GranuleProduct):
         else:
             variant = ""
 
-        level = level.upper()
-        platform = platform.upper()
-        sensor = sensor.upper()
-        algorithm = algorithm.upper()
+        level = level
+        platform = platform
+        sensor = sensor
+        algorithm = algorithm
 
         self.filename_regexp = re.compile(
             rf"{level}{variant}\.{platform}\.{sensor}"
             rf"\.{algorithm}([\w-]*).(\d{{8}})-"
-            r"S(\d{6})-E(\d{6})\.(\w*)\.((\w*)\.)?(HDF5|h5|nc|nc4)"
+            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc|nc4)"
         )
         super().__init__()
 
@@ -131,6 +149,12 @@ class GPMProduct(products.GranuleProduct):
         Implements interface to extract temporal coverage of file.
         """
         match = self.filename_regexp.match(rec.filename)
+        if match is None:
+            raise RuntimeError(
+                f"Provided file record with filename {rec.filename} doest not "
+                " match the products filename regexp "
+                f"{self.filename_regexp.pattern}. "
+            )
         date = match[2]
         start = match[3]
         end = match[4]
@@ -342,14 +366,14 @@ class GPROFProduct(GPMProduct):
         )
 
 
-l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07a")
-l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "mhs", "07a")
-l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "mhs", "07a")
-l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "metopa", "mhs", "07a")
-l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "metopb", "mhs", "07a")
-l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "metopc", "mhs", "07a")
-l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "atms", "07a")
-l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "npp", "atms", "07a")
+l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
+l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "MHS", "07A")
+l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "MHS", "07A")
+l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "metopa", "MHS", "07A")
+l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "metopb", "MHS", "07A")
+l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "metopc", "MHS", "07A")
+l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A")
+l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 
 
 ################################################################################
