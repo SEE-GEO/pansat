@@ -18,6 +18,7 @@ from typing import Optional
 import requests
 
 from pansat.time import to_datetime, Time
+from pansat import cache
 from pansat.geometry import Geometry
 from pansat.file_record import FileRecord
 from pansat.download.providers.discrete_provider import DiscreteProviderDay
@@ -75,7 +76,8 @@ class IowaStateProvider(DiscreteProviderDay):
             List of the filenames of this product on the given day.
         """
         url = self.get_url(product, to_datetime(time))
-        with requests.get(url) as resp:
+        session = cache.get_session()
+        with session.get(url) as resp:
             resp.raise_for_status()
             files_unique = set(product.filename_regexp.findall(resp.text))
             filenames = sorted(list(files_unique))
