@@ -2,7 +2,6 @@
 Tests for the pansat.products.reanalysis.ncep module.
 """
 
-
 import random
 import sys
 from datetime import datetime
@@ -77,3 +76,4 @@ def test_download(tmpdir):
     filename = tmpdir / TEST_NAMES[product.name]
     data = product.open(str(filename))
     data.close()
+
