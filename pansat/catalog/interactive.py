@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 
-from pansat.catalog import _pandas_to_granule
+from pansat.catalog.index import _pandas_to_granule
 from pansat.geometry import MultiPolygon
 from pansat.time import TimeRange
 
