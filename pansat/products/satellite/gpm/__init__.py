@@ -136,12 +136,14 @@ class GPMProduct(products.GranuleProduct):
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
 
-        # Some files of course have to follow a different convetion.
+        # Some files of course have to follow a different convention.
         if match is None:
             date_string = "20" + path.name.split("_")[2]
         else:
             date_string = match.group(2) + match.group(3)
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
+
+
         return date
 
     def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
