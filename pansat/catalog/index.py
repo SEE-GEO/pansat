@@ -10,7 +10,7 @@ from multiprocessing import Manager, TimeoutError
 from pathlib import Path
 import queue
 from typing import List, Optional, Tuple, Set
-
+import logging
 import numpy as np
 import xarray as xr
 import geopandas
@@ -59,6 +59,7 @@ def _get_index_data(product, path):
         ``geom`` a geometry representing the spatial coverage of the file.
     """
     if product.matches(path.name) is None:
+        logging.info('Filename does not match regular expression.')
         return []
 
     rec = FileRecord(path)
