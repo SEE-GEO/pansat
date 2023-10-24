@@ -9,7 +9,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Manager, TimeoutError
 from pathlib import Path
 import queue
-from typing import List, Optional, Tuple, Set
+from typing import List, Optional, Tuple, Set, Union
 import logging
 import numpy as np
 import xarray as xr
@@ -44,7 +44,10 @@ def find_pansat_catalog(path):
     return None
 
 
-def _get_index_data(product, path):
+def _get_index_data(
+        product: Product,
+        path: Path
+) -> List[Granule]:
     """
     Extracts index data from a single path.
 
@@ -74,7 +77,10 @@ def _get_index_data(product, path):
     return [Granule(rec, TimeRange(start_time, end_time), geom)]
 
 
-def _pandas_to_granule(product, data):
+def _dataframe_to_granules(
+        product: Product,
+        data: geopandas.GeoDataFrame
+) -> List[Granule]:
     """
     Converts a pandas dataframe of file indices into a list
     of file records.
@@ -86,7 +92,7 @@ def _pandas_to_granule(product, data):
             data file indices.
 
     Return:
-        A list of file records pointing to the files in 'data'.
+        A list granules objects representing the granules in 'data'.
     """
     granules = []
 
@@ -145,6 +151,63 @@ def _pandas_to_granule(product, data):
             " a 'remote_path' column."
         )
     return granules
+
+
+def _granules_to_dataframe(
+        granules: List[Granule]
+) -> geopandas.GeoDataFrame:
+    """
+    Coverts a list of granules into a pandas Dataframe.
+
+    Args:
+        granules: A list of granules to parse into a dataframe.
+
+    Return:
+        A pandast dataframe containing representations of the given
+        granules.
+    """
+    geoms = []
+    start_times = []
+    end_times = []
+    local_paths = []
+    filenames = []
+    primary_index_name = []
+    primary_index_start = []
+    primary_index_end = []
+    secondary_index_name = []
+    secondary_index_start = []
+    secondary_index_end = []
+
+    for granule in granules:
+        start_times.append(granule.time_range.start)
+        end_times.append(granule.time_range.end)
+        local_paths.append(str(granule.file_record.local_path))
+        filenames.append(str(granule.file_record.filename))
+        primary_index_name.append(granule.primary_index_name)
+        primary_index_start.append(granule.primary_index_range[0])
+        primary_index_end.append(granule.primary_index_range[1])
+        secondary_index_name.append(granule.secondary_index_name)
+        secondary_index_start.append(granule.secondary_index_range[0])
+        secondary_index_end.append(granule.secondary_index_range[1])
+        geoms.append(granule.geometry.to_shapely())
+
+    data = geopandas.GeoDataFrame(
+        data={
+            "start_time": start_times,
+            "end_time": end_times,
+            "local_path": pd.Series(local_paths, dtype="string"),
+            "filename": pd.Series(filenames, dtype="string"),
+            "primary_index_name": primary_index_name,
+            "primary_index_start": primary_index_start,
+            "primary_index_end": primary_index_end,
+            "secondary_index_name": secondary_index_name,
+            "secondary_index_start": secondary_index_start,
+            "secondary_index_end": secondary_index_end,
+        },
+        geometry=geoms,
+    )
+    data.sort_values("start_time", inplace=True)
+    return data
 
 
 class Index:
@@ -206,22 +269,26 @@ class Index:
         secondary_index_start = []
         secondary_index_end = []
 
+        dframes = []
+        granules =[]
+
         if n_processes is None:
             for path in files:
-                index_data = _get_index_data(product, path)
+                granules += _get_index_data(product, path)
 
-                for granule in index_data:
-                    start_times.append(granule.time_range.start)
-                    end_times.append(granule.time_range.end)
-                    local_paths.append(str(granule.file_record.local_path))
-                    filenames.append(str(granule.file_record.filename))
-                    primary_index_name.append(granule.primary_index_name)
-                    primary_index_start.append(granule.primary_index_range[0])
-                    primary_index_end.append(granule.primary_index_range[1])
-                    secondary_index_name.append(granule.secondary_index_name)
-                    secondary_index_start.append(granule.secondary_index_range[0])
-                    secondary_index_end.append(granule.secondary_index_range[1])
-                    geoms.append(granule.geometry.to_shapely())
+                #for granule in index_data:
+                #    start_times.append(granule.time_range.start)
+                #    end_times.append(granule.time_range.end)
+                #    local_paths.append(str(granule.file_record.local_path))
+                #    filenames.append(str(granule.file_record.filename))
+                #    primary_index_name.append(granule.primary_index_name)
+                #    primary_index_start.append(granule.primary_index_range[0])
+                #    primary_index_end.append(granule.primary_index_range[1])
+                #    secondary_index_name.append(granule.secondary_index_name)
+                #    secondary_index_start.append(granule.secondary_index_range[0])
+                #    secondary_index_end.append(granule.secondary_index_range[1])
+                #    geoms.append(granule.geometry.to_shapely())
+                #dframes += gra
         else:
             pool = ProcessPoolExecutor(max_workers=n_processes)
             tasks = []
@@ -236,42 +303,16 @@ class Index:
                 )
 
                 for ind, task in enumerate(as_completed(tasks)):
-                    index_data = task.result()
+                    granules_t = task.result()
                     prog.update(prog_task, advance=1)
-                    if index_data is None:
+                    if granules_t is None:
                         continue
-
-                    for granule in index_data:
-                        start_times.append(granule.time_range.start)
-                        end_times.append(granule.time_range.end)
-                        local_paths.append(str(granule.file_record.local_path))
-                        filenames.append(str(granule.file_record.filename))
-                        primary_index_name.append(granule.primary_index_name)
-                        primary_index_start.append(granule.primary_index_range[0])
-                        primary_index_end.append(granule.primary_index_range[1])
-                        secondary_index_name.append(granule.secondary_index_name)
-                        secondary_index_start.append(granule.secondary_index_range[0])
-                        secondary_index_end.append(granule.secondary_index_range[1])
-                        geoms.append(granule.geometry.to_shapely())
+                    granules += granules_t
 
                 prog.refresh()
 
-        data = geopandas.GeoDataFrame(
-            data={
-                "start_time": start_times,
-                "end_time": end_times,
-                "local_path": pd.Series(local_paths, dtype="string"),
-                "filename": pd.Series(filenames, dtype="string"),
-                "primary_index_name": primary_index_name,
-                "primary_index_start": primary_index_start,
-                "primary_index_end": primary_index_end,
-                "secondary_index_name": secondary_index_name,
-                "secondary_index_start": secondary_index_start,
-                "secondary_index_end": secondary_index_end,
-            },
-            geometry=geoms,
-        )
-        data.sort_values("start_time", inplace=True)
+
+        data = _granules_to_dataframe(granules)
         return cls(product, data)
 
     def __init__(self, product, data):
@@ -295,6 +336,18 @@ class Index:
         product = self.product
         data = pd.merge([self.data, other.data], how="outer")
         return Index(product, data)
+
+
+    def insert(self, granule: Union[FileRecord, Granule]) -> None:
+        """
+        Insert granule or file into index.
+
+        Args:
+            granule: A granule or optionally a FileRecord pointing
+                to a file to insert into the index.
+        """
+
+
 
     def __repr__(self):
         return (
@@ -326,7 +379,7 @@ class Index:
         Find entries in Index within given time range and location.
         """
         if time_range is None and roi is None:
-            return _pandas_to_granule(self.product, self.data)
+            return _dataframe_to_granules(self.product, self.data)
 
         if time_range is None:
             selected = self.data
@@ -341,12 +394,12 @@ class Index:
             ]
 
         if roi is None:
-            return _pandas_to_granule(self.product, selected)
+            return _dataframe_to_granules(self.product, selected)
 
         roi = roi.to_shapely()
         indices = selected.intersects(roi)
 
-        return _pandas_to_granule(self.product, selected.loc[indices])
+        return _dataframe_to_granules(self.product, selected.loc[indices])
 
     def save(self, path):
         """
@@ -505,7 +558,7 @@ def _find_matches_rec(
     )
     selected = index_data_r.loc[matches]
     matches = selected.intersects(index_data_l.geometry.iloc[0])
-    granules_r = _pandas_to_granule(prod_r, selected.loc[matches])
+    granules_r = _dataframe_to_granules(prod_r, selected.loc[matches])
 
     if len(granules_r) == 0:
         if done_queue is not None:
@@ -515,7 +568,7 @@ def _find_matches_rec(
     if merge:
         granules_r = merge_granules(granules_r)
 
-    granule_l = _pandas_to_granule(prod_l, index_data_l)[0]
+    granule_l = _dataframe_to_granules(prod_l, index_data_l)[0]
 
     if done_queue is not None:
         done_queue.put(1)
