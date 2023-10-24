@@ -7,7 +7,7 @@ This module provides functionality for dealing with times.
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 import json
-from typing import Union
+from typing import Union, List
 
 import pandas as pd
 import numpy as np
@@ -193,3 +193,41 @@ class TimeRange:
                 "datetime64 objects."
             )
         return TimeRange(start, end)
+
+
+    def find_closest(
+            self,
+            time_ranges: List["TimeRange"]
+    ) -> List["TimeRange"]:
+        """
+        Return time ranges that cover this time range object, or, if no
+        such range exists, return the time range that with the smallest
+        time difference to this range's start or end time.
+
+        Args:
+            time_ranges: A list of condidate time ranges.
+        """
+        closest = []
+        min_delta = None
+        range_ind = None
+
+        for range_ind, other in enumerate(time_ranges):
+            time_delta = max(
+                self.start - other.end,
+                other.start - self.end
+            )
+            if time_delta <= np.timedelta64(0, "s"):
+                closest.append(other)
+            else:
+                if min_delta is None:
+                    min_delta = time_delta
+                    min_index = range_ind
+                else:
+                    if time_delta < min_delta:
+                        min_delta = time_delta
+                        min_index = range_ind
+
+        if range_ind is not None and len(closest) == 0:
+            closest.append(time_ranges[min_index])
+
+        return closest

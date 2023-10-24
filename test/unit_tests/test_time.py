@@ -43,6 +43,7 @@ def test_to_datetime64():
     d_t = to_datetime64("2020-01-01T00:00:00")
     assert np.issubdtype(d_t, np.datetime64)
 
+
 def test_to_timedelta():
     """
     Ensure that conversion to timedelta works.
@@ -146,3 +147,42 @@ def test_json_serialization():
     time_range_loaded = json.loads(json_repr, object_hook=object_hook)
 
     assert time_range == time_range_loaded
+
+
+def test_find_closest():
+
+    time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T02:00:00")
+
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:30:00"),
+        TimeRange("2020-01-01T00:45:00", "2020-01-01T01:15:00"),
+        TimeRange("2020-01-01T02:01:00", "2020-01-01T02:04:00"),
+    ]
+
+    closest = time_range.find_closest(other)
+    assert len(closest) == 1
+    assert closest[0] == other[1]
+
+    other = [
+        TimeRange("2020-01-01T01:00:00", "2020-01-01T01:30:00"),
+        TimeRange("2020-01-01T00:45:00", "2020-01-01T01:15:00"),
+        TimeRange("2020-01-01T01:45:00", "2020-01-01T02:04:00"),
+    ]
+    closest = time_range.find_closest(other)
+    assert len(closest) == 3
+
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:45:00"),
+        TimeRange("2020-01-01T02:30:00", "2020-01-01T03:00:00"),
+    ]
+    closest = time_range.find_closest(other)
+    assert len(closest) == 1
+    assert closest[0] == other[0]
+
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:45:00"),
+        TimeRange("2020-01-01T02:01:00", "2020-01-01T03:00:00"),
+    ]
+    closest = time_range.find_closest(other)
+    assert len(closest) == 1
+    assert closest[0] == other[1]
