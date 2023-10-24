@@ -16,7 +16,12 @@ from pansat.file_record import FileRecord
 from pansat.geometry import Geometry, LonLatRect
 from pansat.time import TimeRange, to_datetime, to_datetime64
 from pansat.products.product_description import ProductDescription
-from pansat.products import Product, Granule, GranuleProduct
+from pansat.products import (
+    FilenameRegexpMixin,
+    Product,
+    Granule,
+    GranuleProduct
+)
 
 ######################################################################
 # Product description
@@ -220,7 +225,7 @@ def write_hdf5_product_data(path):
     return files
 
 
-class ExampleProduct(Product):
+class ExampleProduct(FilenameRegexpMixin, Product):
     def __init__(self, name, suffix):
         """
         Create an instance of an example product object.
@@ -229,7 +234,7 @@ class ExampleProduct(Product):
             suffix: The file suffix of the data files.
         """
         self._name = name
-        self.filename_regex = re.compile(
+        self.filename_regexp = re.compile(
             r"data_file_"
             r"(?P<start_date>\d{14})_"
             r"(?P<end_date>\d{14})_"
@@ -250,13 +255,6 @@ class ExampleProduct(Product):
     def default_destination(self):
         return Path("example")
 
-    def matches(self, path):
-        """
-        Determine if given path points to a product data file.
-        """
-        path = Path(path)
-        return self.filename_regex.match(path.name) is not None
-
     def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
         """
         The time range spanned by the observations in the file.
@@ -264,7 +262,7 @@ class ExampleProduct(Product):
         Args:
             rec:
         """
-        match = self.filename_regex.match(rec.filename)
+        match = self.filename_regexp.match(rec.filename)
         if match is None:
             raise ValueError(
                 f"Filename {rec.filename} does not match the expected "
@@ -284,7 +282,7 @@ class ExampleProduct(Product):
             A geometry object representing the spatial coverage of the
             observations in a given product data file.
         """
-        match = self.filename_regex.match(rec.filename)
+        match = self.filename_regexp.match(rec.filename)
         lon_min = float(match.group("lon_min"))
         lat_min = float(match.group("lat_min"))
         lon_max = float(match.group("lon_max"))
@@ -499,7 +497,7 @@ def _parse_times(file_handle, slices):
     return file_handle[slices].astype("datetime64[s]")
 
 
-class ExampleGranuleProduct(GranuleProduct):
+class ExampleGranuleProduct(FilenameRegexpMixin, GranuleProduct):
     def __init__(self, name, suffix):
         """
         This granule version of the example product models the hypothetical case
@@ -513,7 +511,7 @@ class ExampleGranuleProduct(GranuleProduct):
         """
         self._name = name
         self.suffix = suffix
-        self.filename_regex = re.compile(
+        self.filename_regexp = re.compile(
             r"data_file_"
             r"(?P<start_date>\d{14})_"
             r"(?P<end_date>\d{14})_"
@@ -536,13 +534,6 @@ class ExampleGranuleProduct(GranuleProduct):
     def default_destination(self):
         return Path("example")
 
-    def matches(self, path):
-        """
-        Determine if given path points to a product data file.
-        """
-        path = Path(path)
-        return self.filename_regex.match(path.name) is not None
-
     def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
         """
         The time range spanned by the observations in the file.
@@ -550,7 +541,7 @@ class ExampleGranuleProduct(GranuleProduct):
         Args:
             rec:
         """
-        match = self.filename_regex.match(rec.filename)
+        match = self.filename_regexp.match(rec.filename)
         if match is None:
             raise ValueError(
                 f"Filename {rec.filename} does not match the expected "
@@ -570,7 +561,7 @@ class ExampleGranuleProduct(GranuleProduct):
             A geometry object representing the spatial coverage of the
             observations in a given product data file.
         """
-        match = self.filename_regex.match(rec.filename)
+        match = self.filename_regexp.match(rec.filename)
         lon_min = float(match.group("lon_min"))
         lat_min = float(match.group("lat_min"))
         lon_max = float(match.group("lon_max"))

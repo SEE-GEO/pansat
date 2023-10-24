@@ -23,18 +23,17 @@ import pansat.download.providers as providers
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 from pansat.products import Granule
-from pansat.products.product import Product
+from pansat.products import Product, GranuleProduct, FilenameRegexpMixin
 from pansat.products.product_description import ProductDescription
 from pansat.exceptions import NoAvailableProvider
 from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
 
-class GPMProduct(products.GranuleProduct):
+class GPMProduct(FilenameRegexpMixin, GranuleProduct):
     """
     Base class representing GPM products.
     """
-
     def __init__(
         self,
         level: str,
@@ -78,7 +77,7 @@ class GPMProduct(products.GranuleProduct):
             rf"\.{algorithm}([\w-]*).(\d{{8}})-"
             rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc|nc4)"
         )
-        super().__init__()
+        GranuleProduct.__init__(self)
 
     @property
     def variables(self):
@@ -108,19 +107,6 @@ class GPMProduct(products.GranuleProduct):
             variant = self.variant
             name = f"l{lvl}_{variant}_{algo}_{pltfrm}_{sensor}_v{version}"
         return ".".join([prefix, name])
-
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            filename(``str``): The filename
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
 
     def filename_to_date(self, filename):
         """
@@ -359,7 +345,6 @@ class GPROFProduct(GPMProduct):
     Specialization of GPM product for GPROF products, which all have the same
     data format.
     """
-
     def __init__(self, gprof_algorithm, platform, sensor, version, variant=""):
         module_path = Path(__file__).parent
         description = ProductDescription(module_path / "gprof.ini")
@@ -383,7 +368,7 @@ l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 ################################################################################
 
 
-class GPMMergedIR:
+class GPMMergedIR(FilenameRegexpMixin, Product):
     """
     The GPM merged IR product.
     """
@@ -391,25 +376,11 @@ class GPMMergedIR:
     def __init__(self):
         pattern = r"merg_(\d{10,10})_4km-pixel.nc"
         self.filename_regexp = re.compile(pattern)
+        Product.__init__(self)
 
     @property
     def name(self):
         return "satellite.gpm.merged_ir"
-
-    def matches(self, rec):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            rec: A filerecord identifying a local file.
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        if isinstance(rec, ("str", Path)):
-            rec = FileRecord(rec)
-        return self.filename_regexp.match(rec.filename)
 
     def get_temporal_coverage(self, rec):
         """
@@ -435,31 +406,6 @@ class GPMMergedIR:
         ``GPM/<product_name>``>
         """
         return Path("gpm") / "merged_ir"
-
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
 
     def open(self, path):
         """
