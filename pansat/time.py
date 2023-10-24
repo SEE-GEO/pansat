@@ -13,7 +13,8 @@ import pandas as pd
 import numpy as np
 
 
-Time = Union[str, datetime, np.ndarray]
+Time = Union[str, datetime, np.datetime64]
+TimeDelta = Union[timedelta, np.timedelta64]
 
 
 def to_datetime(time):
@@ -27,6 +28,33 @@ def to_datetime(time):
     except ValueError:
         raise ValueError(
             f"Could not convert '{time}' to datetime object.",
+        )
+
+
+def to_timedelta(d_t):
+    """
+    Convert time delta to Python datetime.timedelta object.
+    """
+    if isinstance(d_t, timedelta):
+        return d_t
+    try:
+        return pd.Timedelta(d_t).to_pytimedelta()
+    except ValueError:
+        raise ValueError(
+            f"Could not convert '{d_t}' to timedelta object.",
+        )
+
+def to_timedelta64(d_t):
+    """
+    Convert time delta to numpy timedelta64 object.
+    """
+    if hasattr(d_t, "dtype") and np.issubdtype(d_t.dtype, np.datetime64):
+        return d_t
+    try:
+        return pd.Timedelta(d_t).to_timedelta64()
+    except ValueError:
+        raise ValueError(
+            f"Could not convert '{d_t}' to timedelta object.",
         )
 
 
