@@ -86,6 +86,7 @@ Reference
 from configparser import ConfigParser
 from dataclasses import dataclass
 import json
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -93,6 +94,9 @@ import xarray
 
 from pansat.geometry import Geometry, LineString, MultiLineString, Polygon, MultiPolygon
 from pansat.time import TimeRange
+
+
+LOGGER = logging.Logger(__file__)
 
 
 class InconsistentDimensionsError(Exception):
@@ -425,23 +429,45 @@ class ProductDescription(ConfigParser):
         variables = {}
         coordinates = {}
         attributes = {}
+
         for name, variable in self.variables.items():
-            data = variable.get_data(file_handle, context, slcs=slcs)
-            if len(variable.dimensions) < len(data.shape):
-                data = np.squeeze(data)
-            for index, dimension in enumerate(variable.dimensions):
-                coordinates[dimension] = np.arange(data.shape[index])
-            attrs = variable.get_attributes(file_handle)
-            variables[name] = (variable.dimensions, data, attrs)
+            try:
+                data = variable.get_data(file_handle, context, slcs=slcs)
+                if len(variable.dimensions) < len(data.shape):
+                    data = np.squeeze(data)
+                for index, dimension in enumerate(variable.dimensions):
+                    coordinates[dimension] = np.arange(data.shape[index])
+                    attrs = variable.get_attributes(file_handle)
+                variables[name] = (variable.dimensions, data, attrs)
+            except KeyError:
+                LOGGER.warning(
+                    f"Failed loading variable '{variable.name}'. Something "
+                    " may be wrong with the product you are using."
+                )
+
         for name, coordinate in self.coordinates.items():
-            data = coordinate.get_data(file_handle, context, slcs=slcs)
-            if len(coordinate.dimensions) < len(data.shape):
-                data = np.squeeze(data)
-            attrs = coordinate.get_attributes(file_handle)
-            coordinates[name] = (coordinate.dimensions, data, attrs)
+            try:
+                data = coordinate.get_data(file_handle, context, slcs=slcs)
+                if len(coordinate.dimensions) < len(data.shape):
+                    data = np.squeeze(data)
+                attrs = coordinate.get_attributes(file_handle)
+                coordinates[name] = (coordinate.dimensions, data, attrs)
+            except KeyError:
+                LOGGER.warning(
+                    f"Failed loading coordinate '{coordinate.name}'. Something "
+                    " may be wrong with the product you are using."
+                )
+
+
         for name, attribute in self.attributes.items():
-            value = attribute.get_data(file_handle, context)
-            attributes[name] = value
+            try:
+                value = attribute.get_data(file_handle, context)
+                attributes[name] = value
+            except KeyError:
+                LOGGER.warning(
+                    f"Failed loading attribute '{attribute.name}'. Something "
+                    " may be wrong with the product you are using."
+                )
 
         return variables, coordinates, attributes
 

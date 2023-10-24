@@ -371,9 +371,9 @@ class GPROFProduct(GPMProduct):
 l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
 l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "MHS", "07A")
 l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "MHS", "07A")
-l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "metopa", "MHS", "07A")
-l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "metopb", "MHS", "07A")
-l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "metopc", "MHS", "07A")
+l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "METOPA", "MHS", "07A")
+l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "METOPB", "MHS", "07A")
+l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "METOPC", "MHS", "07A")
 l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A")
 l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 
@@ -396,18 +396,20 @@ class GPMMergedIR:
     def name(self):
         return "satellite.gpm.merged_ir"
 
-    def matches(self, filename):
+    def matches(self, rec):
         """
         Determines whether a given filename matches the pattern used for
         the product.
 
         Args:
-            filename(``str``): The filename
+            rec: A filerecord identifying a local file.
 
         Return:
             True if the filename matches the product, False otherwise.
         """
-        return self.filename_regexp.match(filename)
+        if isinstance(rec, ("str", Path)):
+            rec = FileRecord(rec)
+        return self.filename_regexp.match(rec.filename)
 
     def get_temporal_coverage(self, rec):
         """

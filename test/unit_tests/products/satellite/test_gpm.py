@@ -3,8 +3,11 @@ Tests for the GPM product.
 """
 from datetime import datetime
 import os
+
 import pytest
+
 import pansat.products.satellite.gpm as gpm
+from pansat.time import TimeRange
 
 HAS_HDF = False
 try:
@@ -61,20 +64,20 @@ def test_filename_to_date(product):
 
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.skipif(not HAS_HDF, reason="h5py not available.")
-@pytest.mark.xfail
+@pytest.mark.slow
 def test_download(tmp_path):
     """
     Download l2a_gprof_metopb_mhs file
     """
     product = gpm.l2a_gprof_metopb_mhs
-    t_0 = datetime(2018, 6, 1, 10)
-    t_1 = datetime(2018, 6, 1, 11)
-
-    dest = gpm.l2a_gprof_metopb_mhs.default_destination
-    files = product.download(t_0, t_1, tmp_path / dest)
+    time_range = TimeRange(
+        "2023-06-01T10:00:00",
+        "2023-06-01T11:00:00",
+    )
+    files = product.download(time_range, destination=tmp_path)
     dataset = gpm.l2a_gprof_metopb_mhs.open(files[0])
     dates = dataset["scan_time"].data
     start_date = datetime.utcfromtimestamp(dates[0].astype(int) * 1e-9)
-    assert start_date.year == 2018
+    assert start_date.year == 2023
     assert start_date.month == 6
     assert start_date.day == 1
