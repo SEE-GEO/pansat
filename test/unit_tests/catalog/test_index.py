@@ -66,6 +66,19 @@ def test_granule_indexing(hdf5_granule_product_data):
     assert len(found) == 0
 
 
+def test_parallel_indexing(
+        hdf5_product_data,
+        hdf5_granule_product_data
+):
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files, n_processes=2)
+    assert len(index.data) == 4
+
+    files = (hdf5_granule_product_data / "remote").glob("*")
+    index = Index.index(hdf5_granule_product, files, n_processes=2)
+    assert len(index.data) == 32
+
+
 def test_save_and_load_index(tmp_path, hdf5_product_data):
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files)
