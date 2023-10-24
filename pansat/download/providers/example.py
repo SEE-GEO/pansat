@@ -111,7 +111,6 @@ class ExampleProvider(DataProvider):
                 penv.get_active_data_dir() /
                 file_record.product.default_destination
             )
-            print("DEST :: ", destination)
 
         destination = Path(destination)
         if destination.is_dir():
