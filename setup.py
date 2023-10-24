@@ -21,6 +21,7 @@ setuptools.setup(
         "cryptography>=3.1",
         "numpy",
         "cdsapi",
+        "filelock",
         "requests",
         "requests-cache",
         "xarray",
