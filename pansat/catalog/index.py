@@ -334,19 +334,25 @@ class Index:
                 " same product."
             )
         product = self.product
-        data = pd.merge([self.data, other.data], how="outer")
+        data = pd.merge(self.data, other.data, how="outer")
         return Index(product, data)
 
 
-    def insert(self, granule: Union[FileRecord, Granule]) -> None:
+    def insert(self, granules: Union[List[Granule], FileRecord]) -> None:
         """
-        Insert granule or file into index.
+        Insert a list of granules or granules from a file into index.
 
         Args:
-            granule: A granule or optionally a FileRecord pointing
+            granules: A list of granules or optionally a FileRecord pointing
                 to a file to insert into the index.
         """
+        if isinstance(granules, Granule):
+            granules = [granules]
+        elif isinstance(granules, FileRecord):
+            granules = Granule.from_file_record(granules)
 
+        new_data = _granules_to_dataframe(granules)
+        self.data = pd.merge(self.data, new_data, how="outer")
 
 
     def __repr__(self):

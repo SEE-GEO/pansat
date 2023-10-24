@@ -6,6 +6,7 @@ Implements an example provider for illustrative and testing purposes.
 """
 from pathlib import Path
 import shutil
+from typing import Optional
 
 from pansat.download.providers.data_provider import DataProvider
 from pansat.products import Product
@@ -48,7 +49,11 @@ class ExampleProvider(DataProvider):
         print(name)
         return name.startswith("example") and name.split(".")[1].startswith(self.fmt)
 
-    def find_files(self, product: Product, time_range: TimeRange, roi: Geometry = None):
+    def find_files(
+            self, product: Product,
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ):
         """
         Find all product files within a given time range.
 
@@ -74,8 +79,6 @@ class ExampleProvider(DataProvider):
             except ValueError:
                 continue
 
-            print(rec.filename, rng)
-
             if time_range.covers(time_range):
                 if roi is not None:
                     geo = product.get_spatial_coverage(rec)
@@ -86,7 +89,11 @@ class ExampleProvider(DataProvider):
 
         return found_recs
 
-    def download(self, file_record, destination):
+    def download(
+            self,
+            file_record: FileRecord,
+            destination: Optional[Path]
+    ) -> FileRecord:
         """
         Download a file.
 
@@ -98,8 +105,13 @@ class ExampleProvider(DataProvider):
         Rerturn:
             A 'Path' object pointing to the downloaded file.
         """
+        if destination is None:
+            destination = Path(".") / file_record.product.default_destination
+
         destination = Path(destination)
         if destination.is_dir():
             destination = destination / file_record.filename
+
         shutil.copy(file_record.remote_path, destination)
-        return destination
+        file_record.local_path = destination
+        return file_record
