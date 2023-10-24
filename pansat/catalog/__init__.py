@@ -7,6 +7,7 @@ The ``catalog`` module provides functionality to organize, parse and
 """
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import logging
+from filelock import FileLock
 from multiprocessing import Manager, TimeoutError
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -86,11 +87,23 @@ class Catalog:
             path: Path,
             indices: Optional[Dict[str, Index]] = None
     ):
+        """
+        Args:
+            path:
+            indices:
+
+        """
         self.path = Path(path)
+
+        if not self.path.exists():
+            raise RuntimeError(
+                f"Provided path '{self.path}' does not point to an existing "
+                "directory."
+            )
 
         self.indices = indices
         if indices is None:
-            self.indices = self._load_indices(self.path)
+            self.indices = self._load_indices(self.path / ".pansat")
 
     def _load_indices(self, folder):
         """
@@ -103,15 +116,39 @@ class Catalog:
             A dictionary matching product names to index object.
         """
         folder = Path(folder)
-        files = sorted(list(folder.glob("*.idx")))
+        index_files = Index.list_index_files(folder)
         indices = {}
-        for path in files:
+        for prod_name, index_file in index_files.items():
             try:
-                index = Index.load(path)
-                indices[index.product.name] = index
+                index = Index.load(index_file)
+                indices[prod_name] = index
             except ValueError:
-                LOGGER.warning(f"Loading of the index file '%s' failed.", path)
+                LOGGER.warning(
+                    f"Loading of the index file '%s' failed.",
+                    index_file
+                )
         return indices
+
+    def __del__(self):
+        """
+        Persist index files when catalog object is destroyed.
+        """
+        pansat_dir = self.path / ".pansat"
+        if not pansat_dir.exists():
+            pansat_dir.mkdir()
+
+        existing = Index.list_index_files(pansat_dir)
+        for prod_name, index in self.indices.items():
+
+            if prod_name in existing:
+                lock = FileLock(pansat_dir / (prod_name + ".lock"))
+                with lock.acquire(timeout=10):
+                    index_ex = Index.load(existing[prod_name])
+                    index = index + index_ex
+                    index.save(pansat_dir)
+            else:
+                index.save(pansat_dir)
+
 
     def __repr__(self):
         products = ", ".join(self.indices.keys())

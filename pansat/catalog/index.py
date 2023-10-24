@@ -9,7 +9,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Manager, TimeoutError
 from pathlib import Path
 import queue
-from typing import List, Optional, Tuple, Set, Union
+from typing import Dict, List, Optional, Tuple, Set, Union
 import logging
 import numpy as np
 import xarray as xr
@@ -219,9 +219,24 @@ class Index:
         data: A 'geopandas.Dataframe' containing coverage information
             of all indexed files.
     """
+    @staticmethod
+    def list_index_files(path: Path) -> Dict[str, Path]:
+        """
+        List all index files within a given directory.
+
+        Args:
+            path: A Path object pointing to the directory in which to look
+                for indices.
+
+        Return:
+            A dictionary mapping product names to corresponding index files.
+        """
+        return {
+            path.stem: path for path in Path(path).glob("*.idx")
+        }
 
     @classmethod
-    def load(cls, path):
+    def load(cls, path: Path):
         """
         Load an index.
 
@@ -257,38 +272,12 @@ class Index:
         Return:
            An Index object containing an index of all files.
         """
-        geoms = []
-        start_times = []
-        end_times = []
-        local_paths = []
-        filenames = []
-        primary_index_name = []
-        primary_index_start = []
-        primary_index_end = []
-        secondary_index_name = []
-        secondary_index_start = []
-        secondary_index_end = []
-
         dframes = []
         granules =[]
 
         if n_processes is None:
             for path in files:
                 granules += _get_index_data(product, path)
-
-                #for granule in index_data:
-                #    start_times.append(granule.time_range.start)
-                #    end_times.append(granule.time_range.end)
-                #    local_paths.append(str(granule.file_record.local_path))
-                #    filenames.append(str(granule.file_record.filename))
-                #    primary_index_name.append(granule.primary_index_name)
-                #    primary_index_start.append(granule.primary_index_range[0])
-                #    primary_index_end.append(granule.primary_index_range[1])
-                #    secondary_index_name.append(granule.secondary_index_name)
-                #    secondary_index_start.append(granule.secondary_index_range[0])
-                #    secondary_index_end.append(granule.secondary_index_range[1])
-                #    geoms.append(granule.geometry.to_shapely())
-                #dframes += gra
         else:
             pool = ProcessPoolExecutor(max_workers=n_processes)
             tasks = []
