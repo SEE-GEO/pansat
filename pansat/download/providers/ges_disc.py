@@ -45,7 +45,7 @@ class GesDiscProviderBase:
     the gesdisc.eosdis.nasa.gov servers.
     """
 
-    file_pattern = re.compile('"[^"]*\.(?:HDF5|h5|nc|nc4)"')
+    file_pattern = re.compile(r'"[^"]*\.(?:HDF5|h5|nc|nc4)"')
 
     @classmethod
     def get_available_products(cls):
