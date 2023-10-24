@@ -84,7 +84,7 @@ class Catalog:
 
     def __init__(
             self,
-            path: Path,
+            path: Optional[Path] = None,
             indices: Optional[Dict[str, Index]] = None
     ):
         """
@@ -93,16 +93,17 @@ class Catalog:
             indices:
 
         """
-        self.path = Path(path)
-
-        if not self.path.exists():
-            raise RuntimeError(
-                f"Provided path '{self.path}' does not point to an existing "
-                "directory."
-            )
+        self.path = path
+        if path is not None:
+            self.path = Path(path)
+            if not self.path.exists():
+                raise RuntimeError(
+                    f"Provided path '{self.path}' does not point to an "
+                    " existing directory."
+                )
 
         self.indices = indices
-        if indices is None:
+        if indices is None and self.path is not None:
             self.indices = self._load_indices(self.path / ".pansat")
 
     def _load_indices(self, folder):
@@ -129,10 +130,12 @@ class Catalog:
                 )
         return indices
 
-    def __del__(self):
+    def __del__(self) -> None:
         """
-        Persist index files when catalog object is destroyed.
+        Persist catalog if associated with a directory.
         """
+        if self.path is None:
+            return None
         pansat_dir = self.path / ".pansat"
         if not pansat_dir.exists():
             pansat_dir.mkdir()
@@ -153,6 +156,19 @@ class Catalog:
     def __repr__(self):
         products = ", ".join(self.indices.keys())
         return f"Catalog(path='{self.path}')"
+
+
+    def add(self, rec: FileRecord) -> None:
+        """
+        Add a file record to the catalog.
+
+        Args:
+            rec: A file record identifying a product file to add to the
+                catalog.
+        """
+        pname = rec.product.name
+        self.indices.setdefault(pname, Index(rec.product)).add(rec)
+
 
     def find_local_path(self, rec: FileRecord):
         """

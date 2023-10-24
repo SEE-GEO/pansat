@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod, abstractproperty
 from dataclasses import dataclass
 import importlib
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Union
 
 import xarray as xr
 
@@ -53,6 +53,13 @@ def get_product(product_name):
         except (ImportError, AttributeError):
             pass
     raise ValueError(f"Could not find a product with the name '{product_name}'.")
+
+
+def all_products() -> List["Product"]:
+    """
+    Return a list of all currently known products.
+    """
+    return list(Product.PRODUCTS.values())
 
 
 class Product(ABC):
@@ -209,6 +216,31 @@ class Product(ABC):
 
     def __str__(self):
         return f"Product(name='{self.name}')"
+
+
+class FilenameRegexpMixin:
+    """
+    Mixin class providing a implementation of the 'matches' member function
+    based on a class attribute 'filename_regexp' containing a regular expression
+    to match to filename.
+    """
+    def matches(self, rec: Union[FileRecord, Path, str]) -> bool:
+        """
+        Determines whether a given filename matches the pattern used for
+        the product.
+
+        Args:
+            rec: File record, path, or simply filename of a given file.
+
+        Return:
+            True if the filename matches the product, False otherwise.
+        """
+        filename = rec
+        if isinstance(rec, Path):
+            filename = rec.name
+        elif isinstance(rec, FileRecord):
+            filename = rec.filename
+        return self.filename_regexp.match(filename) is not None
 
 
 class NetcdfProduct(ABC):

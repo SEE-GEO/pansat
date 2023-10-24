@@ -21,7 +21,7 @@ from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
 from pansat.granule import Granule, merge_granules
 from pansat.products import Product, GranuleProduct, get_product
-from pansat.geometry import ShapelyGeometry
+from pansat.geometry import Geometry, ShapelyGeometry
 
 
 def find_pansat_catalog(path):
@@ -304,7 +304,11 @@ class Index:
         data = _granules_to_dataframe(granules)
         return cls(product, data)
 
-    def __init__(self, product, data):
+    def __init__(
+            self,
+            product,
+            data: Optional[geopandas.GeoDataFrame] = None
+    ):
         """
         Args:
             product: The pansat product whose data files are indexed by
@@ -323,7 +327,10 @@ class Index:
                 " same product."
             )
         product = self.product
-        data = pd.merge(self.data, other.data, how="outer")
+        if self.data is None:
+            self.data = other.data
+        else:
+            data = pd.merge(self.data, other.data, how="outer")
         return Index(product, data)
 
 
@@ -341,10 +348,18 @@ class Index:
             granules = Granule.from_file_record(granules)
 
         new_data = _granules_to_dataframe(granules)
-        self.data = pd.merge(self.data, new_data, how="outer")
+        if self.data is None:
+            self.data = new_data
+        else:
+            self.data = pd.merge(self.data, new_data, how="outer")
 
 
     def __repr__(self):
+        if self.data is None:
+            return (
+                f"<Index of '{self.product.name}' containing "
+                f"no data entries>"
+            )
         return (
             f"<Index of '{self.product.name}' containing "
             f"{self.data.start_time.size} entries>"
@@ -361,6 +376,9 @@ class Index:
             A pathlib.Path object pointing to the file or 'None' if the
             file is not available from the index.
         """
+        if self.data is None:
+            return None
+
         inds = self.data.filename == file_record.filename
         if np.any(inds):
             path = Path(self.data.loc[inds].iloc[0].local_path)
@@ -369,10 +387,17 @@ class Index:
             return path
         return None
 
-    def find(self, time_range=None, roi=None):
+    def find(
+            self,
+            time_range: Optional[TimeRange] = None,
+            roi: Optional[Geometry] = None
+    ):
         """
         Find entries in Index within given time range and location.
         """
+        if self.data is None:
+            return []
+
         if time_range is None and roi is None:
             return _dataframe_to_granules(self.product, self.data)
 
@@ -406,6 +431,10 @@ class Index:
         Return:
             A 'Path' object pointing to the saved index.
         """
+        if self.data is None:
+            raise ValueError(
+                "Cannot save an empty index."
+            )
         path = Path(path)
         if not path.is_dir():
             raise ValueError("'path' must point to a directory.")
