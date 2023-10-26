@@ -29,6 +29,7 @@ from pansat.file_record import FileRecord
 from pansat.products import Product
 from pansat.exceptions import NoAvailableProvider, MissingDependency
 from pansat.time import TimeRange, to_datetime64
+from pansat.geometry import LonLatRect
 
 
 PRODUCT_NAMES = {
@@ -36,6 +37,9 @@ PRODUCT_NAMES = {
     "radar_quality_index": "RadarQualityIndex",
     "precip_flag": "PrecipFlag",
 }
+
+
+MRMS_DOMAIN = LonLatRect(-130, 20, -60, 55)
 
 
 class MRMSProduct(Product):
@@ -96,7 +100,7 @@ class MRMSProduct(Product):
         return TimeRange(start_time, end_time)
 
     def get_spatial_coverage(self, rec: FileRecord):
-        return LonLatRect(-130, 20, -60, 55)
+        return MRMS_DOMAIN
 
     def __str__(self):
         return self.name

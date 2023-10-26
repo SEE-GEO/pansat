@@ -32,7 +32,8 @@ setuptools.setup(
         "shapely",
         "rich",
         "click",
-        "tomlkit"
+        "tomlkit",
+        "requests-cache"
     ],
     setup_requires=["pytest-runner"],
     tests_require=[
