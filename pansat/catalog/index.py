@@ -468,6 +468,46 @@ class Index:
         data = self.data.to_parquet(output_file)
         return output_file
 
+    def subset(
+            self,
+            time_range: Optional[TimeRange] = None,
+            roi: Optional[Geometry] = None
+    ) -> "Index":
+        """
+        Subset index to a given time range or region of interest.
+
+        Args:
+            time_range: A TimeRange object defining the time range.
+            roi: A Geometry object defining the ROI.
+
+        Return:
+            A index object containing only entries withing the given time
+            range or ROI.
+        """
+        if time_range is None and roi is None:
+            return self
+
+        if time_range is None:
+            selected = self.data
+        else:
+            if not isinstance(time_range, TimeRange):
+                time_range = TimeRange(time_range, time_range)
+            selected = self.data.loc[
+                ~(
+                    (self.data.start_time > time_range.end)
+                    | (self.data.end_time < time_range.start)
+                )
+            ]
+
+        if roi is None:
+            return Index(self.product, selected)
+        roi = roi.to_shapely()
+        indices = selected.intersects(roi)
+
+        return Index(self.product, self.data.loc[indices])
+
+
+
     def search_interactive(self):
         from pansat.catalog.interactive import visualize_index
 
