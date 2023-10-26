@@ -328,9 +328,22 @@ class Index:
             )
         product = self.product
         if self.data is None:
-            self.data = other.data
+            data = other.data
         else:
-            data = pd.merge(self.data, other.data, how="outer")
+            columns = [
+                "start_time",
+                "end_time",
+                "filename",
+                "primary_index_name",
+                "primary_index_start",
+                "primary_index_end",
+                "secondary_index_name",
+                "secondary_index_start",
+                "secondary_index_end",
+            ]
+            data = pd.concat(
+                [self.data, other.data],
+            ).drop_duplicates(subset=columns, ignore_index=True)
         return Index(product, data)
 
 
@@ -351,7 +364,20 @@ class Index:
         if self.data is None:
             self.data = new_data
         else:
-            self.data = pd.merge(self.data, new_data, how="outer")
+            columns = [
+                "start_time",
+                "end_time",
+                "filename",
+                "primary_index_name",
+                "primary_index_start",
+                "primary_index_end",
+                "secondary_index_name",
+                "secondary_index_start",
+                "secondary_index_end",
+            ]
+            self.data = pd.concat(
+                [self.data, new_data],
+            ).drop_duplicates(subset=columns, ignore_index=True)
 
 
     def __repr__(self):
@@ -365,7 +391,7 @@ class Index:
             f"{self.data.start_time.size} entries>"
         )
 
-    def find_local_path(self, file_record: FileRecord):
+    def find_local_path(self, file_record: FileRecord) -> Optional[None]:
         """
         Find the local path corresponding to a given file record.
 

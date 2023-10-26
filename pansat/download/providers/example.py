@@ -9,6 +9,7 @@ import shutil
 from typing import Optional
 
 from pansat.download.providers.data_provider import DataProvider
+import pansat.environment as penv
 from pansat.products import Product
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
@@ -106,7 +107,11 @@ class ExampleProvider(DataProvider):
             A 'Path' object pointing to the downloaded file.
         """
         if destination is None:
-            destination = Path(".") / file_record.product.default_destination
+            destination = (
+                penv.get_active_data_dir() /
+                file_record.product.default_destination
+            )
+            print("DEST :: ", destination)
 
         destination = Path(destination)
         if destination.is_dir():
@@ -114,4 +119,7 @@ class ExampleProvider(DataProvider):
 
         shutil.copy(file_record.remote_path, destination)
         file_record.local_path = destination
+
+        penv.register(file_record)
+
         return file_record

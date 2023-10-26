@@ -34,6 +34,9 @@ from pansat.geometry import ShapelyGeometry
 LOGGER = logging.Logger(__file__)
 
 
+CATALOGS = {}
+
+
 class Catalog:
     """
     A catalog manages collections of data files from different
@@ -89,9 +92,10 @@ class Catalog:
     ):
         """
         Args:
-            path:
-            indices:
-
+            path: If provided, this path will be used to persist the catalog, when
+                the corresponding object is destroyed.
+            indices: Optional, pre-populated indices. If not provided and path is
+                provided, indices will
         """
         self.path = path
         if path is not None:
@@ -103,8 +107,18 @@ class Catalog:
                 )
 
         self.indices = indices
-        if indices is None and self.path is not None:
-            self.indices = self._load_indices(self.path / ".pansat")
+
+        # If path is provided load and combine existing indices.
+        if self.path is not None:
+            loaded = self._load_indices(self.path)
+            if self.indices is None:
+                self.indices = loaded
+            else:
+                for name, index in loaded.items():
+                    if name in self.indices:
+                        self.indices[name] = self.indices[name] + index
+                    else:
+                        self.indices[name] = index
 
     def _load_indices(self, folder):
         """
@@ -130,27 +144,26 @@ class Catalog:
                 )
         return indices
 
-    def __del__(self) -> None:
+    def save(self) -> None:
         """
         Persist catalog if associated with a directory.
         """
         if self.path is None:
             return None
-        pansat_dir = self.path / ".pansat"
-        if not pansat_dir.exists():
-            pansat_dir.mkdir()
 
-        existing = Index.list_index_files(pansat_dir)
-        for prod_name, index in self.indices.items():
+        existing = Index.list_index_files(self.path)
 
-            if prod_name in existing:
-                lock = FileLock(pansat_dir / (prod_name + ".lock"))
-                with lock.acquire(timeout=10):
-                    index_ex = Index.load(existing[prod_name])
-                    index = index + index_ex
-                    index.save(pansat_dir)
-            else:
-                index.save(pansat_dir)
+        if self.indices is not None:
+            for prod_name, index in self.indices.items():
+
+                if prod_name in existing:
+                    lock = FileLock(self.path / (prod_name + ".lock"))
+                    with lock.acquire(timeout=10):
+                        index_ex = Index.load(existing[prod_name])
+                        index = index + index_ex
+                        index.save(self.path)
+                else:
+                    index.save(self.path)
 
 
     def __repr__(self):
@@ -167,10 +180,12 @@ class Catalog:
                 catalog.
         """
         pname = rec.product.name
-        self.indices.setdefault(pname, Index(rec.product)).add(rec)
+        if self.indices is None:
+            self.indices = {}
+        self.indices.setdefault(pname, Index(rec.product)).insert(rec)
 
 
-    def find_local_path(self, rec: FileRecord):
+    def find_local_path(self, rec: FileRecord) -> Optional[Path]:
         """
         Find the local path of a given file in the current catalog.
 

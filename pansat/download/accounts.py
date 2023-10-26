@@ -23,21 +23,23 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+from pansat.config import get_current_config
+
 # Dictionary containing provider names and corresponding user names.
 _IDENTITIES = None
+_PANSAT_SECRET = None
+
 
 # The directory containing the configuration file.
 _APP_DIR = Path(user_config_dir("pansat", "pansat"))
 _APP_DIR.mkdir(parents=True, exist_ok=True)
 
-# The path to the configuration file.
-_IDENTITY_FILE = os.environ.get("PANSAT_IDENTITIES_FILE")
-if _IDENTITY_FILE:
-    _IDENTITY_FILE = Path(_IDENTITY_FILE)
-else:
-    _IDENTITY_FILE = Path(_APP_DIR) / Path("identities.json")
 
-_PANSAT_SECRET = None
+def get_identity_file() -> Path:
+    """
+    Get current identity file.
+    """
+    return get_current_config().identity_file
 
 LOGGER = logging.getLogger(__name__)
 
@@ -185,7 +187,8 @@ def initialize_identity_file():
     global _IDENTITIES
     global _PANSAT_SECRET
 
-    LOGGER.info("Initializing new identity file: %s", _IDENTITY_FILE)
+    identity_file = get_identity_file()
+    LOGGER.info("Initializing new identity file: %s", identity_file)
 
     password = get_password(check=True)
     salt = base64.urlsafe_b64encode(os.urandom(16))
@@ -194,7 +197,7 @@ def initialize_identity_file():
     secret_hashed = hash_password(_PANSAT_SECRET.decode(), salt)
     _IDENTITIES = {"pansat": (secret_hashed.decode(), salt.decode())}
 
-    with open(_IDENTITY_FILE, "w") as file:
+    with open(identity_file, "w") as file:
         file.write(json.dumps(_IDENTITIES))
 
 
@@ -203,12 +206,13 @@ def parse_identity_file():
     If available, parses identity config file and adds entries to known
     identities.
     """
-    if _IDENTITY_FILE.exists():
+    identity_file = get_identity_file()
+    if identity_file.exists():
         global _IDENTITIES
-        with open(_IDENTITY_FILE) as file:
+        with open(identity_file) as file:
             _IDENTITIES = json.loads(file.read())
 
-        LOGGER.info("Parsed identity file: %s", _IDENTITY_FILE)
+        LOGGER.info("Parsed identity file: %s", identity_file)
 
     else:
         initialize_identity_file()
@@ -258,7 +262,8 @@ def add_identity(provider, user_name):
 
     identities = get_identities()
     identities[provider] = (user_name_encrypted.decode(), password_encrypted.decode())
-    with open(_IDENTITY_FILE, "w") as file:
+    identity_file = get_identity_file()
+    with open(identity_file, "w") as file:
         file.write(json.dumps(identities))
 
     LOGGER.info("Added identity: %s, %s", provider, user_name)
@@ -276,7 +281,8 @@ def delete_identity(provider):
         authenticate()
     identities = get_identities()
     del identities[provider]
-    with open(_IDENTITY_FILE, "w") as file:
+    identity_file = get_identity_file()
+    with open(identity_file, "w") as file:
         file.write(json.dumps(identities))
 
     LOGGER.info("Removed identity for provider %s", provider)

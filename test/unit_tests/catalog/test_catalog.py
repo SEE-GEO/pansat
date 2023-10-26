@@ -35,7 +35,7 @@ def test_catalog_persistence(
     assert list(cat.indices.keys())[0] == "example.hdf5_product"
 
     assert not (hdf5_product_data / ".pansat").exists()
-    del cat
+    cat.save()
     assert (hdf5_product_data / ".pansat").exists()
 
     cat = Catalog(hdf5_product_data)

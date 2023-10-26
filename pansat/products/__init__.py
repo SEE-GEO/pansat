@@ -213,7 +213,6 @@ class Product(ABC):
             raise RuntimeError(f"Could not find a provider for the product '{self}'.")
         return product_provider.find_files(self, time_range, roi=roi)
 
-
     def __str__(self):
         return f"Product(name='{self.name}')"
 

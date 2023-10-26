@@ -16,6 +16,7 @@ from pansat.products.example import (
     EXAMPLE_GRANULE_PRODUCT_DESCRIPTION,
 )
 from pansat.products.example import write_hdf5_product_data
+from pansat.config import get_current_config
 
 
 HAS_HDF4 = False
@@ -45,7 +46,8 @@ def test_identities(monkeypatch):
     test_identity_file = Path(
         PurePath(__file__).parent / "test_data" / "identities.json"
     )
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", test_identity_file)
+    config = get_current_config()
+    config.identity_file = test_identity_file
     monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     import pansat.download.accounts as accs
 
