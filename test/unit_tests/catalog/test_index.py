@@ -126,21 +126,6 @@ def test_match_indices(tmp_path, hdf5_granule_product_data):
     assert dframe_l.shape[0] <= dframe_r.shape[0]
 
 
-def test_add(hdf5_product_data):
-    """
-    Test extending an index.
-    """
-    files = sorted(list((hdf5_product_data / "remote").glob("*")))
-    to_rec = partial(FileRecord, product=hdf5_product)
-    records = list(map(to_rec, files))
-
-    index_ref = Index.index(hdf5_product, files)
-    index_1 = Index.index(hdf5_product, files[:2])
-    index_2 = Index.index(hdf5_product, files[2:])
-    index = index_1 + index_2
-    assert (index_ref.data == index.data).all().all()
-
-
 def test_insert(hdf5_product_data):
     """
     Test extending an index.
@@ -191,17 +176,24 @@ def test_add(hdf5_product_data):
     index = index_1 + index_2
     assert (index_ref.data == index.data).all().all()
 
+def test_subset_index(hdf5_product_data):
 
-def test_insert(hdf5_product_data):
-    """
-    Test extending an index.
-    """
-    files = sorted(list((hdf5_product_data / "remote").glob("*")))
-    to_rec = partial(FileRecord, product=hdf5_product)
-    records = list(map(to_rec, files))
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files)
 
-    index_ref = Index.index(hdf5_product, files)
-    index = Index.index(hdf5_product, files[:-1])
-    index.insert(records[-1])
+    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
+    found = index.find(time_range=t_range)
+    assert len(found) == 4
 
-    assert (index_ref.data == index.data).all().all()
+    index_s = index.subset(time_range=TimeRange(
+        "2020-01-01T00:00:00",
+        "2020-01-01T00:59:00"
+    ))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+>>>>>>> f1fad46 (Add subset function to index.)
+>>>>>>> 1c0245f (Add subset function to index.)
