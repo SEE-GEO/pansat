@@ -29,7 +29,6 @@ from pansat.exceptions import NoAvailableProvider
 from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
-
 class GPMProduct(products.GranuleProduct):
     """
     Base class representing GPM products.

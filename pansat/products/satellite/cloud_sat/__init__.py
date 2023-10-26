@@ -9,16 +9,16 @@ import re
 import os
 from datetime import datetime
 from pathlib import Path
-
 import numpy as np
 
+from pansat import products 
 from pansat.products.product_description import ProductDescription
 import pansat.download.providers as providers
 from pansat.products.product import Product
 from pansat.exceptions import NoAvailableProvider
 
 
-class CloudSatProduct(Product):
+class CloudSatProduct(products.GranuleProduct):
     """
     The CloudSat class defines a generic interface for CloudSat products.
 
@@ -100,30 +100,6 @@ class CloudSatProduct(Product):
         """The full product name."""
         return f"CloudSat_{self.level}-{self.product_name}"
 
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
 
     def open(self, filename):
         """
