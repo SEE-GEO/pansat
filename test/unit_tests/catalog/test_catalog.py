@@ -11,10 +11,8 @@ from pansat.products.example import (
     hdf5_granule_product,
 )
 
-def test_catalog_from_existing_files(
-        hdf5_product_data,
-        hdf5_granule_product_data
-):
+
+def test_catalog_from_existing_files(hdf5_product_data, hdf5_granule_product_data):
     """
     Test creation of catalog from existing files.
     """
@@ -23,10 +21,7 @@ def test_catalog_from_existing_files(
     assert list(cat.indices.keys())[0] == "example.hdf5_product"
 
 
-def test_catalog_persistence(
-        hdf5_product_data,
-        hdf5_granule_product_data
-):
+def test_catalog_persistence(hdf5_product_data, hdf5_granule_product_data):
     """
     Test creation of catalog from existing files.
     """
