@@ -225,3 +225,24 @@ def test_insert(hdf5_product_data):
     index.insert(records[-1])
 
     assert (index_ref.data == index.data).all().all()
+
+
+def test_subset_index(hdf5_product_data):
+
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files)
+
+    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
+    found = index.find(time_range=t_range)
+    assert len(found) == 4
+
+    index_s = index.subset(time_range=TimeRange(
+        "2020-01-01T00:00:00",
+        "2020-01-01T00:59:00"
+    ))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
