@@ -195,5 +195,3 @@ def test_subset_index(hdf5_product_data):
     index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
     found = index_s.find(time_range=t_range)
     assert len(found) == 1
->>>>>>> f1fad46 (Add subset function to index.)
->>>>>>> 1c0245f (Add subset function to index.)
