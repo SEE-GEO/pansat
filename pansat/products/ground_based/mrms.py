@@ -71,7 +71,7 @@ class MRMSProduct(Product):
     @property
     def default_destination(self):
         """Stores MRMS files in a folder called MRMS."""
-        return Path("MRMS")
+        return Path("mrms")
 
     @property
     def name(self):
