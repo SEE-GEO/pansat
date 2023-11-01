@@ -273,7 +273,12 @@ class Index:
            An Index object containing an index of all files.
         """
         dframes = []
-        granules =[]
+        granules = []
+
+        files = [
+            rec.local_path if isinstance(rec, FileRecord) else rec
+            for rec in files
+        ]
 
         if n_processes is None:
             for path in files:
