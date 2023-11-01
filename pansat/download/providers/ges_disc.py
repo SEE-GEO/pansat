@@ -20,6 +20,7 @@ from typing import Optional
 import xml.etree.ElementTree as ET
 
 import requests
+from requests.exceptions import HTTPError
 
 from pansat import cache
 from pansat.download import accounts
@@ -211,7 +212,14 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
 
         session = cache.get_session()
         response = session.get(url, auth=auth)
-        response.raise_for_status()
+
+        # 404 error likely means that no products are available for
+        # this day.
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
 
         files = list(set(self.file_pattern.findall(response.text)))
         files = [f[1:-1] for f in files]
@@ -247,7 +255,12 @@ class GesDiscProviderMonth(GesDiscProviderBase, DiscreteProviderMonth):
         auth = accounts.get_identity("GES DISC")
         session = cache.get_session()
         response = session.get(url, auth=auth)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
+
         files = list(set(self.file_pattern.findall(response.text)))
 
         files = [f[1:-1] for f in files]
@@ -287,7 +300,12 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
         auth = accounts.get_identity("GES DISC")
         session = cache.get_session()
         response = session.get(url, auth=auth)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
+
         files = list(set(self.file_pattern.findall(response.text)))
 
         files = [f[1:-1] for f in files]

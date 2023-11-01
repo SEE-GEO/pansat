@@ -288,7 +288,7 @@ def merge_granules(granules):
     merged = []
 
     if len(granules) == 0:
-        raise ValueError("Need at least one granule to merge.")
+        return []
 
     current = granules[0]
     for ind in range(len(granules) - 1):
