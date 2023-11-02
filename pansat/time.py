@@ -284,7 +284,7 @@ class TimeRange:
         return closest
 
 
-    def time_diff(self, other):
+    def time_diff(self, other: "FileRecord") -> timedelta:
         """
         Calculate time difference between this and another time range.
 
