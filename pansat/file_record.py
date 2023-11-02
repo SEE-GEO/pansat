@@ -6,11 +6,15 @@ Defines a file record class that contains information about a local or remote
 file.
 """
 from copy import copy
-from typing import Optional
+from typing import Optional, List
 
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import numpy as np
+
+
+from pansat.time import TimeRange
 
 
 @dataclass
@@ -78,6 +82,44 @@ class FileRecord:
         self.product = product
         self.provider = provider
         self.remote_path = remote_path
+
+    @property
+    def temporal_coverage(self) -> TimeRange:
+        """
+        The temporal coverage of the file identified by this file record.
+        """
+        return self.product.get_temporal_coverage(self)
+
+
+    def find_closest_in_time(
+            self,
+            others: List["FileRecord"]
+    ) -> List["FileRecord"]:
+        """
+        Find file records that are closest in time or overlap with 'self'.
+
+        Args:
+            others: A list of file records among which to find the temporally
+                closest records.
+
+        Return:
+            A list containing the file records with temporal overlap with self
+            or the file record that minimizes the time difference between the
+            coverage of the two files.
+        """
+        time_range = self.temporal_coverage
+        other_ranges = [other.temporal_coverage for other in others]
+        closest = time_range.find_closest_ind(other_ranges)
+        return [others[ind] for ind in closest]
+
+
+    def time_difference(self, other: "FileRecord") -> np.datetime64:
+        """
+        The temporal difference between the temporal coverage of two
+        file records.
+        """
+        return self.temporal_coverage.time_diff(other.temporal_coverage)
+
 
     def download(
             self,

@@ -150,7 +150,9 @@ def test_json_serialization():
 
 
 def test_find_closest():
-
+    """
+    Test finding of closest time range.
+    """
     time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T02:00:00")
 
     other = [
@@ -186,3 +188,62 @@ def test_find_closest():
     closest = time_range.find_closest(other)
     assert len(closest) == 1
     assert closest[0] == other[1]
+
+
+def test_find_closest_ind():
+    """
+    Test finding of closest time range by index.
+    """
+    time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T02:00:00")
+
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:30:00"),
+        TimeRange("2020-01-01T00:45:00", "2020-01-01T01:15:00"),
+        TimeRange("2020-01-01T02:01:00", "2020-01-01T02:04:00"),
+    ]
+
+    closest = time_range.find_closest_ind(other)
+    assert len(closest) == 1
+    assert closest[0] == 1
+
+    other = [
+        TimeRange("2020-01-01T01:00:00", "2020-01-01T01:30:00"),
+        TimeRange("2020-01-01T00:45:00", "2020-01-01T01:15:00"),
+        TimeRange("2020-01-01T01:45:00", "2020-01-01T02:04:00"),
+    ]
+    closest = time_range.find_closest_ind(other)
+    assert len(closest) == 3
+
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:45:00"),
+        TimeRange("2020-01-01T02:30:00", "2020-01-01T03:00:00"),
+    ]
+    closest = time_range.find_closest_ind(other)
+    assert len(closest) == 1
+    assert closest[0] == 0
+
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:45:00"),
+        TimeRange("2020-01-01T02:01:00", "2020-01-01T03:00:00"),
+    ]
+    closest = time_range.find_closest_ind(other)
+    assert len(closest) == 1
+    assert closest[0] == 1
+
+
+def test_time_diff():
+    """
+    Ensure that 'time_diff' method
+
+        - returns 0, when time intervals overlap.
+        - returns a positive number when they don't.
+    """
+    time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T02:00:00")
+    other = [
+        TimeRange("2020-01-01T00:00:00", "2020-01-01T00:30:00"),
+        TimeRange("2020-01-01T00:45:00", "2020-01-01T01:15:00"),
+        TimeRange("2020-01-01T02:01:00", "2020-01-01T02:04:00"),
+    ]
+    assert time_range.time_diff(other[0]) > np.timedelta64(0, "s")
+    assert time_range.time_diff(other[1]) == np.timedelta64(0, "s")
+    assert time_range.time_diff(other[2]) > np.timedelta64(0, "s")

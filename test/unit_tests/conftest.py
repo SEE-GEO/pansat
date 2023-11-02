@@ -15,6 +15,7 @@ from pansat.products.example import (
     EXAMPLE_PRODUCT_DESCRIPTION,
     EXAMPLE_GRANULE_PRODUCT_DESCRIPTION,
 )
+from pansat.download.providers.example import ExampleProvider
 from pansat.products.example import write_hdf5_product_data
 from pansat.config import get_current_config
 
@@ -88,6 +89,15 @@ def hdf5_product_data(product_description):
     remote_path.mkdir(exist_ok=True)
     write_hdf5_product_data(remote_path)
     yield tmp_path
+
+
+@pytest.fixture()
+def hdf5_product_provider(hdf5_product_data):
+    """
+    A provider providing hdf5 product data.
+    """
+    provider = ExampleProvider(hdf5_product_data, "hdf5")
+    return provider
 
 
 PRODUCT_DATA = [
