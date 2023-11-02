@@ -137,10 +137,11 @@ class MetaDataprovider(ABC):
 
 def get_providers() -> List["DataProvider"]:
     """
-    Return a list of all currently know providers.
+    Return a list of all currently known providers.
     """
     import pansat.download.providers.ges_disc
     import pansat.download.providers.iowa_state
     import pansat.download.providers.goes_aws
+    import pansat.download.providers.icare
 
     return ALL_PROVIDERS

@@ -53,31 +53,18 @@ ICARE_PRODUCTS = {
 
 
 
-class IcareProvider(DiscreteProvider, DiscreteProviderDay):
+class IcareProvider(DiscreteProviderDay):
     """
     Base class for data products available from the ICARE ftp server.
     """
     base_url = "ftp.icare.univ-lille1.fr"
     file_pattern = re.compile(r'"[^"]*\.(?:HDF5|h5)"')
 
-    def __init__(self, product):
+    def __init__(self):
         """
         Create a new product instance.
-
-        Args:
-
-            product(``Product``): Product class object with specific product for ICARE
-
         """
-        if str(product) not in ICARE_PRODUCTS:
-            available_products = list(ICARE_PRODUCTS.keys())
-            raise ValueError(
-                f"The product {product} is  not a available from the ICARE data"
-                f" provider. Currently available products are: "
-                f"{available_products}."
-            )
-        super().__init__(product)
-        self.product_path = "SPACEBORNE/".join(ICARE_PRODUCTS[str(product)])
+        super().__init__()
         self.cache = {}
 
     def _ftp_listing_to_list(self, path, item_type=int):
@@ -146,12 +133,10 @@ class IcareProvider(DiscreteProvider, DiscreteProviderDay):
         return files
 
     def provides(self, product):
-        name = product.name
-        if not name.startswith("satellite.cloud_sat"):
+        name = product.product_name
+        if not name.startswith("CloudSat"):
             return False
-        else:
-            return True
-        return False
+        return True
 
     def find_files_by_day(self, product, time, roi=None):
         """
@@ -170,7 +155,9 @@ class IcareProvider(DiscreteProvider, DiscreteProviderDay):
             day.
         """
         time = to_datetime(time)
-        rel_url = "/".join([self.product_path, str(time.year), time.strftime("%Y_%m_%d")])
+        product_path ="SPACEBORNE/".join(ICARE_PRODUCTS[str(product)])
+
+        rel_url = "/".join([product_path, str(time.year), time.strftime("%Y_%m_%d")])
 
         url = self.get_base_url(product) + rel_url
         auth = accounts.get_identity("Icare")
@@ -214,7 +201,6 @@ class IcareProvider(DiscreteProvider, DiscreteProviderDay):
         self.download_url(url, destination)
         new_rec = copy(rec)
         new_rec.local_path = destination
-
         return new_rec
 
 
@@ -229,3 +215,5 @@ class IcareProvider(DiscreteProvider, DiscreteProviderDay):
             with open(destination, "wb") as file:
                 ftp.retrbinary("RETR " + filename, file.write)
 
+
+icare_provider = IcareProvider()
