@@ -133,7 +133,7 @@ class IcareProvider(DiscreteProviderDay):
         return files
 
     def provides(self, product):
-        name = product.product_name
+        name = product.name
         if not name.startswith("CloudSat"):
             return False
         return True
@@ -159,8 +159,8 @@ class IcareProvider(DiscreteProviderDay):
 
         rel_url = "/".join([product_path, str(time.year), time.strftime("%Y_%m_%d")])
 
-        url = self.get_base_url(product) + rel_url
-        auth = accounts.get_identity("Icare")
+        url = self.base_url + rel_url
+        auth = get_identity("Icare")
 
         session = cache.get_session()
         response = session.get(url, auth=auth)
