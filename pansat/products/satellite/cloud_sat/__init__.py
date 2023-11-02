@@ -10,15 +10,15 @@ import os
 from datetime import datetime
 from pathlib import Path
 import numpy as np
-
-from pansat import products 
+from pansat.file_record import FileRecord
+from pansat.products import GranuleProduct
 from pansat.products.product_description import ProductDescription
 import pansat.download.providers as providers
-from pansat.products.product import Product
 from pansat.exceptions import NoAvailableProvider
+from pansat import geometry
+from pansat.time import TimeRange
 
-
-class CloudSatProduct(products.GranuleProduct):
+class CloudSatProduct(GranuleProduct):
     """
     The CloudSat class defines a generic interface for CloudSat products.
 
@@ -112,6 +112,62 @@ class CloudSatProduct(products.GranuleProduct):
 
         file_handle = HDF4File(filename)
         return self.description.to_xarray_dataset(file_handle, globals())
+
+    def get_granules(self, rec):
+        from pansat.formats.hdf4 import HDF4File
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(rec)
+        granules = []
+        file_handle = HDF4File(rec.local_path)
+        for granule_data in self.description.get_granule_data(
+                file_handle, globals() ):
+            granules.append(Granule(rec, *granule_data))
+        return granules
+
+    def open_granule(self, granule):
+        from pansat.formats.hdf4 import HDF4File
+        filename = granule.file_record.local_path
+        file_handle = HDF4File(filename)
+        return self.description.to_xarray_dataset(
+                file_handle, context=globals(), slcs=granule.get_slices())
+
+
+
+    def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
+        """
+        Implements interface to extract spatial coverage of file.
+        """
+        if rec.local_path is None:
+            raise ValueError(
+                "This products reuqires a local file is to determine "
+                " the spatial coverage."
+            )
+
+        file_handle = HDF4File(rec.local_path)
+        lons, lats = self.description.load_lonlats(file_handle, slice(0, None, 1))
+        poly = geometry.parse_swath(lons, lats, m=10, n=1)
+        return geometry.ShapelyGeometry(poly)
+
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        Implements interface to extract temporal coverage of file.
+        """
+        match = self.filename_regexp.match(rec.filename)
+        if match is None:
+            raise RuntimeError(
+                f"Provided file record with filename {rec.filename} doest not "
+                " match the products filename regexp "
+                f"{self.filename_regexp.pattern}. "
+            )
+        date = match[2]
+        start = match[3]
+        end = match[4]
+        fmt = "%Y%j%H%M%S"
+        start = datetime.strptime(date + start, fmt)
+        end = datetime.strptime(date + end, fmt)
+        if end < start:
+            end += timedelta(days=1)
+        return TimeRange(start, end)
 
 
 def _cloud_scenario_to_cloud_scenario_flag(cloud_scenario):
