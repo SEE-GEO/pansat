@@ -6,6 +6,7 @@ Defines a file record class that contains information about a local or remote
 file.
 """
 from copy import copy
+from datetime import timedelta
 from typing import Optional, List
 
 from dataclasses import dataclass
@@ -113,7 +114,7 @@ class FileRecord:
         return [others[ind] for ind in closest]
 
 
-    def time_difference(self, other: "FileRecord") -> np.datetime64:
+    def time_difference(self, other: "FileRecord") -> timedelta:
         """
         The temporal difference between the temporal coverage of two
         file records.

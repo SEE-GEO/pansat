@@ -175,8 +175,35 @@ class Product(ABC):
         files = self.find_files(time_range, roi=roi)
         downloaded = []
         for rec in files:
-            downloaded.append(rec.provider.download(rec, destination=destination))
+            downloaded.append(rec.download(destination=destination))
         return downloaded
+
+    def get(
+            self,
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None,
+            destination=None
+    ) -> List[FileRecord]:
+        """
+        Find available files within a given time range and optional
+        geographic region. If any of these files are not found locally,
+        they will be downloaded.
+
+        Args:
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
+
+        Return:
+            A list of 'pansat.FileRecords' specifying the downloaded
+            files.
+        """
+        files = self.find_files(time_range, roi=roi)
+        local = []
+        for rec in files:
+            local.append(rec.get(destination=destination))
+        return local
 
     def find_files(
             self,

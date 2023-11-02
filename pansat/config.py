@@ -176,7 +176,6 @@ def get_current_config() -> PansatConfig:
     if _CURRENT_CONFIG is None:
         _CURRENT_CONFIG = PansatConfig()
         config_dir = find_config_dir()
-        print("CONFIG DIR: ", config_dir, (config_dir / "config.toml").exists())
         config_file = config_dir / "config.toml"
         if config_file.exists():
             _CURRENT_CONFIG.parse(config_file)
