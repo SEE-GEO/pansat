@@ -12,11 +12,9 @@ import atexit
 from typing import Optional, Union, List
 
 from pathlib import Path
-from pansat.catalog import Catalog
+from pansat.catalog import Catalog, Index
 from pansat.file_record import FileRecord
 from pansat.granule import Granule
-
-ACTIVE_REGISTRIES = []
 
 
 class Registry(Catalog):
@@ -88,6 +86,26 @@ class Registry(Catalog):
             return Path(".")
         return self.parent.get_active_data_dir()
 
+    def get_index(self, product, recurrent=True) -> Path:
+        """
+        Find an combine indices for a given product from registry hierarchy.
+
+        Args:
+            product: The product for which to find the index.
+            recurrent: If 'False', only the index from the first registry
+                in the registry hierarchy is returned. If 'True', the indices
+                from the hierarchy will be combined.
+
+        Return:
+            An index over all currently available product data.
+        """
+        index = super().get_index(product)
+        if not recurrent or self.parent is None:
+            return index
+
+        index = index + self.parent.get_index(product)
+        return index
+
 
 class DataDir(Registry):
     """
@@ -139,10 +157,30 @@ class DataDir(Registry):
 
 
 def get_active_registry() -> Registry:
+    """
+    Get the currently active registry.
+    """
     from pansat.config import get_current_config
 
     config = get_current_config()
     return config.registries[-1]
+
+
+def get_index(product, recurrent=True) -> Index:
+    """
+    Retrieve an index containing all locally available files of a given
+    product.
+
+    Args:
+        product: The product for which to retrieval the index.
+        recurrent: If 'True', the index will be calculated by combining
+            the indices of the full hierarchy of registries. If 'False',
+            only the index from the registry highest in the hierarchy is
+            returned.
+
+
+    """
+    return get_active_registry().get_index(product, recurrent=recurrent)
 
 
 def get_active_data_dir() -> Registry:
@@ -162,6 +200,7 @@ def register(rec: Union[FileRecord, Granule, List[Granule]]) -> None:
     """
     reg = get_active_registry()
     reg.add(rec)
+    register_saving()
 
 
 def lookup_file(rec: FileRecord) -> Optional[Path]:
@@ -185,4 +224,9 @@ def save_registries():
         registry.save()
 
 
-atexit.register(save_registries)
+_ATEXIT_REGISTERED = False
+def register_saving() -> None:
+    global _ATEXIT_REGISTERED
+    if not _ATEXIT_REGISTERED:
+        atexit.register(save_registries)
+        _ATEXIT_REGISTERED = True
