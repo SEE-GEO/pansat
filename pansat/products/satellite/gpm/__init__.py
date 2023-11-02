@@ -397,7 +397,7 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
         The GPM merged IR product has fixed coverage covering all longitudes
         and latitude -60 to 60.
         """
-        return LonLatRect(-180, -90, 180, 90)
+        return geometry.LonLatRect(-180, -90, 180, 90)
 
     @property
     def default_destination(self):
