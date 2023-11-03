@@ -107,18 +107,8 @@ class Catalog:
                 )
 
         self.indices = indices
-
-        # If path is provided load and combine existing indices.
-        if self.path is not None:
-            loaded = self._load_indices(self.path)
-            if self.indices is None:
-                self.indices = loaded
-            else:
-                for name, index in loaded.items():
-                    if name in self.indices:
-                        self.indices[name] = self.indices[name] + index
-                    else:
-                        self.indices[name] = index
+        if indices is None and self.path is not None:
+            self.indices = self._load_indices(self.path / ".pansat")
 
     def _load_indices(self, folder):
         """
@@ -164,6 +154,23 @@ class Catalog:
                         index.save(self.path)
                 else:
                     index.save(self.path)
+=======
+        pansat_dir = self.path / ".pansat"
+        if not pansat_dir.exists():
+            pansat_dir.mkdir()
+
+        existing = Index.list_index_files(pansat_dir)
+        for prod_name, index in self.indices.items():
+
+            if prod_name in existing:
+                lock = FileLock(pansat_dir / (prod_name + ".lock"))
+                with lock.acquire(timeout=10):
+                    index_ex = Index.load(existing[prod_name])
+                    index = index + index_ex
+                    index.save(pansat_dir)
+            else:
+                index.save(pansat_dir)
+>>>>>>> ac0ae54 (Working towards dynamic catalogs.)
 
 
     def __repr__(self):
