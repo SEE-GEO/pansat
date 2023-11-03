@@ -36,6 +36,7 @@ class ExampleProvider(DataProvider):
         """
         self.data_dir = Path(data_dir)
         self.fmt = fmt
+        self.counter = 0
         super().__init__()
 
     @classmethod
@@ -51,9 +52,7 @@ class ExampleProvider(DataProvider):
         return name.startswith("example") and name.split(".")[1].startswith(self.fmt)
 
     def find_files(
-            self, product: Product,
-            time_range: TimeRange,
-            roi: Optional[Geometry] = None
+        self, product: Product, time_range: TimeRange, roi: Optional[Geometry] = None
     ):
         """
         Find all product files within a given time range.
@@ -75,12 +74,11 @@ class ExampleProvider(DataProvider):
         )
         found_recs = []
         for rec in all_recs:
-            try:
-                rng = product.get_temporal_coverage(rec)
-            except ValueError:
+            if not product.matches(rec):
                 continue
+            rng = product.get_temporal_coverage(rec)
 
-            if time_range.covers(time_range):
+            if time_range.covers(rng):
                 if roi is not None:
                     geo = product.get_spatial_coverage(rec)
                     if geo.covers(roi):
@@ -91,9 +89,7 @@ class ExampleProvider(DataProvider):
         return found_recs
 
     def download(
-            self,
-            file_record: FileRecord,
-            destination: Optional[Path]
+        self, file_record: FileRecord, destination: Optional[Path]
     ) -> FileRecord:
         """
         Download a file.
@@ -108,8 +104,7 @@ class ExampleProvider(DataProvider):
         """
         if destination is None:
             destination = (
-                penv.get_active_data_dir() /
-                file_record.product.default_destination
+                penv.get_active_data_dir() / file_record.product.default_destination
             )
 
         destination = Path(destination)
@@ -118,4 +113,7 @@ class ExampleProvider(DataProvider):
 
         shutil.copy(file_record.remote_path, destination)
         file_record.local_path = destination
+
+        self.counter += 1
+
         return file_record

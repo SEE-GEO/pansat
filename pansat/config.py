@@ -76,6 +76,8 @@ class PansatConfig:
 
         reg_tables = doc.get("registry", {})
 
+        parsed_regs = []
+
         for reg, reg_dict in reg_tables.items():
             path = reg_dict.get("path", None)
             if path is None:
@@ -94,9 +96,11 @@ class PansatConfig:
             else:
                 reg_class = Registry
 
-            self.registries.append(
+            parsed_regs.append(
                 reg_class(reg, path, transparent=transparent, parent=parent)
             )
+
+        self.registries += parsed_regs[::-1]
 
     def write(self, path: Path) -> None:
         """

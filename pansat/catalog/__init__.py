@@ -22,12 +22,7 @@ from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
 from pansat.catalog.index import Index
 from pansat.granule import Granule, merge_granules
-from pansat.products import (
-    Product,
-    GranuleProduct,
-    get_product,
-    all_products
-)
+from pansat.products import Product, GranuleProduct, get_product, all_products
 from pansat.geometry import ShapelyGeometry
 
 
@@ -42,11 +37,9 @@ class Catalog:
     A catalog manages collections of data files from different
     products.
     """
+
     @staticmethod
-    def from_existing_files(
-            path,
-            products: Optional[List[Product]] = None
-    ):
+    def from_existing_files(path, products: Optional[List[Product]] = None):
         """
         Create a catalog by scanning existing files.
 
@@ -86,9 +79,7 @@ class Catalog:
         return cat
 
     def __init__(
-            self,
-            path: Optional[Path] = None,
-            indices: Optional[Dict[str, Index]] = None
+        self, path: Optional[Path] = None, indices: Optional[Dict[str, Index]] = None
     ):
         """
         Args:
@@ -128,10 +119,7 @@ class Catalog:
                 index = Index.load(index_file)
                 indices[prod_name] = index
             except ValueError:
-                LOGGER.warning(
-                    f"Loading of the index file '%s' failed.",
-                    index_file
-                )
+                LOGGER.warning(f"Loading of the index file '%s' failed.", index_file)
         return indices
 
     def save(self) -> None:
@@ -145,7 +133,6 @@ class Catalog:
 
         if self.indices is not None:
             for prod_name, index in self.indices.items():
-
                 if prod_name in existing:
                     lock = FileLock(self.path / (prod_name + ".lock"))
                     with lock.acquire(timeout=10):
@@ -172,11 +159,9 @@ class Catalog:
                 index.save(pansat_dir)
 >>>>>>> ac0ae54 (Working towards dynamic catalogs.)
 
-
     def __repr__(self):
         products = ", ".join(self.indices.keys())
         return f"Catalog(path='{self.path}')"
-
 
     def add(self, rec: FileRecord) -> None:
         """
@@ -191,6 +176,17 @@ class Catalog:
             self.indices = {}
         self.indices.setdefault(pname, Index(rec.product)).insert(rec)
 
+    def get_index(self, prod: Product) -> Index:
+        """
+        Get index for a given product.
+
+        Args:
+            prod: The products for which to retrieve the index.
+
+        Return:
+            The index for the requested product.
+        """
+        return self.indices.get(prod.name, Index(prod))
 
     def find_local_path(self, rec: FileRecord) -> Optional[Path]:
         """

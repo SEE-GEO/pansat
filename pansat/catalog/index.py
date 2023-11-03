@@ -44,10 +44,7 @@ def find_pansat_catalog(path):
     return None
 
 
-def _get_index_data(
-        product: Product,
-        path: Path
-) -> List[Granule]:
+def _get_index_data(product: Product, path: Path) -> List[Granule]:
     """
     Extracts index data from a single path.
 
@@ -62,7 +59,7 @@ def _get_index_data(
         ``geom`` a geometry representing the spatial coverage of the file.
     """
     if product.matches(path.name) is None:
-        logging.info('Filename does not match regular expression.')
+        logging.info("Filename does not match regular expression.")
         return []
 
     rec = FileRecord(path)
@@ -78,8 +75,7 @@ def _get_index_data(
 
 
 def _dataframe_to_granules(
-        product: Product,
-        data: geopandas.GeoDataFrame
+    product: Product, data: geopandas.GeoDataFrame
 ) -> List[Granule]:
     """
     Converts a pandas dataframe of file indices into a list
@@ -153,9 +149,7 @@ def _dataframe_to_granules(
     return granules
 
 
-def _granules_to_dataframe(
-        granules: List[Granule]
-) -> geopandas.GeoDataFrame:
+def _granules_to_dataframe(granules: List[Granule]) -> geopandas.GeoDataFrame:
     """
     Coverts a list of granules into a pandas Dataframe.
 
@@ -219,6 +213,7 @@ class Index:
         data: A 'geopandas.Dataframe' containing coverage information
             of all indexed files.
     """
+
     @staticmethod
     def list_index_files(path: Path) -> Dict[str, Path]:
         """
@@ -231,9 +226,7 @@ class Index:
         Return:
             A dictionary mapping product names to corresponding index files.
         """
-        return {
-            path.stem: path for path in Path(path).glob("*.idx")
-        }
+        return {path.stem: path for path in Path(path).glob("*.idx")}
 
     @classmethod
     def load(cls, path: Path):
@@ -276,8 +269,7 @@ class Index:
         granules = []
 
         files = [
-            rec.local_path if isinstance(rec, FileRecord) else rec
-            for rec in files
+            rec.local_path if isinstance(rec, FileRecord) else rec for rec in files
         ]
 
         if n_processes is None:
@@ -305,15 +297,10 @@ class Index:
 
                 prog.refresh()
 
-
         data = _granules_to_dataframe(granules)
         return cls(product, data)
 
-    def __init__(
-            self,
-            product,
-            data: Optional[geopandas.GeoDataFrame] = None
-    ):
+    def __init__(self, product, data: Optional[geopandas.GeoDataFrame] = None):
         """
         Args:
             product: The pansat product whose data files are indexed by
@@ -351,6 +338,11 @@ class Index:
             ).drop_duplicates(subset=columns, ignore_index=True)
         return Index(product, data)
 
+    def __len__(self):
+        """The number of granules in the index."""
+        if self.data is None:
+            return 0
+        return self.data.shape[0]
 
     def insert(self, granules: Union[List[Granule], FileRecord]) -> None:
         """
@@ -384,13 +376,9 @@ class Index:
                 [self.data, new_data],
             ).drop_duplicates(subset=columns, ignore_index=True)
 
-
     def __repr__(self):
         if self.data is None:
-            return (
-                f"<Index of '{self.product.name}' containing "
-                f"no data entries>"
-            )
+            return f"<Index of '{self.product.name}' containing " f"no data entries>"
         return (
             f"<Index of '{self.product.name}' containing "
             f"{self.data.start_time.size} entries>"
@@ -419,9 +407,7 @@ class Index:
         return None
 
     def find(
-            self,
-            time_range: Optional[TimeRange] = None,
-            roi: Optional[Geometry] = None
+        self, time_range: Optional[TimeRange] = None, roi: Optional[Geometry] = None
     ):
         """
         Find entries in Index within given time range and location.
@@ -463,9 +449,7 @@ class Index:
             A 'Path' object pointing to the saved index.
         """
         if self.data is None:
-            raise ValueError(
-                "Cannot save an empty index."
-            )
+            raise ValueError("Cannot save an empty index.")
         path = Path(path)
         if not path.is_dir():
             raise ValueError("'path' must point to a directory.")
@@ -474,9 +458,7 @@ class Index:
         return output_file
 
     def subset(
-            self,
-            time_range: Optional[TimeRange] = None,
-            roi: Optional[Geometry] = None
+        self, time_range: Optional[TimeRange] = None, roi: Optional[Geometry] = None
     ) -> "Index":
         """
         Subset index to a given time range or region of interest.
@@ -510,8 +492,6 @@ class Index:
         indices = selected.intersects(roi)
 
         return Index(self.product, self.data.loc[indices])
-
-
 
     def search_interactive(self):
         from pansat.catalog.interactive import visualize_index
