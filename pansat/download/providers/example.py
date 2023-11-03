@@ -118,7 +118,4 @@ class ExampleProvider(DataProvider):
 
         shutil.copy(file_record.remote_path, destination)
         file_record.local_path = destination
-
-        penv.register(file_record)
-
         return file_record

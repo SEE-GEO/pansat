@@ -195,3 +195,33 @@ def test_subset_index(hdf5_product_data):
     index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
     found = index_s.find(time_range=t_range)
     assert len(found) == 1
+
+
+def test_add(hdf5_product_data):
+    """
+    Test extending an index.
+    """
+    files = sorted(list((hdf5_product_data / "remote").glob("*")))
+    to_rec = partial(FileRecord, product=hdf5_product)
+    records = list(map(to_rec, files))
+
+    index_ref = Index.index(hdf5_product, files)
+    index_1 = Index.index(hdf5_product, files[:2])
+    index_2 = Index.index(hdf5_product, files[2:])
+    index = index_1 + index_2
+    assert (index_ref.data == index.data).all().all()
+
+
+def test_insert(hdf5_product_data):
+    """
+    Test extending an index.
+    """
+    files = sorted(list((hdf5_product_data / "remote").glob("*")))
+    to_rec = partial(FileRecord, product=hdf5_product)
+    records = list(map(to_rec, files))
+
+    index_ref = Index.index(hdf5_product, files)
+    index = Index.index(hdf5_product, files[:-1])
+    index.insert(records[-1])
+
+    assert (index_ref.data == index.data).all().all()
