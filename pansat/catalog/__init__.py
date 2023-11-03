@@ -141,23 +141,6 @@ class Catalog:
                         index.save(self.path)
                 else:
                     index.save(self.path)
-=======
-        pansat_dir = self.path / ".pansat"
-        if not pansat_dir.exists():
-            pansat_dir.mkdir()
-
-        existing = Index.list_index_files(pansat_dir)
-        for prod_name, index in self.indices.items():
-
-            if prod_name in existing:
-                lock = FileLock(pansat_dir / (prod_name + ".lock"))
-                with lock.acquire(timeout=10):
-                    index_ex = Index.load(existing[prod_name])
-                    index = index + index_ex
-                    index.save(pansat_dir)
-            else:
-                index.save(pansat_dir)
->>>>>>> ac0ae54 (Working towards dynamic catalogs.)
 
     def __repr__(self):
         products = ", ".join(self.indices.keys())
