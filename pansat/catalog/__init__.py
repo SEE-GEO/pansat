@@ -75,7 +75,8 @@ class Catalog:
             files = files[~matching]
             indices[prod.name] = Index.index(prod, files_p)
 
-        cat = Catalog(path, indices=indices)
+        cat_path = path / ".pansat"
+        cat = Catalog(cat_path, indices=indices)
         return cat
 
     def __init__(
@@ -91,11 +92,6 @@ class Catalog:
         self.path = path
         if path is not None:
             self.path = Path(path)
-            if not self.path.exists():
-                raise RuntimeError(
-                    f"Provided path '{self.path}' does not point to an "
-                    " existing directory."
-                )
 
         self.indices = indices
         if indices is None and self.path is not None:
@@ -132,6 +128,7 @@ class Catalog:
         existing = Index.list_index_files(self.path)
 
         if self.indices is not None:
+            self.path.mkdir(exist_ok=True)
             for prod_name, index in self.indices.items():
                 if prod_name in existing:
                     lock = FileLock(self.path / (prod_name + ".lock"))
