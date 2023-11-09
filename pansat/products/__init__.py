@@ -205,6 +205,25 @@ class Product(ABC):
             local.append(rec.get(destination=destination))
         return local
 
+    def find_provider(self) -> Optional['Provider']:
+        """
+        Find provider for this product.
+
+        Return:
+            A data provider object providing this product or None.
+        """
+        from pansat.download.providers.data_provider import get_providers
+        product_provider = None
+        for provider in get_providers():
+            try:
+                if hasattr(provider, "provides"):
+                    if provider.provides(self):
+                        product_provider = provider
+            except Exception:
+                pass
+        return product_provider
+
+
     def find_files(
             self,
             time_range: TimeRange,
@@ -227,15 +246,7 @@ class Product(ABC):
             files.
         """
         from pansat.download.providers.data_provider import get_providers
-        product_provider = None
-        for provider in get_providers():
-            try:
-                if hasattr(provider, "provides"):
-                    if provider.provides(self):
-                        product_provider = provider
-            except Exception:
-                pass
-
+        product_provider = self.find_provider()
         if product_provider is None:
             raise RuntimeError(f"Could not find a provider for the product '{self}'.")
         return product_provider.find_files(self, time_range, roi=roi)
