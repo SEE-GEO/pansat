@@ -157,24 +157,25 @@ class IcareProvider(DiscreteProviderDay):
             day.
         """
         time = to_datetime(time)
-        product_path ="SPACEBORNE/".join(ICARE_PRODUCTS[str(product)])
+        product_path ="/".join(ICARE_PRODUCTS[str(product)])
 
         rel_url = "/".join([product_path, str(time.year), time.strftime("%Y_%m_%d")])
+        url = self.base_url +'/' + rel_url 
 
-        url = self.base_url + rel_url
-        auth = get_identity("Icare")
+        # response for FTP file listing 
+        user, pw = get_identity('Icare')
+        with FTP(self.base_url) as ftp: 
+            ftp.login(user = user, passwd = pw)
+            ftp.cwd(rel_url)
+            files = ftp.nlst()
 
-        session = cache.get_session()
-        response = session.get(url, auth=auth)
-        response.raise_for_status()
-
-        files = list(set(self.file_pattern.findall(response.text)))
         files = [f[1:-1] for f in files]
         recs = [
             FileRecord.from_remote(product, self, url + f"/{fname}", fname)
             for fname in files
         ]
         return recs
+
 
     def download(
         self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
