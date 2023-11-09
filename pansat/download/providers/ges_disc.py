@@ -20,7 +20,9 @@ from typing import Optional
 import xml.etree.ElementTree as ET
 
 import requests
+from requests.exceptions import HTTPError
 
+from pansat import cache
 from pansat.download import accounts
 from pansat.download.providers.discrete_provider import (
     DiscreteProviderDay,
@@ -44,7 +46,7 @@ class GesDiscProviderBase:
     the gesdisc.eosdis.nasa.gov servers.
     """
 
-    file_pattern = re.compile('"[^"]*\.(?:HDF5|h5|nc|nc4)"')
+    file_pattern = re.compile(r'"[^"]*\.(?:HDF5|h5|nc|nc4)"')
 
     @classmethod
     def get_available_products(cls):
@@ -116,7 +118,8 @@ class GesDiscProviderBase:
             year=year, day="", filename=""
         )
         auth = accounts.get_identity("GES DISC")
-        response = requests.get(request_string, auth=auth)
+        session = cache.get_session()
+        response = session.get(url, auth=auth)
         files = list(set(GesDiscProvider.file_pattern.findall(response.text)))
         return [f[1:-1] for f in files]
 
@@ -169,8 +172,8 @@ class GesDiscProviderBase:
         url = (
             self._request_string.format(year=year, day=day, filename=filename) + ".xml"
         )
-
-        response = requests.get(url)
+        session = cache.get_session()
+        response = session.get(url)
         return ET.fromstring(response.text)
 
 
@@ -206,8 +209,17 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
         rel_url = time.strftime("/%Y/%j")
         url = self.get_base_url(product) + rel_url
         auth = accounts.get_identity("GES DISC")
-        response = requests.get(url, auth=auth)
-        response.raise_for_status()
+
+        session = cache.get_session()
+        response = session.get(url, auth=auth)
+
+        # 404 error likely means that no products are available for
+        # this day.
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
 
         files = list(set(self.file_pattern.findall(response.text)))
         files = [f[1:-1] for f in files]
@@ -241,8 +253,14 @@ class GesDiscProviderMonth(GesDiscProviderBase, DiscreteProviderMonth):
         """
         url = self.get_base_url(product) + f"/{time.year}/{time.month:02}"
         auth = accounts.get_identity("GES DISC")
-        response = requests.get(url, auth=auth)
-        response.raise_for_status()
+        session = cache.get_session()
+        response = session.get(url, auth=auth)
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
+
         files = list(set(self.file_pattern.findall(response.text)))
 
         files = [f[1:-1] for f in files]
@@ -279,8 +297,14 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
         """
         url = self.get_base_url(product) + f"/{time.year}"
         auth = accounts.get_identity("GES DISC")
-        response = requests.get(url, auth=auth)
-        response.raise_for_status()
+        session = cache.get_session()
+        response = session.get(url, auth=auth)
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
+
         files = list(set(self.file_pattern.findall(response.text)))
 
         files = [f[1:-1] for f in files]

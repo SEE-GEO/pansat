@@ -1,6 +1,8 @@
 """
 Tests for the pansat.catalog.index module.
 """
+from functools import partial
+
 import pytest
 import conftest
 
@@ -15,6 +17,7 @@ from pansat.products.example import (
 
 
 from pansat.catalog.index import Index, find_matches, matches_to_geopandas
+from pansat.file_record import FileRecord
 from pansat.geometry import LonLatRect
 from pansat.time import TimeRange
 
@@ -63,6 +66,19 @@ def test_granule_indexing(hdf5_granule_product_data):
     assert len(found) == 0
 
 
+def test_parallel_indexing(
+        hdf5_product_data,
+        hdf5_granule_product_data
+):
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files, n_processes=2)
+    assert len(index.data) == 4
+
+    files = (hdf5_granule_product_data / "remote").glob("*")
+    index = Index.index(hdf5_granule_product, files, n_processes=2)
+    assert len(index.data) == 32
+
+
 def test_save_and_load_index(tmp_path, hdf5_product_data):
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files)
@@ -108,3 +124,109 @@ def test_match_indices(tmp_path, hdf5_granule_product_data):
 
     dframe_l, dframe_r = matches_to_geopandas(matches)
     assert dframe_l.shape[0] <= dframe_r.shape[0]
+
+
+def test_insert(hdf5_product_data):
+    """
+    Test extending an index.
+    """
+    files = sorted(list((hdf5_product_data / "remote").glob("*")))
+    to_rec = partial(FileRecord, product=hdf5_product)
+    records = list(map(to_rec, files))
+
+    index_ref = Index.index(hdf5_product, files)
+    index = Index.index(hdf5_product, files[:-1])
+    index.insert(records[-1])
+
+    assert (index_ref.data == index.data).all().all()
+
+
+def test_subset_index(hdf5_product_data):
+
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files)
+
+    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
+    found = index.find(time_range=t_range)
+    assert len(found) == 4
+
+    index_s = index.subset(time_range=TimeRange(
+        "2020-01-01T00:00:00",
+        "2020-01-01T00:59:00"
+    ))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+
+def test_add(hdf5_product_data):
+    """
+    Test extending an index.
+    """
+    files = sorted(list((hdf5_product_data / "remote").glob("*")))
+    to_rec = partial(FileRecord, product=hdf5_product)
+    records = list(map(to_rec, files))
+
+    index_ref = Index.index(hdf5_product, files)
+    index_1 = Index.index(hdf5_product, files[:2])
+    index_2 = Index.index(hdf5_product, files[2:])
+    index = index_1 + index_2
+    assert (index_ref.data == index.data).all().all()
+
+def test_subset_index(hdf5_product_data):
+
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files)
+
+    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
+    found = index.find(time_range=t_range)
+    assert len(found) == 4
+
+    index_s = index.subset(time_range=TimeRange(
+        "2020-01-01T00:00:00",
+        "2020-01-01T00:59:00"
+    ))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+
+def test_add(hdf5_product_data):
+    """
+    Test extending an index.
+    """
+    files = sorted(list((hdf5_product_data / "remote").glob("*")))
+    to_rec = partial(FileRecord, product=hdf5_product)
+    records = list(map(to_rec, files))
+
+    index_ref = Index.index(hdf5_product, files)
+    index_1 = Index.index(hdf5_product, files[:2])
+    index_2 = Index.index(hdf5_product, files[2:])
+    index = index_1 + index_2
+    assert (index_ref.data == index.data).all().all()
+
+def test_subset_index(hdf5_product_data):
+
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files)
+
+    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
+    found = index.find(time_range=t_range)
+    assert len(found) == 4
+
+    index_s = index.subset(time_range=TimeRange(
+        "2020-01-01T00:00:00",
+        "2020-01-01T00:59:00"
+    ))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1
+
+    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
+    found = index_s.find(time_range=t_range)
+    assert len(found) == 1

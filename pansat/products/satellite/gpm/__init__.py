@@ -16,6 +16,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 import pansat
 from pansat import products
@@ -23,20 +24,37 @@ import pansat.download.providers as providers
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 from pansat.products import Granule
-from pansat.products.product import Product
+from pansat.products import Product, GranuleProduct, FilenameRegexpMixin
 from pansat.products.product_description import ProductDescription
 from pansat.exceptions import NoAvailableProvider
 from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
-class GPMProduct(products.GranuleProduct):
+class GPMProduct(FilenameRegexpMixin, GranuleProduct):
     """
     Base class representing GPM products.
     """
-
     def __init__(
-        self, level, platform, sensor, algorithm, version, variant, description
+        self,
+        level: str,
+        platform: str,
+        sensor: str,
+        algorithm: str,
+        version: str,
+        variant: str = "",
+        description: str = ""
     ):
+        """
+        Args:
+            level: The processing level of the product, i.e., 1A, 2A, ...
+            platform: The name of the satellite platform that from which
+                this product is derived.
+            sensor: The name of the sensor that this product is derived
+                from.
+            variant: The variant of the product, i.e., R for resampled
+                L1C product, or CLIM for the 2A climate products.
+            description: An informative description of the product.
+        """
         self.level = level.lower()
         self.platform = platform.lower()
         self.sensor = sensor.lower()
@@ -49,17 +67,17 @@ class GPMProduct(products.GranuleProduct):
         else:
             variant = ""
 
-        level = level.upper()
-        platform = platform.upper()
-        sensor = sensor.upper()
-        algorithm = algorithm.upper()
+        level = level
+        platform = platform
+        sensor = sensor
+        algorithm = algorithm
 
         self.filename_regexp = re.compile(
             rf"{level}{variant}\.{platform}\.{sensor}"
             rf"\.{algorithm}([\w-]*).(\d{{8}})-"
-            r"S(\d{6})-E(\d{6})\.(\w*)\.((\w*)\.)?(HDF5|h5|nc|nc4)"
+            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc|nc4)"
         )
-        super().__init__()
+        GranuleProduct.__init__(self)
 
     @property
     def variables(self):
@@ -90,19 +108,6 @@ class GPMProduct(products.GranuleProduct):
             name = f"l{lvl}_{variant}_{algo}_{pltfrm}_{sensor}_v{version}"
         return ".".join([prefix, name])
 
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            filename(``str``): The filename
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
-
     def filename_to_date(self, filename):
         """
         Extract timestamp from filename.
@@ -117,12 +122,14 @@ class GPMProduct(products.GranuleProduct):
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
 
-        # Some files of course have to follow a different convetion.
+        # Some files of course have to follow a different convention.
         if match is None:
             date_string = "20" + path.name.split("_")[2]
         else:
             date_string = match.group(2) + match.group(3)
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
+
+
         return date
 
     def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
@@ -130,6 +137,12 @@ class GPMProduct(products.GranuleProduct):
         Implements interface to extract temporal coverage of file.
         """
         match = self.filename_regexp.match(rec.filename)
+        if match is None:
+            raise RuntimeError(
+                f"Provided file record with filename {rec.filename} doest not "
+                " match the products filename regexp "
+                f"{self.filename_regexp.pattern}. "
+            )
         date = match[2]
         start = match[3]
         end = match[4]
@@ -332,7 +345,6 @@ class GPROFProduct(GPMProduct):
     Specialization of GPM product for GPROF products, which all have the same
     data format.
     """
-
     def __init__(self, gprof_algorithm, platform, sensor, version, variant=""):
         module_path = Path(__file__).parent
         description = ProductDescription(module_path / "gprof.ini")
@@ -341,14 +353,14 @@ class GPROFProduct(GPMProduct):
         )
 
 
-l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07a")
-l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "mhs", "07a")
-l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "mhs", "07a")
-l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "metopa", "mhs", "07a")
-l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "metopb", "mhs", "07a")
-l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "metopc", "mhs", "07a")
-l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "atms", "07a")
-l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "npp", "atms", "07a")
+l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
+l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "MHS", "07A")
+l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "MHS", "07A")
+l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "METOPA", "MHS", "07A")
+l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "METOPB", "MHS", "07A")
+l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "METOPC", "MHS", "07A")
+l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A")
+l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 
 
 ################################################################################
@@ -356,7 +368,7 @@ l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "npp", "atms", "07a")
 ################################################################################
 
 
-class GPMMergedIR:
+class GPMMergedIR(FilenameRegexpMixin, Product):
     """
     The GPM merged IR product.
     """
@@ -364,23 +376,11 @@ class GPMMergedIR:
     def __init__(self):
         pattern = r"merg_(\d{10,10})_4km-pixel.nc"
         self.filename_regexp = re.compile(pattern)
+        Product.__init__(self)
 
     @property
     def name(self):
         return "satellite.gpm.merged_ir"
-
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            filename(``str``): The filename
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
 
     def get_temporal_coverage(self, rec):
         """
@@ -397,7 +397,7 @@ class GPMMergedIR:
         The GPM merged IR product has fixed coverage covering all longitudes
         and latitude -60 to 60.
         """
-        return LonLatRect(-180, -90, 180, 90)
+        return geometry.LonLatRect(-180, -90, 180, 90)
 
     @property
     def default_destination(self):
@@ -407,31 +407,6 @@ class GPMMergedIR:
         """
         return Path("gpm") / "merged_ir"
 
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
-
     def open(self, path):
         """
         Open file as xarray dataset.
@@ -439,7 +414,7 @@ class GPMMergedIR:
         Args:
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
-        xr.load_dataset(path)
+        return xr.load_dataset(path)
 
 
 merged_ir = GPMMergedIR()

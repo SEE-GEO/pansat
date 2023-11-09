@@ -3,6 +3,7 @@ import os
 import click
 
 import pansat.download
+from pansat.config import display_current_config
 
 @click.group()
 def pansat_cli():
@@ -15,14 +16,9 @@ def config():
     """
     pansat_passwd = os.environ.get("PANSAT_PASSWORD", "<not set>")
 
-    click.echo(f"""
-    pansat configuration:
-    ---------------------
-
-    Identity file:      {pansat.download.accounts._IDENTITY_FILE}
-    'PANSAT_PASSWORD':  {pansat_passwd}
-
-    """)
+    click.echo(
+        display_current_config()
+    )
 
 @click.group()
 def account():

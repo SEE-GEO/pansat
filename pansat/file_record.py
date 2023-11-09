@@ -5,11 +5,17 @@ pansat.file_record
 Defines a file record class that contains information about a local or remote
 file.
 """
-from typing import Optional
+from copy import copy
+from datetime import timedelta
+from typing import Optional, List
 
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import numpy as np
+
+
+from pansat.time import TimeRange
 
 
 @dataclass
@@ -78,6 +84,44 @@ class FileRecord:
         self.provider = provider
         self.remote_path = remote_path
 
+    @property
+    def temporal_coverage(self) -> TimeRange:
+        """
+        The temporal coverage of the file identified by this file record.
+        """
+        return self.product.get_temporal_coverage(self)
+
+
+    def find_closest_in_time(
+            self,
+            others: List["FileRecord"]
+    ) -> List["FileRecord"]:
+        """
+        Find file records that are closest in time or overlap with 'self'.
+
+        Args:
+            others: A list of file records among which to find the temporally
+                closest records.
+
+        Return:
+            A list containing the file records with temporal overlap with self
+            or the file record that minimizes the time difference between the
+            coverage of the two files.
+        """
+        time_range = self.temporal_coverage
+        other_ranges = [other.temporal_coverage for other in others]
+        closest = time_range.find_closest_ind(other_ranges)
+        return [others[ind] for ind in closest]
+
+
+    def time_difference(self, other: "FileRecord") -> timedelta:
+        """
+        The temporal difference between the temporal coverage of two
+        file records.
+        """
+        return self.temporal_coverage.time_diff(other.temporal_coverage)
+
+
     def download(
             self,
             destination: Optional[Path] = None
@@ -96,6 +140,8 @@ class FileRecord:
             This file record but updated so that its 'local_path' attribute
             points to the path of the downloaded file.
         """
+        import pansat.environment as penv
+
         if self.remote_path is None:
             raise ValueError(
                 "The file record does not have an associated remote path."
@@ -108,9 +154,44 @@ class FileRecord:
                 " Downloading the corresponding file is therefore not "
                 " possible."
             )
+        if destination is None:
+            destination = (
+                penv.get_active_data_dir() / self.product.default_destination
+            )
+            destination.mkdir(parents=True, exist_ok=True)
+
         new_rec = self.provider.download(self, destination=destination)
         self.local_path = new_rec.local_path
+
+        penv.register(new_rec)
+
         return self
+
+    def get(
+            self,
+            destination: Optional[Path] = None
+    ) -> "FileRecord":
+        """
+        Get local file or download if necessary.
+
+        Args:
+            destination: A path pointing to a directory or file to which
+                 to write the downloaded file.
+
+        Return:
+            A file record whose local path points to an existing version of
+            the requested file.
+        """
+        import pansat.environment as penv
+
+        local_path = penv.lookup_file(self)
+        if local_path is None:
+            return self.download(destination)
+
+        new_rec = copy(self)
+        new_rec.local_path = local_path
+        return new_rec
+
 
     @classmethod
     def from_dict(cls, dct):

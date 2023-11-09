@@ -15,7 +15,9 @@ from pansat.products.example import (
     EXAMPLE_PRODUCT_DESCRIPTION,
     EXAMPLE_GRANULE_PRODUCT_DESCRIPTION,
 )
+from pansat.download.providers.example import ExampleProvider
 from pansat.products.example import write_hdf5_product_data
+from pansat.config import get_current_config
 
 
 HAS_HDF4 = False
@@ -45,7 +47,8 @@ def test_identities(monkeypatch):
     test_identity_file = Path(
         PurePath(__file__).parent / "test_data" / "identities.json"
     )
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", test_identity_file)
+    config = get_current_config()
+    config.identity_file = test_identity_file
     monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     import pansat.download.accounts as accs
 
@@ -86,6 +89,15 @@ def hdf5_product_data(product_description):
     remote_path.mkdir(exist_ok=True)
     write_hdf5_product_data(remote_path)
     yield tmp_path
+
+
+@pytest.fixture()
+def hdf5_product_provider(hdf5_product_data):
+    """
+    A provider providing hdf5 product data.
+    """
+    provider = ExampleProvider(hdf5_product_data, "hdf5")
+    return provider
 
 
 PRODUCT_DATA = [

@@ -7,13 +7,14 @@ This module provides functionality for dealing with times.
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 import json
-from typing import Union
+from typing import Union, List
 
 import pandas as pd
 import numpy as np
 
 
-Time = Union[str, datetime, np.ndarray]
+Time = Union[str, datetime, np.datetime64]
+TimeDelta = Union[timedelta, np.timedelta64]
 
 
 def to_datetime(time):
@@ -27,6 +28,33 @@ def to_datetime(time):
     except ValueError:
         raise ValueError(
             f"Could not convert '{time}' to datetime object.",
+        )
+
+
+def to_timedelta(d_t):
+    """
+    Convert time delta to Python datetime.timedelta object.
+    """
+    if isinstance(d_t, timedelta):
+        return d_t
+    try:
+        return pd.Timedelta(d_t).to_pytimedelta()
+    except ValueError:
+        raise ValueError(
+            f"Could not convert '{d_t}' to timedelta object.",
+        )
+
+def to_timedelta64(d_t):
+    """
+    Convert time delta to numpy timedelta64 object.
+    """
+    if hasattr(d_t, "dtype") and np.issubdtype(d_t.dtype, np.datetime64):
+        return d_t
+    try:
+        return pd.Timedelta(d_t).to_timedelta64()
+    except ValueError:
+        raise ValueError(
+            f"Could not convert '{d_t}' to timedelta object.",
         )
 
 
@@ -165,3 +193,111 @@ class TimeRange:
                 "datetime64 objects."
             )
         return TimeRange(start, end)
+
+
+    def find_closest(
+            self,
+            time_ranges: List["TimeRange"]
+    ) -> List["TimeRange"]:
+        """
+        Return time ranges that cover this time range object, or, if no
+        such range exists, return the time range that with the smallest
+        time difference to this range's start or end time.
+
+        Args:
+            time_ranges: A list of condidate time ranges.
+
+        Return:
+            A list of time range object that either overlap with the
+            given time range or the time range that minimizes the
+            time difference between the starts and end of this and
+            the returned time range.
+        """
+        closest = []
+        min_delta = None
+        range_ind = None
+
+        for range_ind, other in enumerate(time_ranges):
+            time_delta = max(
+                self.start - other.end,
+                other.start - self.end
+            )
+            if time_delta <= np.timedelta64(0, "s"):
+                closest.append(other)
+            else:
+                if min_delta is None:
+                    min_delta = time_delta
+                    min_index = range_ind
+                else:
+                    if time_delta < min_delta:
+                        min_delta = time_delta
+                        min_index = range_ind
+
+        if range_ind is not None and len(closest) == 0:
+            closest.append(time_ranges[min_index])
+
+        return closest
+
+
+    def find_closest_ind(
+            self,
+            time_ranges: List["TimeRange"]
+    ) -> List["TimeRange"]:
+        """
+        Same as find closest but returns indices of the closest time
+        ranges.
+
+        Args:
+            time_ranges: A list of candidate time ranges.
+
+        Return:
+            A list of indices identifying time range objects in
+            'time_range' that either overlap with 'self'or, if
+            'time_ranges' does not contain such a time range,
+            the index of the element in 'time_ranges' that minimizes
+            the time difference between the starts and end of this and
+            the returned time range.
+        """
+        closest = []
+        min_delta = None
+        range_ind = None
+
+        for range_ind, other in enumerate(time_ranges):
+            time_delta = max(
+                self.start - other.end,
+                other.start - self.end
+            )
+            if time_delta <= np.timedelta64(0, "s"):
+                closest.append(range_ind)
+            else:
+                if min_delta is None:
+                    min_delta = time_delta
+                    min_index = range_ind
+                else:
+                    if time_delta < min_delta:
+                        min_delta = time_delta
+                        min_index = range_ind
+
+        if range_ind is not None and len(closest) == 0:
+            closest.append(min_index)
+
+        return closest
+
+
+    def time_diff(self, other: "FileRecord") -> timedelta:
+        """
+        Calculate time difference between this and another time range.
+
+        The time difference is 0 if the time overlap. Otherwise it will
+        be the maximum of
+            - the difference between start of self and end of other
+            - the difference between start of other and end of self
+
+        Return:
+             A numpy.timedelta64 object representing the time difference.
+        """
+        time_delta = max(
+            self.start - other.end,
+            other.start - self.end
+        )
+        return np.maximum(time_delta, np.timedelta64(0, "s"))

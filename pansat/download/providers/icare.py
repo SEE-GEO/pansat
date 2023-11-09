@@ -21,6 +21,8 @@ from pansat.download.providers.discrete_provider import (
 )
 from pansat.file_record import FileRecord
 from pansat.time import to_datetime
+from pansat import cache
+
 
 LOGGER = logging.getLogger(__name__)
 

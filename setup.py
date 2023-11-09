@@ -21,7 +21,9 @@ setuptools.setup(
         "cryptography>=3.1",
         "numpy",
         "cdsapi",
+        "filelock",
         "requests",
+        "requests-cache",
         "xarray",
         "pyproj",
         "appdirs",
@@ -29,7 +31,9 @@ setuptools.setup(
         "paramiko",
         "shapely",
         "rich",
-        "click"
+        "click",
+        "tomlkit",
+        "requests-cache"
     ],
     setup_requires=["pytest-runner"],
     tests_require=[

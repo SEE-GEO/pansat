@@ -11,6 +11,7 @@ import logging
 from pansat.download.providers.data_provider import DataProvider
 from pansat.time import TimeRange
 from pansat.file_record import FileRecord
+from pansat.granule import Granule
 
 # Set logging level.
 _LOGGING_LEVEL = os.environ.get("PANSAT_LOG_LEVEL", "WARNING")

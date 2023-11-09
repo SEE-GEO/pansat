@@ -22,7 +22,6 @@ class Granule:
     data file. Their purpose is to allow for more find-grained data
     retrieval.
     """
-
     file_record: FileRecord
     time_range: TimeRange
     geometry: Geometry
@@ -30,6 +29,33 @@ class Granule:
     primary_index_range: tuple[int] = (-1, -1)
     secondary_index_name: str = ""
     secondary_index_range: Optional[tuple[int]] = (-1, -1)
+
+    @staticmethod
+    def from_file_record(rec: FileRecord) -> ["Granule"]:
+        """
+        Create granule from file record.
+
+        Args:
+            rec: FileRecord pointing to a data file to represent as
+                a granule.
+
+        Return:
+            A list of granules representing the temporal and spatial
+            coverage of the given file.
+        """
+        from pansat.products import GranuleProduct
+        prod = rec.product
+
+        if isinstance(prod, GranuleProduct):
+            return prod.get_granules(rec)
+
+        time_range = prod.get_temporal_coverage(rec)
+        geometry = prod.get_spatial_coverage(rec)
+
+        return [
+            Granule(rec, time_range, geometry)
+        ]
+
 
     def get_slices(self):
         """
@@ -262,7 +288,7 @@ def merge_granules(granules):
     merged = []
 
     if len(granules) == 0:
-        raise ValueError("Need at least one granule to merge.")
+        return []
 
     current = granules[0]
     for ind in range(len(granules) - 1):

@@ -7,6 +7,9 @@ API Reference
    catalog
    download
    file_record
+   products
+   catalog
+   examples
    formats
    granule
    products

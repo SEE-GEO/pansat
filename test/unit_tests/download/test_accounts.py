@@ -6,6 +6,7 @@ from pathlib import Path, PurePath
 import shutil
 import pytest
 import pansat.download.accounts as accs
+from pansat.config import get_current_config
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
@@ -18,9 +19,10 @@ def test_initialize_identity_file(monkeypatch, tmpdir):
     entered password.
     """
     identity_file = Path(tmpdir / "identities.json")
+    config = get_current_config()
+    config.identity_file = identity_file
 
     monkeypatch.setattr("getpass.getpass", lambda: "abcd")
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", identity_file)
     monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     accs.parse_identity_file()
 
@@ -51,10 +53,11 @@ def test_add_identity_file(monkeypatch, tmpdir):
     that the identities file is decrypted before an account is added to it.
     """
     identity_file = Path(tmpdir / "identities.json")
-    shutil.copyfile(accs._IDENTITY_FILE, identity_file)
+    shutil.copyfile(accs.get_identity_file(), identity_file)
+    config = get_current_config()
+    config.identity_file = identity_file
 
     monkeypatch.setattr("getpass.getpass", lambda: "abcd")
-    monkeypatch.setattr("pansat.download.accounts._IDENTITY_FILE", identity_file)
     monkeypatch.setattr("pansat.download.accounts._PANSAT_SECRET", None)
     accs.parse_identity_file()
 

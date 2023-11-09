@@ -13,7 +13,7 @@ from typing import Union, List
 import xarray as xr
 
 import pansat
-from pansat.products import Product
+from pansat.products import Product, FilenameRegexpMixin
 from pansat.exceptions import NoAvailableProvider, MissingInformation
 from pansat.file_record import FileRecord
 from pansat.geometry import Geometry, lonlats_to_polygon, MultiPolygon
@@ -22,7 +22,7 @@ from pansat.time import TimeRange
 REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
 
 
-class GOESProduct(Product):
+class GOESProduct(FilenameRegexpMixin, Product):
     """
     Base class for products from any of the currently operational
     GOES satellites (GOES 16, 17 and 18).
@@ -102,19 +102,6 @@ class GOESProduct(Product):
             f"_{channel_str}_{region_str}"
         )
         return name
-
-    def matches(self, rec: FileRecord) -> bool:
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            rec: A file record pointing to a local or remote file.
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(rec.filename) is not None
 
     def get_temporal_coverage(self, rec: FileRecord):
         """
