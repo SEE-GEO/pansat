@@ -2,108 +2,73 @@
 pansat.download.providers.noaa_ncei
 ===================================
 
-This module defines a provider for the NOAA NCEI data server containing
-the GridSat brightness temperature datasets available at
- https://www.ncei.noaa.gov/data/
+This module defines a provider for the NOAA NCEI data server
+ https://www.ncei.noaa.gov/data/.
 """
+from copy import copy
 from datetime import datetime, timedelta
 import re
+from pathlib import Path
+from typing import Optional
 
 import requests
-from pansat.download.providers.discrete_provider import DiscreteProvider
+from pansat.download.providers.discrete_provider import (
+    DiscreteProviderYear,
+    DiscreteProviderMonth
+)
+from pansat import cache
+from pansat.file_record import FileRecord
+from pansat.time import to_datetime
 
 
 BASE_URL = "https://www.ncei.noaa.gov/data"
 
 
 NCEI_PRODUCTS = {
-    "gridsat_goes": "gridsat-goes/access/goes",
-    "gridsat_conus": "gridsat-goes/access/conus",
-    "gridsat_b1": "geostationary-ir-channel-brightness-temperature-gridsat-b1/access",
+    "ssmis": "ssmis-brightness-temperature-rss/access"
 }
 
+PRODUCTS_MONTH = {
+    "gridsat_goes": "gridsat-goes/access/goes",
+    "gridsat_conus": "gridsat-goes/access/conus",
+}
 
-class NOAANCEIProvider(DiscreteProvider):
-    """
-       Data provider for GridSat GOES datasets  available at
-    https://www.ncei.noaa.gov/data/.
-    """
+PRODUCTS_YEAR = {
+    "gridsat_b1": "geostationary-ir-channel-brightness-temperature-gridsat-b1/access",
+    "ssmi_csu": "ssmis-brightness-temperature-csu/access/FCDR/"
+}
 
-    def __init__(self, product):
+LINK_REGEX = re.compile(r'<a href="([^"]*\.nc)">')
+
+
+class NOAANCEIProviderBase:
+    """
+    Data provider for datasets available at https://www.ncei.noaa.gov/data/.
+    """
+    def __init__(self):
         """
         Instantiate provider for given product.
 
         Args:
             product: Product instance provided by the provider.
         """
-        super().__init__(product)
-        self.product = product
-        self.cache = {}
+        super().__init__()
 
-    @classmethod
-    def get_available_products(cls):
+    def provides(self, product: "pansat.Product") -> bool:
         """
-        Return the names of products available from this data provider.
-
-        Return:
-            A list of strings containing the names of the products that can
-            be downloaded from this data provider.
+        Whether or not this provider can provide data from the given
+        product.
         """
-        return NCEI_PRODUCTS.keys()
+        parts = product.name.split(".")
+        if parts[0] != "satellite" or parts[1] != "ncei":
+            return False
+        return True
 
-    def get_files_by_month(self, year, month):
-        """
-        Get files available in a given month.
-
-        Args:
-            year: The year as ``int``.
-            month: The month of the year as ``int``.
-
-        Return:
-            A list of the available files.
-        """
-        url = f"{BASE_URL}/{NCEI_PRODUCTS[self.product.name]}/{year:04}/{month:02}"
-        response = requests.get(url)
-        # Some products aren't split up by month. So try to get files by year
-        # instead.
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            url = f"{BASE_URL}/{NCEI_PRODUCTS[self.product.name]}/{year:04}/"
-            response = requests.get(url)
-
-        pattern = re.compile(r'<a href="([^"]*\.nc)">')
-        return pattern.findall(response.text)
-
-    def get_files_by_day(self, year, day):
-        """
-        Get files available in a given day.
-
-        Args:
-            year: The year as ``int``.
-            day: The day of the year as ``int``.
-
-        Return:
-            A list of the available files.
-        """
-        date = datetime(year, 1, 1) + timedelta(days=day - 1)
-        month = date.month
-        day_of_month = date.day
-
-        files = self.cache.get((year, month))
-        if files is None:
-            files = self.get_files_by_month(year, month)
-            self.cache[(year, month)] = files
-
-        dates = map(self.product.filename_to_date, files)
-        files = [
-            name
-            for name, date in zip(files, dates)
-            if date.day == day_of_month and date.month == month
-        ]
-        return files
-
-    def download_file(self, filename, destination):
+    def download(
+            self,
+            file_record: FileRecord,
+            destination: Optional[Path] = None
+    ) -> FileRecord:
         """
         Download the file to a given destination.
 
@@ -112,20 +77,122 @@ class NOAANCEIProvider(DiscreteProvider):
             destination: The destination to which to write the
                 results.
         """
-        date = self.product.filename_to_date(filename)
-        year = date.year
-        month = date.month
-
-        url = f"{BASE_URL}/{NCEI_PRODUCTS[self.product.name]}/{year:04}/{month:02}/{filename}"
-
+        url = file_record.remote_path
         response = requests.get(url)
-        try:
-            response.raise_for_status()
-        except requests.exceptions.HTTPError:
-            url = f"{BASE_URL}/{NCEI_PRODUCTS[self.product.name]}/{year:04}/{filename}"
-            response = requests.get(url)
-            response.raise_for_status()
+        response.raise_for_status()
+
+        if destination.is_dir():
+            destination = destination / file_record.filename
 
         with open(destination, "wb") as output:
             for chunk in response:
                 output.write(chunk)
+
+        new_record = copy(file_record)
+        new_record.local_path = destination
+        return new_record
+
+
+class NOAANCEIProviderYear(NOAANCEIProviderBase, DiscreteProviderYear):
+    def __init__(self):
+        NOAANCEIProviderBase.__init__(self)
+        DiscreteProviderYear.__init__(self)
+
+    def provides(self, product: "pansat.Product") -> bool:
+        """
+        Whether or not this provider can provide data from the given
+        product.
+        """
+        is_ncei_product = super().provides(product)
+        is_yearly = product.name.split('.')[-1] in PRODUCTS_YEAR
+        return is_ncei_product and is_yearly
+
+    def find_files_by_year(self, product, time):
+        """
+        Get files available for a given year.
+
+        Args:
+            time: A datetime or numpy.datetime64 object specifying the
+                year for which to retrieve the files.
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        year = time.year
+
+        ncei_name = product.name.split(".")[-1]
+        url = f"{BASE_URL}/{PRODUCTS_YEAR[ncei_name]}/{year:04}/"
+        session = cache.get_session()
+        response = session.get(url)
+        pattern = re.compile(r'<a href="([^"]*\.nc)">')
+        links = LINK_REGEX.findall(response.text)
+
+        recs = []
+        for link in links:
+            filename = link.split("/")[-1]
+            remote_path = url + link
+            rec = FileRecord.from_remote(
+                product,
+                self,
+                remote_path,
+                filename
+            )
+            if product.matches(rec):
+                recs.append(rec)
+        return recs
+
+
+class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
+    def __init__(self):
+        NOAANCEIProviderBase.__init__(self)
+        DiscreteProviderMonth.__init__(self)
+
+    def provides(self, product: "pansat.Product") -> bool:
+        """
+        Whether or not this provider can provide data from the given
+        product.
+        """
+        is_ncei_product = super().provides(product)
+        is_monthly = product.name.split('.')[-1] in PRODUCTS_MONTH
+        return is_ncei_product and is_monthly
+
+
+    def find_files_by_month(self, product, time):
+        """
+        Get files available for a given year.
+
+        Args:
+            time: A datetime or numpy.datetime64 object specifying the
+                year for which to retrieve the files.
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        year = time.year
+        month = time.month
+
+        ncei_name = product.name.split(".")[-1]
+        url = f"{BASE_URL}/{PRODUCTS_MONTH[ncei_name]}/{year:04}/{month:02}"
+        session = cache.get_session()
+        response = session.get(url)
+        links = LINK_REGEX.findall(response.text)
+
+        recs = []
+        for link in links:
+            filename = link.split("/")[-1]
+            remote_path = url + link
+            rec = FileRecord.from_remote(
+                product,
+                self,
+                remote_path,
+                filename
+            )
+            if product.matches(rec):
+                recs.append(rec)
+        return recs
+
+
+noaa_ncei_provider_year = NOAANCEIProviderYear()
+noaa_ncei_provider_month = NOAANCEIProviderMonth()
