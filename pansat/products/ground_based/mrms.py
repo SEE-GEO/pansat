@@ -26,7 +26,7 @@ import xarray as xr
 import pansat
 from pansat.download import providers
 from pansat.file_record import FileRecord
-from pansat.products import Product
+from pansat.products import Product, FilenameRegexpMixin
 from pansat.exceptions import NoAvailableProvider, MissingDependency
 from pansat.time import TimeRange, to_datetime64
 from pansat.geometry import LonLatRect
@@ -42,7 +42,7 @@ PRODUCT_NAMES = {
 MRMS_DOMAIN = LonLatRect(-130, 20, -60, 55)
 
 
-class MRMSProduct(Product):
+class MRMSProduct(FilenameRegexpMixin, Product):
     """
     This class represents MRMS products.
     """
@@ -67,6 +67,8 @@ class MRMSProduct(Product):
             mrms_name + r"_00\.00_\d{8}-\d{6}.grib2\.?g?z?"
         )
         self.temporal_resolution = temporal_resolution
+        Product.__init__(self)
+
 
     @property
     def default_destination(self):
@@ -79,9 +81,6 @@ class MRMSProduct(Product):
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace("/", ".")
         return ".".join([prefix, "mrms", self._name])
-
-    def matches(self, path):
-        return self.filename_regexp(path.filename) is not None
 
     def filename_to_date(self, filename):
         """
@@ -162,7 +161,13 @@ class MRMSProduct(Product):
         lons = dataset.longitude.data
         lons[lons > 180] = lons - 360
 
-        return dataset.rename({"unknown": self.variable_name})
+        dataset = dataset.rename({"unknown": self.variable_name})
+        time_range = rec.temporal_coverage
+        start = to_datetime64(time_range.start)
+        end = to_datetime64(time_range.end)
+        time = start + 0.5 * (end - start)
+        dataset["time"] = time
+        return dataset
 
 
 precip_rate = MRMSProduct("precip_rate", "precip_rate", np.timedelta64(120, "s"))
