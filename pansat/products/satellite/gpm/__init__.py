@@ -16,6 +16,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 import pansat
 from pansat import products
@@ -414,7 +415,7 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
         Args:
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
-        xr.load_dataset(path)
+        return xr.load_dataset(path)
 
 
 merged_ir = GPMMergedIR()
