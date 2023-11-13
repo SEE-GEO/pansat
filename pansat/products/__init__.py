@@ -59,6 +59,8 @@ def all_products() -> List["Product"]:
     """
     Return a list of all currently known products.
     """
+    from pansat.products.satellite import gpm
+    from pansat.products.ground_based import mrms
     return list(Product.PRODUCTS.values())
 
 

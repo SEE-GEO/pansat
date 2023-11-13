@@ -23,6 +23,10 @@ from pansat.time import TimeRange
 
 
 def test_indexing(hdf5_product_data):
+    """
+    Test indexing of example product files and ensure that 'find' method
+    returns the expected number of files.
+    """
     files = (hdf5_product_data / "remote").glob("*")
 
     index = Index.index(hdf5_product, files)
@@ -42,6 +46,9 @@ def test_indexing(hdf5_product_data):
 
 
 def test_granule_indexing(hdf5_granule_product_data):
+    """
+    Test indexing of a granule product.
+    """
     files = (hdf5_granule_product_data / "remote").glob("*")
 
     index = Index.index(hdf5_granule_product, files)
@@ -70,6 +77,9 @@ def test_parallel_indexing(
         hdf5_product_data,
         hdf5_granule_product_data
 ):
+    """
+    Test concurrent indexing with multiple processes.
+    """
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files, n_processes=2)
     assert len(index.data) == 4
@@ -79,14 +89,39 @@ def test_parallel_indexing(
     assert len(index.data) == 32
 
 
+def test_load_indices(
+        hdf5_product_data,
+        hdf5_granule_product_data,
+        tmp_path
+):
+    """
+    Test loading of all indices in a database.
+    """
+    db_path = tmp_path / "pansat.db"
+
+    files = (hdf5_product_data / "remote").glob("*")
+    index = Index.index(hdf5_product, files, n_processes=2)
+    index.save(db_path)
+
+    files = (hdf5_granule_product_data / "remote").glob("*")
+    index = Index.index(hdf5_granule_product, files, n_processes=2)
+    index.save(db_path)
+
+    loaded = Index.load_indices(db_path)
+    assert len(loaded) == 2
+    assert "example.hdf5_product" in loaded
+    assert "example.hdf5_granule_product" in loaded
+
+
 def test_save_and_load_index(tmp_path, hdf5_product_data):
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files)
 
-    index_name = index.save(tmp_path)
-    assert len(list(tmp_path.glob("*.idx")))
+    pansat_db = tmp_path / "pansat.db"
+    index_name = index.save(pansat_db)
+    assert len(list(tmp_path.glob("*.db")))
 
-    index_loaded = Index.load(tmp_path / index_name)
+    index_loaded = Index.load(hdf5_product, pansat_db)
 
     roi = LonLatRect(0, 0, 5, 5)
     found = index_loaded.find(roi=roi)
@@ -141,27 +176,6 @@ def test_insert(hdf5_product_data):
     assert (index_ref.data == index.data).all().all()
 
 
-def test_subset_index(hdf5_product_data):
-
-    files = (hdf5_product_data / "remote").glob("*")
-    index = Index.index(hdf5_product, files)
-
-    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
-    found = index.find(time_range=t_range)
-    assert len(found) == 4
-
-    index_s = index.subset(time_range=TimeRange(
-        "2020-01-01T00:00:00",
-        "2020-01-01T00:59:00"
-    ))
-    found = index_s.find(time_range=t_range)
-    assert len(found) == 1
-
-    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
-    found = index_s.find(time_range=t_range)
-    assert len(found) == 1
-
-
 def test_add(hdf5_product_data):
     """
     Test extending an index.
@@ -177,42 +191,9 @@ def test_add(hdf5_product_data):
     assert (index_ref.data == index.data).all().all()
 
 def test_subset_index(hdf5_product_data):
-
-    files = (hdf5_product_data / "remote").glob("*")
-    index = Index.index(hdf5_product, files)
-
-    t_range = TimeRange("2020-01-01T00:00:00", "2020-01-01T04:00:00")
-    found = index.find(time_range=t_range)
-    assert len(found) == 4
-
-    index_s = index.subset(time_range=TimeRange(
-        "2020-01-01T00:00:00",
-        "2020-01-01T00:59:00"
-    ))
-    found = index_s.find(time_range=t_range)
-    assert len(found) == 1
-
-    index_s = index.subset(roi=LonLatRect(0, 0, 5, 5))
-    found = index_s.find(time_range=t_range)
-    assert len(found) == 1
-
-
-def test_add(hdf5_product_data):
     """
-    Test extending an index.
+    Test extracting a subset of a given index.
     """
-    files = sorted(list((hdf5_product_data / "remote").glob("*")))
-    to_rec = partial(FileRecord, product=hdf5_product)
-    records = list(map(to_rec, files))
-
-    index_ref = Index.index(hdf5_product, files)
-    index_1 = Index.index(hdf5_product, files[:2])
-    index_2 = Index.index(hdf5_product, files[2:])
-    index = index_1 + index_2
-    assert (index_ref.data == index.data).all().all()
-
-def test_subset_index(hdf5_product_data):
-
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files)
 

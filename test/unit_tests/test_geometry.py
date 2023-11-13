@@ -23,6 +23,12 @@ def test_line_string():
     ls_3 = ls_1.merge(ls_2)
     assert ls_3.covers(ls_2)
 
+    lon_min, lat_min, lon_max, lat_max = ls_1.bounding_box_corners
+    assert lon_min == 0
+    assert lon_max == 30
+    assert lat_min == 0
+    assert lat_max == 0
+
 
 def test_multi_line_string():
     """
@@ -55,6 +61,11 @@ def test_polygon():
     assert poly_4.covers(poly_1)
     assert poly_4.covers(poly_2)
 
+    lon_min, lat_min, lon_max, lat_max = poly_1.bounding_box_corners
+    assert lon_min == 0
+    assert lon_max == 10
+    assert lat_min == 0
+    assert lat_max == 10
 
 def test_multi_polygon():
     """
@@ -70,6 +81,11 @@ def test_multi_polygon():
 
     assert poly_1.covers(poly_2)
 
+    lon_min, lat_min, lon_max, lat_max = poly_1.bounding_box_corners
+    assert lon_min == 0
+    assert lon_max == 21
+    assert lat_min == 0
+    assert lat_max == 10
 
 def test_save_and_load(tmp_path):
     """
