@@ -161,6 +161,51 @@ class TimeRange:
         yield self.start
         yield self.end
 
+    def __add__(self, delta):
+        """
+        Add time difference to start and end of time range.
+
+        Args:
+            delta: A time delta object specifying the time difference
+                by which to shift the time range.
+
+        Return:
+            A new time range object whose start and end times were shifted
+            by the given time difference.
+        """
+        if (
+                not np.issubdtype(delta.dtype, np.timedelta64) and
+                not isinstance(delta, timedelta)
+        ):
+            return NotImplemented
+        return TimeRange(
+            start=self.start + to_timedelta(delta),
+            end=self.end + to_timedelta(delta),
+        )
+
+    def __sub__(self, delta):
+        """
+        Subtract time difference from start and end of time range.
+
+        Args:
+            delta: A time delta object specifying the time difference
+                by which to shift the time range.
+
+        Return:
+            A new time range object whose start and end times were shifted
+            by the given time difference.
+        """
+        if (
+                not np.issubdtype(delta.dtype, np.timedelta64) and
+                not isinstance(delta, timedelta)
+        ):
+            return NotImplemented
+        delta = to_timedelta(delta)
+        return TimeRange(
+            start=self.start - delta,
+            end=self.end - delta,
+        )
+
     def expand(self, delta):
         """
         Expand time range.

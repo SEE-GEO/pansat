@@ -234,6 +234,36 @@ class Geometry(ABC):
         Merge a geometry with another.
         """
 
+    @property
+    def bounding_box_corners(self):
+        """
+        Calculate corners of bounding box of the geometry.
+
+        Rerturn:
+            A tuple (lon_min, lat_min, lon_max, lat_min) containing the
+            longitude and latitude coordinates of the lower left corner
+            of the bounding box ('lon_min' and 'lat_min') as well as
+            the upper right corner ('lon_max' and 'lat_max').
+        """
+        shapely_geo = self.to_shapely().convex_hull
+        if hasattr(shapely_geo, "exterior"):
+            coords = np.array(shapely_geo.exterior.coords)
+        else:
+            coords = np.array(shapely_geo.coords)
+        lons = coords[:, 0]
+        lats = coords[:, 1]
+        lon_min = np.min(lons)
+        lon_max = np.max(lons)
+        lat_min = np.min(lats)
+        lat_max = np.max(lats)
+        if lon_max - lon_min > 180:
+            return [
+                (-180, lat_min, lon_min, lat_max),
+                (lon_max, lat_min, lon_max, lat_max)
+            ]
+        return (lon_min, lat_min, lon_max, lat_max)
+
+
     def _repr_html_(self):
         try:
             from ipyleaflet import Map, WKTLayer

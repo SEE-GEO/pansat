@@ -45,7 +45,6 @@ def test_download_tracking(custom_data_dir, hdf5_product_data):
 
     provider = ExampleProvider(hdf5_product_data, "hdf5")
 
-    files = hdf5_product
     time_range = TimeRange(datetime(2020, 1, 1), datetime(2020, 1, 2))
     files = hdf5_product.download(time_range)
 
@@ -120,7 +119,7 @@ def test_get_index(custom_data_dir_with_index, hdf5_product_data):
     assert len(index) == 0
 
     provider = ExampleProvider(hdf5_product_data, "hdf5")
-    files = hdf5_product
-    time_range = TimeRange(datetime(2020, 1, 1, 2), datetime(2020, 1, 1, 3))
+    time_range = TimeRange(datetime(2020, 1, 1, 1), datetime(2020, 1, 1, 3))
+    files = hdf5_product.get(time_range=time_range)
     index = penv.get_index(hdf5_product)
     assert len(index) == 4

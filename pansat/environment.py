@@ -9,6 +9,7 @@ basis and therefore require an additional abstraction layer, which
 is provided by this module.
 """
 import atexit
+import logging
 from typing import Optional, Union, List
 
 from pathlib import Path
@@ -17,12 +18,14 @@ from pansat.file_record import FileRecord
 from pansat.granule import Granule
 
 
+LOGGER = logging.getLogger(__file__)
+
+
 class Registry(Catalog):
     """
-    A registry is a catalog that keeps track of the data files handled
+    A registry is a special catalog that keeps track of the data files handled
     by pansat.
     """
-
     def __init__(
         self,
         name: str,
@@ -30,7 +33,9 @@ class Registry(Catalog):
         transparent: bool = True,
         parent: Optional["Registry"] = None,
     ):
-        super().__init__(path=path)
+        if path.is_dir():
+            path = path / f"{name}.pansat.db"
+        super().__init__(db_path=path)
         self.name = name
         self.transparent = transparent
         self.parent = parent
@@ -67,9 +72,21 @@ class Registry(Catalog):
             if the file is not present in this catalog.
         """
         found = Catalog.find_local_path(self, rec)
-        if found is not None or self.parent is None:
+        if found is not None:
+            if not found.exists():
+                LOGGER.warning(
+                    "Found entry for file '%s' in registry '%s' but the "
+                    "local path points to a non-existing file.",
+                    rec.filename,
+                    self.name
+                )
+                if self.parent is not None:
+                    return self.parent.find_local_path(rec)
+                return None
             return found
-        return self.parent.find_local_path(rec)
+        if self.parent is not None:
+            return self.parent.find_local_path(rec)
+        return found
 
     def get_active_data_dir(self) -> Path:
         """
@@ -132,7 +149,7 @@ class DataDir(Registry):
                 f" path '{path}' does not."
             )
         self._location = path
-        registry_dir = path / ".pansat"
+        registry_dir = path / f".{name}.pansat.db"
         registry_dir.mkdir(exist_ok=True)
         super().__init__(name, registry_dir, transparent, parent)
 
@@ -200,7 +217,6 @@ def register(rec: Union[FileRecord, Granule, List[Granule]]) -> None:
     """
     reg = get_active_registry()
     reg.add(rec)
-    register_saving()
 
 
 def lookup_file(rec: FileRecord) -> Optional[Path]:
@@ -212,21 +228,3 @@ def lookup_file(rec: FileRecord) -> Optional[Path]:
     """
     reg = get_active_registry()
     return reg.find_local_path(rec)
-
-
-def save_registries():
-    """
-    Save all active registries.
-    """
-    from pansat.config import get_current_config
-
-    for registry in get_current_config().registries:
-        registry.save()
-
-
-_ATEXIT_REGISTERED = False
-def register_saving() -> None:
-    global _ATEXIT_REGISTERED
-    if not _ATEXIT_REGISTERED:
-        atexit.register(save_registries)
-        _ATEXIT_REGISTERED = True

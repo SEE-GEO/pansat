@@ -389,8 +389,8 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
         """
         match = self.filename_regexp.match(rec.filename)
         date = datetime.strptime(match.group(1), "%Y%m%d%H")
-        start_time = date
-        end_time = date + timedelta(hours=1)
+        start_time = date - timedelta(minutes=15)
+        end_time = date + timedelta(minutes=45)
         return TimeRange(start_time, end_time)
 
     def get_spatial_coverage(self, *args):

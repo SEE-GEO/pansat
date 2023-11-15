@@ -167,7 +167,7 @@ def authenticate():
     if secret_hashed != entered_secret_hashed:
         LOGGER.error("Wrong password")
         raise WrongPasswordError("The password you entered is incorrect.")
-    LOGGER.info("Authentification successful.")
+    LOGGER.debug("Authentification successful.")
 
     _PANSAT_SECRET = entered_secret
 
@@ -212,7 +212,7 @@ def parse_identity_file():
         with open(identity_file) as file:
             _IDENTITIES = json.loads(file.read())
 
-        LOGGER.info("Parsed identity file: %s", identity_file)
+        LOGGER.debug("Parsed identity file: %s", identity_file)
 
     else:
         initialize_identity_file()
@@ -302,7 +302,7 @@ def get_identity(provider):
     Raises:
         MissingProviderError: if no identity for the given domain could be found.
     """
-    LOGGER.info("Retrieving identity for provider %s", provider)
+    LOGGER.debug("Retrieving identity for provider %s", provider)
 
     if not _PANSAT_SECRET:
         authenticate()
