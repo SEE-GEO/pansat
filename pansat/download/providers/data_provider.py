@@ -142,5 +142,6 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.ges_disc
     import pansat.download.providers.iowa_state
     import pansat.download.providers.goes_aws
+    import pansat.download.providers.noaa_ncei
 
     return ALL_PROVIDERS
