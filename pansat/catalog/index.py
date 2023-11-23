@@ -344,7 +344,7 @@ class Index:
         """Merge two indices."""
         if not self.product == other.product:
             raise ValueError(
-                "Combining to Index object requires them to refer to the"
+                "Combining two Index objects requires them to refer to the"
                 " same product."
             )
         product = self.product
