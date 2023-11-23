@@ -171,20 +171,6 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         poly = geometry.parse_swath(lons, lats, m=10, n=1)
         return geometry.ShapelyGeometry(poly)
 
-    def filename_to_start_time(self, filename):
-        path = Path(filename)
-        match = self.filename_regexp.match(path.name)
-        date_string = match.group(2) + match.group(3)
-        date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
-        return date
-
-    def filename_to_end_time(self, filename):
-        path = Path(filename)
-        match = self.filename_regexp.match(path.name)
-        date_string = match.group(2) + match.group(4)
-        date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
-        return date
-
     def _get_provider(self):
         """Find a provider that provides the product."""
         available_providers = [
