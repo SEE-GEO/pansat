@@ -95,7 +95,8 @@ class MRMSProduct(FilenameRegexpMixin, Product):
             rec = FileRecord(Path(rec))
 
         start_time = self.filename_to_date(rec.filename)
-        end_time = to_datetime64(start_time) + self.temporal_resolution
+        start_time = to_datetime64(start_time) - 0.5 * self.temporal_resolution
+        end_time = start_time + self.temporal_resolution
         return TimeRange(start_time, end_time)
 
     def get_spatial_coverage(self, rec: FileRecord):
@@ -141,7 +142,7 @@ class MRMSProduct(FilenameRegexpMixin, Product):
                 """
             )
         if isinstance(rec, (str, Path)):
-            rec = FileRecord(rec)
+            rec = FileRecord(rec, product=self)
 
         path = rec.local_path
         if path.suffix == ".gz":
@@ -161,12 +162,9 @@ class MRMSProduct(FilenameRegexpMixin, Product):
         lons = dataset.longitude.data
         lons[lons > 180] = lons - 360
 
-        dataset = dataset.rename({"unknown": self.variable_name})
-        time_range = rec.temporal_coverage
-        start = to_datetime64(time_range.start)
-        end = to_datetime64(time_range.end)
-        time = start + 0.5 * (end - start)
-        dataset["time"] = time
+        dataset = dataset.rename({
+            "unknown": self.variable_name,
+        })
         return dataset
 
 

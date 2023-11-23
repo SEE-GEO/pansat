@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 
-from pansat.catalog.index import _pandas_to_granule
+from pansat.catalog.index import _dataframe_to_granules
 from pansat.geometry import MultiPolygon
 from pansat.time import TimeRange
 
@@ -165,7 +165,7 @@ class SearchResult:
 
 
 def visualize_index(index, max_granules=10):
-    granules = _pandas_to_granule(index.product, index.data.iloc[:max_granules])
+    granules = _dataframe_to_granules(index.product, index.data.iloc[:max_granules])
     start_time = pd.to_datetime(index.data.start_time[0])
     end_time = pd.to_datetime(index.data.start_time[max_granules - 1])
 

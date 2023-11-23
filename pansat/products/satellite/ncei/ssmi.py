@@ -20,7 +20,6 @@ from pansat import geometry
 from pansat.time import TimeRange
 
 
-
 class SSMIProduct(FilenameRegexpMixin, Product):
     def __init__(self, variant):
         self.variant = variant
@@ -47,10 +46,10 @@ class SSMIProduct(FilenameRegexpMixin, Product):
     def get_temporal_coverage(self, rec):
         """
         Args:
-            filename: The name of GridSat file.
+            rec: A FileRecord pointing to a remote or local SSMI CDR file.
         Return:
-            ``datetime.datetime`` object of the corresponding
-            time.
+            A TimeRange object representing the temporal coverage of the given
+            file.
         """
         match = self.filename_regexp.match(rec.filename)
         if match is None:
@@ -67,6 +66,13 @@ class SSMIProduct(FilenameRegexpMixin, Product):
 
 
     def get_spatial_coverage(self, rec):
+        """
+        Args:
+            rec: A FileRecord pointing to a local SSMI CDR file.
+        Return:
+            A geometry object representing the spatial coverage of the
+            data.
+        """
         if rec.local_path is None:
             raise ValueError(
                 "This products reuqires a local file is to determine "
@@ -81,6 +87,12 @@ class SSMIProduct(FilenameRegexpMixin, Product):
 
 
     def open(self, rec) -> xr.Dataset:
+        """
+        Args:
+            rec: A FileRecord pointing to a local SSMI CDR file.
+        Return:
+            The data in the data file loaded into an xarray.Dataset.
+        """
         return xr.load_dataset(rec.local_path)
 
 

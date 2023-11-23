@@ -29,16 +29,15 @@ def get_product(product_name):
     Retrieve a product by its name.
 
     Args:
-        product_name: A string containing the product name as returned
-            by the 'name' attribute of the product object.
+        product_name: A string representing the product name which must mach
+            the 'name' attribute of the product object.
 
     Return:
         The object representing the product.
 
     Raises:
-        Runtime error if not product with the given product name could
+        ValueError if no product with the given product name could
         be found.
-
     """
     if product_name in Product.PRODUCTS:
         return Product.PRODUCTS[product_name]
@@ -75,6 +74,13 @@ class Product(ABC):
 
     def __init__(self):
         Product.PRODUCTS[self.name] = self
+
+    def __eq__(self, other):
+        """
+        Since a product's name uniquely identifies it, two products are equal
+        when their names are equal.
+        """
+        return self.name == other.name
 
     @abstractproperty
     def default_destination(self) -> Path:
