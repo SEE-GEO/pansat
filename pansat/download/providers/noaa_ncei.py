@@ -35,7 +35,10 @@ PRODUCTS_MONTH = {
 
 PRODUCTS_YEAR = {
     "gridsat_b1": "geostationary-ir-channel-brightness-temperature-gridsat-b1/access",
-    "ssmi_csu": "ssmis-brightness-temperature-csu/access/FCDR/"
+    "ssmi_csu": "ssmis-brightness-temperature-csu/access/FCDR/",
+    "patmosx": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
+    "patmosx_asc": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
+    "patmosx_des": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
 }
 
 LINK_REGEX = re.compile(r'<a href="([^"]*\.nc)">')

@@ -10,7 +10,10 @@ from pansat.products.satellite.ncei import (
     gridsat_conus,
     gridsat_goes,
     gridsat_b1,
-    ssmi_csu
+    ssmi_csu,
+    patmosx,
+    patmosx_asc,
+    patmosx_des
 )
 
 CONUS_FILENAME = "GridSat-CONUS.goes08.1994.09.01.0000.v01.nc"
@@ -84,3 +87,23 @@ def test_ssmi_csu():
 
     time_range = ssmi_csu.get_temporal_coverage(rec)
     assert time_range.covers(datetime(1987, 7, 9, 2))
+
+
+PATMOSX_FILENAME = "patmosx_v06r00-preliminary_NOAA-15_des_d20230116_c20230125.nc"
+
+
+def test_patmosx():
+    """
+    Ensure that PATMOS-X product:
+        - Matches filename
+        - Correctly parses timestamps
+    """
+    assert patmosx.matches(PATMOSX_FILENAME)
+    assert patmosx_des.matches(PATMOSX_FILENAME)
+    assert not patmosx_asc.matches(PATMOSX_FILENAME)
+
+    time_range = patmosx.get_temporal_coverage(PATMOSX_FILENAME)
+    assert time_range.start == datetime(2023, 1, 16)
+
+    time_range = patmosx_des.get_temporal_coverage(PATMOSX_FILENAME)
+    assert time_range.start == datetime(2023, 1, 16)

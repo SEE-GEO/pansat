@@ -21,6 +21,7 @@ def test_find_provider():
     provider = gridsat_goes.find_provider()
     assert provider is not None
 
+
 def test_noaa_ncei_provider_monthly():
     """
     Test NOAA NCEI provider for files listed by month.
@@ -45,6 +46,7 @@ def test_noaa_ncei_provider_year():
     files = gridsat_b1.find_files(time_range)
     # We expect 48 product because two GOES satellites are available.
     assert len(files) == 8
+
 
 @pytest.mark.slow
 def test_noaa_ncei_download(tmp_path):
