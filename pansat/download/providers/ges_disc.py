@@ -130,8 +130,9 @@ class GesDiscProviderBase:
         Download a product file to a given destination.
 
         Args:
-            rec: A FileRecord identifying the
-            destination:
+            rec: A FileRecord identifying the file to download.
+            destination: An optional path pointing to a file or folder
+                to which to download the file.
 
         Return:
             An updated file record whose 'local_path' attribute points
