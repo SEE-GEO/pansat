@@ -9,10 +9,16 @@ derived from the Meteosat Second Generation (MSG) satellites.
 from pathlib import Path
 import re
 from zipfile import ZipFile
-from datetime import datetime
+from datetime import datetime, timedelta
+from tempfile import TemporaryDirectory
 
+import xarray as xr
+import satpy
+
+import pansat
+from pansat import FileRecord, Geometry, TimeRange
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.products import Product, FilenameRegexpMixin
 from pansat.exceptions import NoAvailableProvider
 
 
@@ -29,7 +35,7 @@ def _extract_file(filename):
     return path.parent / data
 
 
-class MSGSeviriL1BProduct(Product):
+class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
     """
     Base class for Meteosat Second Generation (MSG) SEVIRI L1B products.
     """
@@ -43,77 +49,131 @@ class MSGSeviriL1BProduct(Product):
                  the position over the Indian Ocean.
 
         """
-        self.name = "MSG_Seviri"
+        self._name = "l1b_msg_seviri"
 
         if location is not None:
-            if location == "IO":
-                self.name = "MSG_Seviri_IO"
+            if location.lower() == "io":
+                self._name = "l1b_msg_seviri_io"
             else:
                 raise ValueError(
                     "'location' kwarg of MSGSeviriProduct should be None for "
-                    " the 0-degree position or 'IO' for the Indian Ocean "
+                    " the 0-degree position or 'io' for the Indian Ocean "
                     "location."
                 )
         self.filename_regex = re.compile(
-            "MSG\d-SEVI-MSG15-0100-NA-(\d{14})\.\d*Z-NA.nat"
+            "MSG\d-SEVI-MSG\d*-0100-NA-(\d{14})\.\d*Z-NA(.nat)?"
         )
 
     @property
+    def name(self):
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+        return prefix + "." + self._name
+
+    @property
     def default_destination(self):
-        return Path("MSG")
+        return Path("msg")
 
-    def __str__(self):
-        return self.name
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(local_path(rec))
 
-    def filename_to_date(self, filename):
-        match = self.filename_regex.match(Path(filename).name)
+        filename = rec.filename
+        match = self.filename_regex.match(filename)
         if match is None:
             raise ValueError(
                 f"Given filename '{filename}' does not match the expected "
                 f"filename format of MSG Seviri L1B files."
             )
         time = datetime.strptime(match.group(1), "%Y%m%d%H%M%S")
-        return time
+        # Time stamp corresponds to last scan time.
+        return TimeRange(time - timedelta(minutes=15), time)
 
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {self.name}."
-            )
-        return available_providers[0]
+    def get_spatial_coverage(self, rec:FileRecord) -> Geometry:
+        return LonLatRect(-180, -90, 180, 90)
 
-    def download(self, start_time, end_time, destination=None, provider=None):
+    def open(self, rec: FileRecord) -> xr.Dataset:
         """
-        Download data product for given time range.
+        Open local SERVIRI file and load data into xarray.Dataset.
 
         Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
+            rec: A FileRecord pointing to a local SEVIRI file.
+
+        Return:
+            An 'xarray.Dataset' containing the loaded data.
+
         """
+        with TemporaryDirectory() as tmp:
+            with ZipFile(rec.local_path, 'r') as zip_ref:
+                zip_ref.extractall(tmp)
+            files = list(Path(tmp).glob("*.nat"))
+            scene = satpy.Scene(files)
+            datasets = scene.available_dataset_names()
+            scene.load(datasets)
 
-        if not provider:
-            provider = self._get_provider()
+            data = {}
 
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
+            n_y = None
+            n_x = None
 
-        files = provider.download(start_time, end_time, destination)
-        return [_extract_file(f) for f in files]
+            lons, lats = scene.coarsest_area().get_lonlats()
+
+            for name in datasets:
+                if name.startswith("HR"):
+                    data[name] = (("y_hr", "x_hr",), scene[name].compute().data)
+                else:
+                    data[name] = (("y", "x",), scene[name].compute().data)
+            data["longitude"] = (("y", "x"), lons)
+            data["latitude"] = (("y", "x"), lats)
+
+            return xr.Dataset(data)
 
 
 l1b_msg_seviri = MSGSeviriL1BProduct()
-l1b_msg_seviri_io = MSGSeviriL1BProduct(location="IO")
+l1b_msg_seviri_io = MSGSeviriL1BProduct(location="io")
+
+
+class MSGSeviriRapidScanL1BProduct(MSGSeviriL1BProduct):
+    """
+    Base class for Meteosat Second Generation (MSG) SEVIRI L1B products.
+    """
+
+    def __init__(self, location=None):
+        """
+        Specialization of L1B MSG SEVIRI product for rapid scan
+
+        Args:
+            location: None for the 0-degree position of MSG and "IO" for the
+                 the position over the Indian Ocean.
+
+        """
+        super().__init__(location=location)
+        self._name = "l1b_rs_msg_seviri"
+
+        if location is not None:
+            if location.lower() == "io":
+                self._name = "l1b_rs_msg_seviri_io"
+            else:
+                raise ValueError(
+                    "'location' kwarg of MSGSeviriProduct should be None for "
+                    " the 0-degree position or 'io' for the Indian Ocean "
+                    "location."
+                )
+
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(local_path(rec))
+        filename = rec.filename
+
+        match = self.filename_regex.match(filename)
+        if match is None:
+            raise ValueError(
+                f"Given filename '{filename}' does not match the expected "
+                f"filename format of MSG Seviri L1B files."
+            )
+        time = datetime.strptime(match.group(1), "%Y%m%d%H%M%S")
+        return TimeRange(time, time + timedelta(minutes=5))
+
+
+l1b_rs_msg_seviri = MSGSeviriRapidScanL1BProduct()

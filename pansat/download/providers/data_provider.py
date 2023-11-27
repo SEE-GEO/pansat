@@ -28,19 +28,6 @@ class DataProvider(ABC):
     def __init__(self):
         ALL_PROVIDERS.append(self)
 
-    def get_available_products(cls):
-        """
-        Return the names of products available from this data provider.
-
-        This method is used by each data product to determine whether it can
-        use this provider to download data. The names provided here must therefore
-        match the string representation returned by the product's ``__str__`` method.
-
-        Return:
-            A list of strings containing the names of the products that can
-            be downloaded from this data provider.
-        """
-
     @abstractmethod
     def provides(
             self,
@@ -102,7 +89,6 @@ class DataProvider(ABC):
         """
 
 
-
 class MetaDataprovider(ABC):
     """
     Abstract base class for data providers that also provide meta data.
@@ -143,5 +129,6 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.iowa_state
     import pansat.download.providers.goes_aws
     import pansat.download.providers.noaa_ncei
+    import pansat.download.providers.eumetsat
 
     return ALL_PROVIDERS
