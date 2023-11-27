@@ -78,7 +78,6 @@ class GPMProduct(Product):
             filename.
         """
         path = Path(filename)
-        print(filename, self.filename_regexp)
         match = self.filename_regexp.match(path.name)
 
         # Some files of course have to follow a different convetion.

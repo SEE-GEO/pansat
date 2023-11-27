@@ -142,7 +142,6 @@ class GesdiscProvider(DiscreteProvider):
         day = "0" * (3 - len(day)) + day
         request_string = self._request_string.format(year=year, day=day, filename="")
         auth = accounts.get_identity("GES DISC")
-        print(request_string)
         response = requests.get(request_string, auth=auth)
         files = list(set(GesdiscProvider.file_pattern.findall(response.text)))
         if len(files) == 0:
