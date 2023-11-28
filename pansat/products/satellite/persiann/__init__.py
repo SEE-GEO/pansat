@@ -111,7 +111,9 @@ class PersiannProduct(FilenameRegexpMixin, Product):
             rec = FileRecord(rec)
 
         bytes = gzip.open(rec.local_path).read()
-        shape = (3000, 9000)
+
+        n_pixels = len(bytes) // 2
+        shape = (n_pixels // 4, 3 * n_pixels // 4)
 
         data = np.frombuffer(bytes, ">i2").reshape(shape)
         lons = np.linspace(0.02, 359.98, 9000)
