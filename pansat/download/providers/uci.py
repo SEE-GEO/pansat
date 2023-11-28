@@ -81,7 +81,7 @@ class UCIProvider(DiscreteProviderYear):
                     FileRecord.from_remote(
                         product=product,
                         provider=self,
-                        remote_path=url + target,
+                        remote_path=url + "/" + target,
                         filename=filename
                     )
                 )
@@ -147,6 +147,7 @@ class UCIProvider(DiscreteProviderYear):
 
         url = rec.remote_path
         response = requests.get(url)
+        response.raise_for_status()
         with open(destination, "wb") as output:
             for chunk in response:
                 output.write(chunk)
