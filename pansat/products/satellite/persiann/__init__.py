@@ -21,6 +21,12 @@ from pansat.geometry import LonLatRect
 from pansat.time import TimeRange
 
 
+DTYPES = {
+    "ccs": ">i2",
+    "cdr": "f4"
+}
+
+
 class PersiannProduct(FilenameRegexpMixin, Product):
     """
     Base class for PERSIANN precipitation products.
@@ -112,16 +118,26 @@ class PersiannProduct(FilenameRegexpMixin, Product):
 
         bytes = gzip.open(rec.local_path).read()
 
-        n_pixels = len(bytes) // 2
-        shape = (n_pixels // 4, 3 * n_pixels // 4)
+        dtype = DTYPES[self._name[:3]]
+        data = np.frombuffer(bytes, dtype)
+        n_pixels = data.size
+        n_rows = int(np.sqrt(n_pixels // 3))
+        shape = (n_rows, 3 * n_rows)
+        data = data.reshape(shape)
+        data = np.concatenate(
+            [data[..., shape[1] // 2:], data[..., :shape[1] // 2]],
+            axis=-1
+        )
 
-        data = np.frombuffer(bytes, ">i2").reshape(shape)
-        lons = np.linspace(0.02, 359.98, 9000)
-        lats = np.linspace(59.98, -59.98, 3000)
+        lats = np.linspace(60.0, -60.0, shape[0] + 1)
+        lats = 0.5 * (lats[1:] + lats[:-1])
+        lons = np.linspace(-180, 180, shape[1] + 1)
+        lons = 0.5 * (lons[1:] + lons[:-1])
 
-        time_range = rec.temporal_covarage
+        time_range = rec.temporal_coverage
 
-        data = data / 100
+        if self._name.startswith("ccs"):
+            data = data / 100
         data[data < 0] = np.nan
 
         dataset = xr.Dataset(
@@ -129,7 +145,7 @@ class PersiannProduct(FilenameRegexpMixin, Product):
                 "time": (("time",), [time_range.start]),
                 "latitude": (("latitude",), lats),
                 "longitude": (("longitude",), lons),
-                "precipitation": (("time", "latitude", "longitude"), data[np.newaxis]),
+                "precipitation": (("time", "latitude", "longitude"), data[None]),
             }
         )
         return dataset
