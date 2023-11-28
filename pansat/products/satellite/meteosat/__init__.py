@@ -17,6 +17,7 @@ import satpy
 
 import pansat
 from pansat import FileRecord, Geometry, TimeRange
+from pansat.geometry import LonLatRect
 import pansat.download.providers as providers
 from pansat.products import Product, FilenameRegexpMixin
 from pansat.exceptions import NoAvailableProvider
@@ -60,7 +61,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
                     " the 0-degree position or 'io' for the Indian Ocean "
                     "location."
                 )
-        self.filename_regex = re.compile(
+        self.filename_regexp = re.compile(
             "MSG\d-SEVI-MSG\d*-0100-NA-(\d{14})\.\d*Z-NA(.nat)?"
         )
 
@@ -80,7 +81,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
             rec = FileRecord(local_path(rec))
 
         filename = rec.filename
-        match = self.filename_regex.match(filename)
+        match = self.filename_regexp.match(filename)
         if match is None:
             raise ValueError(
                 f"Given filename '{filename}' does not match the expected "
@@ -166,7 +167,7 @@ class MSGSeviriRapidScanL1BProduct(MSGSeviriL1BProduct):
             rec = FileRecord(local_path(rec))
         filename = rec.filename
 
-        match = self.filename_regex.match(filename)
+        match = self.filename_regexp.match(filename)
         if match is None:
             raise ValueError(
                 f"Given filename '{filename}' does not match the expected "
