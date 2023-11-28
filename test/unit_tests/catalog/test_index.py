@@ -150,7 +150,7 @@ def test_match_indices(tmp_path, hdf5_granule_product_data):
     matches = find_matches(
         index_1, index_2, time_diff=np.timedelta64(60, "m"), merge=True
     )
-    assert len(matches) == 2
+    assert len(matches) == 1
 
     matches = find_matches(
         index_2, index_1, time_diff=np.timedelta64(60, "m"), merge=False

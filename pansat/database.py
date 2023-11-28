@@ -110,7 +110,7 @@ def save_index_data(
             index data that already exists in the database.
     """
     engine = get_engine(path)
-    data = data.copy()
+    data = pd.DataFrame(data)
     data["geometry"] = data["geometry"].apply(shapely.wkb.dumps)
     if append:
         if_exists="append"
