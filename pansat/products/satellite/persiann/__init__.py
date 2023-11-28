@@ -96,32 +96,35 @@ class PersiannProduct(FilenameRegexpMixin, Product):
         return LonLatRect(-180, -60, 180, 60)
 
 
-    def open(self, filename):
+    def open(self, rec: FileRecord) -> xr.Dataset:
         """
         Open file as 'xarray.Dataset'.
 
         Args:
-            filename: Path to the file to open.
+            rec: A FileRecord pointing to a local PERSIANN file.
 
         Return:
             An 'xarray.Dataset' containing the data from the given
             file.
         """
-        bytes = gzip.open(filename).read()
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(rec)
+
+        bytes = gzip.open(rec.local_path).read()
         shape = (3000, 9000)
 
         data = np.frombuffer(bytes, ">i2").reshape(shape)
         lons = np.linspace(0.02, 359.98, 9000)
         lats = np.linspace(59.98, -59.98, 3000)
 
-        date = self.filename_to_date(filename)
+        time_range = rec.temporal_covarage
 
         data = data / 100
         data[data < 0] = np.nan
 
         dataset = xr.Dataset(
             {
-                "time": (("time",), [date]),
+                "time": (("time",), [time_range.start]),
                 "latitude": (("latitude",), lats),
                 "longitude": (("longitude",), lons),
                 "precipitation": (("time", "latitude", "longitude"), data[np.newaxis]),
