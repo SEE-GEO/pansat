@@ -6,26 +6,29 @@ This module provides the ``EUMETSATProvider`` class, which implements a data
 provider class for the `EUMETSAT data store <https://www.data.eumetsat.int/>`_.
 """
 import base64
+from copy import copy
 from datetime import datetime
 from ftplib import FTP
+from typing import Optional
 from pathlib import Path
 import shutil
 
 import requests
 
-from pansat.download.providers.data_provider import DataProvider
+from pansat import FileRecord, Geometry, TimeRange, cache
+from pansat.download.providers import DataProvider
 from pansat.download.accounts import get_identity
 from pansat.exceptions import CommunicationError
 
+
 _PRODUCTS = {
-    "MSG_Seviri": "EO:EUM:DAT:MSG:HRSEVIRI",
-    "MSG_Seviri_IO": "EO:EUM:DAT:MSG:HRSEVIRI-IODC",
-    "MHS_L1B": "EO:EUM:DAT:METOP:MHSL1",
-    "AVHRR_L1B": "EO:EUM:DAT:METOP:AVHRRL1",
+    "satellite.meteosat.l1b_msg_seviri": "EO:EUM:DAT:MSG:HRSEVIRI",
+    "satellite.meteosat.l1b_msg_seviri_io": "EO:EUM:DAT:MSG:HRSEVIRI-IODC",
+    "satellite.meteosat.l1b_rs_msg_seviri": "EO:EUM:DAT:MSG:MSG15-RSS",
 }
 
 
-def _retrieve_access_token(key, secret):
+def _retrieve_access_token(key: str, secret: str) -> str:
     """
     Retrieve an access token for the EUMETSAT data store. The access token
     is required to download files. It is time limited and must be generated
@@ -64,7 +67,7 @@ class AccessToken:
     This class represents an AccessToken for the EUMETSAT data store.
     """
 
-    def __init__(self, key, secret):
+    def __init__(self, key: str, secret: str):
         """
         Obtain access token.
 
@@ -109,7 +112,7 @@ class Collection:
     Helper dataset for parsing collections.
     """
 
-    def __init__(self, identifier, url):
+    def __init__(self, identifier: str, url: str):
         """
         Retrieve info for collection.
         """
@@ -167,23 +170,11 @@ class EUMETSATProvider(DataProvider):
 
         return collections
 
-    def __init__(self, product):
+    def __init__(self):
         """
-        Create a new product instance.
-
-        Args:
-
-            product(``Product``): Product class object with specific product for ICARE
+        Create and register data provider.
         """
-        if str(product) not in _PRODUCTS:
-            available_products = list(_PRODUCTS.keys())
-            raise ValueError(
-                f"The product {product} is  not a available from the Eumetsat data"
-                f" provider. Currently available products are: "
-                f"{available_products}."
-            )
         super().__init__()
-        self.product = product
         self.page_size = 100
         self._token = None
 
@@ -198,40 +189,49 @@ class EUMETSATProvider(DataProvider):
             self._token.renew(user, password)
         return self._token
 
-    def get_available_products():
-        """List of the products available from this provider."""
-        return _PRODUCTS.keys()
+    def provides(self, product):
+        return product.name.startswith("satellite.meteosat")
 
-    def get_files_in_range(self, start, end, bounding_box=None):
+    def find_files(
+            self,
+            product,
+            time_range: TimeRange,
+            roi: Optional[Geometry] = None
+    ):
         """
-        Return files in available in range.
+        Find available files within a given time range and optional geographic
+        region.
 
         Args:
-            start: Start of the time range.
-            end: End of the time range.
-            bounding_box: An optional bounding box specifying a region
-                of interest (ROI). If given, only files containing
-                observations over this regions will be returned.
+            product: A 'pansat.Product' object representing the product to
+                download.
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
 
         Return:
-             A list of URLs of available files.
+            A list of 'pansat.FileRecords' specifying the available
+            files.
         """
-        product_id = _PRODUCTS[str(self.product)]
+        product_id = _PRODUCTS[product.name]
 
         parameters = {
             "format": "json",
             "pi": product_id,
             "si": 0,
             "c": self.page_size,
-            "dtstart": start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "dtend": end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "dtstart": time_range.start.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "dtend": time_range.end.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }
-        if bounding_box is not None:
-            bb_str = ",".join(map(str, bounding_box))
+
+        if roi is not None:
+            bb_str = ",".join(map(str, roi.bounding_box_corners))
             parameters["bbox"] = bb_str
+
         url = self.base_url + f"/data/search-products/os"
 
-        links = []
+        recs = []
 
         # Helper function to extract links from response data.
         def get_link(feature):
@@ -241,83 +241,70 @@ class EUMETSATProvider(DataProvider):
         start_index = 0
         while start_index < total_results:
             parameters["si"] = start_index
-            with requests.get(url, params=parameters) as r:
+            session = cache.get_session()
+            with session.get(url, params=parameters) as r:
                 r.raise_for_status()
 
                 datasets = r.json()
                 features = datasets["features"]
-                links += map(get_link, datasets["features"])
+
+                links = map(get_link, datasets["features"])
+                for link in links:
+                    recs.append(
+                        FileRecord.from_remote(
+                            product=product,
+                            provider=self,
+                            remote_path=link,
+                            filename=link.split("/")[-1],
+                        )
+                    )
             start_index += self.page_size
 
-        links = []
+        return recs
 
-        # Helper function to extract links from response data.
-        def get_link(feature):
-            return feature["properties"]["links"]["data"][0]["href"]
 
-        total_results = self.page_size
-        start_index = 0
-        while start_index < total_results:
-            parameters["si"] = start_index
-            with requests.get(url, params=parameters) as r:
-                datasets = r.json()
-                features = datasets["features"]
-                links += map(get_link, datasets["features"])
-            start_index += self.page_size
-
-        return links
-
-    def download_file(self, link, destination):
+    def download(
+            self,
+            rec: FileRecord,
+            destination: Optional[Path] = None
+    ):
         """
-        Download a specific file.
+        Download a product file to a given destination.
 
         Args:
-            link: Link pointing towards the file to download.:
-            destination: Where to store the file.
+            rec: A FileRecord identifying the file to download.
+            destination: An optional path pointing to a file or folder
+                to which to download the file.
 
         Return:
-            The path of the local file to which the file content
-            was written.
+            An updated file record whose 'local_path' attribute points
+            to the downloaded file.
         """
-        destination = Path(destination)
-        if not destination.exists():
+        if destination is None:
+            destination = rec.product.default_destination
             destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
+
+        if destination.is_dir():
+            destination = destination / rec.filename
 
         self.token.ensure_valid()
         params = {"access_token": str(self.token)}
 
-        with requests.get(link, stream=True, params=params) as r:
-            if not r.ok:
+        with requests.get(rec.remote_path, stream=True, params=params) as resp:
+            if not resp.ok:
                 raise CommunicationError(
-                    f"Downloading the file {link} from the EUMETSAT data "
-                    f"store failed token failed with the following"
-                    f"error:\n {r.text}."
+                    f"Downloading the file {rec.filename} from the EUMETSAT "
+                    " data store failed token failed with the following"
+                    f"error:\n {resp.text}."
                 )
-            filename = link.split("/")[-1]
-            dest = destination / (filename + ".zip")
-            with open(dest, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
-        return dest
+            with open(destination, "wb") as output:
+                shutil.copyfileobj(resp.raw, output)
 
-    def download(self, start, end, destination):
-        """
-        Download all products within a given time range.
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+        return new_rec
 
-        Args:
-            start: Start time
-            end: End time.
-            destination: Path to where to store the downloaded files.
 
-        Return:
-            List of the local paths of all downloaded files.
-        """
-        destination = Path(destination)
-
-        links = self.get_files_in_range(start, end)
-        downloads = []
-
-        for link in links:
-            filename = self.download_file(link, destination)
-            downloads.append(filename)
-
-        return downloads
+eumetsat_provider = EUMETSATProvider()

@@ -57,7 +57,7 @@ class Registry(Catalog):
         """
         The location of the registry.
         """
-        return self.path
+        return self.db_path
 
     def find_local_path(self, rec: FileRecord) -> Optional[Path]:
         """

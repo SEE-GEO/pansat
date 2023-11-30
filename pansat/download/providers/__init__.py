@@ -37,7 +37,6 @@ from pansat.download.providers.laads_daac import LAADSDAACProvider
 from pansat.download.providers.goes_aws import GOESAWSProvider
 from pansat.download.providers.himawari_aws import HimawariAWSProvider
 from pansat.download.providers.iowa_state import IowaStateProvider
-from pansat.download.providers.eumetsat import EUMETSATProvider
 from pansat.download.providers.cloudnet import CloudnetProvider
 from pansat.download.providers.cloudsat_dpc import CloudSatDPCProvider
 import pansat.download.providers.iowa_state
@@ -52,7 +51,6 @@ ALL_PROVIDERS = [
     GOESAWSProvider,
     HimawariAWSProvider,
     IowaStateProvider,
-    EUMETSATProvider,
     CloudnetProvider,
     CloudSatDPCProvider,
 ]
