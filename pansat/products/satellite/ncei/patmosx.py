@@ -6,6 +6,7 @@ Interface to access PATMOS-x CDR data.
 
 """
 from datetime import datetime, timedelta
+from pathlib import Path
 import re
 
 import xarray as xr
@@ -17,6 +18,7 @@ from pansat.products import (
     FilenameRegexpMixin
 )
 from pansat.geometry import LonLatRect
+
 
 class PATMOSXProduct(FilenameRegexpMixin, Product):
     """
