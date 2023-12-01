@@ -35,7 +35,7 @@ def test_on_the_fly(tmp_path, hdf5_product_data):
     assert files[0].local_path.parent != Path(".")
     local_path = files[0].local_path
 
-    files[0].__del__()
+    penv.cleanup()
 
     assert not local_path.exists()
 

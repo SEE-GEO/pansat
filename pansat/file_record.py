@@ -158,9 +158,6 @@ class FileRecord:
         if destination is None:
 
             data_dir = penv.get_active_data_dir()
-            if isinstance(data_dir, TemporaryDirectory):
-                self.temp_dir = data_dir
-                data_dir = Path(data_dir.name)
 
             destination = (
                 data_dir / self.product.default_destination
@@ -174,9 +171,6 @@ class FileRecord:
 
         return self
 
-    def __del__(self):
-        if hasattr(self, "temp_dir"):
-            self.temp_dir.cleanup()
 
     def get(
             self,
