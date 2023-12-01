@@ -10,6 +10,8 @@ is provided by this module.
 """
 import atexit
 import logging
+import os
+from tempfile import TemporaryDirectory
 from typing import Optional, Union, List
 
 from pathlib import Path
@@ -19,6 +21,16 @@ from pansat.granule import Granule
 
 
 LOGGER = logging.getLogger(__file__)
+
+
+def keep_files():
+    """
+    Determine whether or not downloaded files should be kept.
+    """
+    if "PANSAT_ON_THE_FLY" in os.environ:
+        return False
+    return True
+
 
 
 class Registry(Catalog):
@@ -100,7 +112,10 @@ class Registry(Catalog):
             downloaded files.
         """
         if self.parent is None:
-            return Path(".")
+            if keep_files():
+                return Path(".")
+            else:
+                return TemporaryDirectory()
         return self.parent.get_active_data_dir()
 
     def get_index(self, product, recurrent=True) -> Path:

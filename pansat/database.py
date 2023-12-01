@@ -116,7 +116,13 @@ def save_index_data(
         if_exists="append"
     else:
         if_exists="fail"
-    data.to_sql(product.name, engine, if_exists=if_exists)
+    data.to_sql(
+        product.name,
+        engine,
+        if_exists=if_exists,
+        index=False,
+        index_label="filename"
+    )
 
 
 def load_index_data(
