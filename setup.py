@@ -33,7 +33,8 @@ setuptools.setup(
         "rich",
         "click",
         "tomlkit",
-        "requests-cache"
+        "requests-cache",
+        "sqlalchemy"
     ],
     setup_requires=["pytest-runner"],
     tests_require=[

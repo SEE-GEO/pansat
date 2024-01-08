@@ -246,7 +246,7 @@ def add_identity(provider, user_name):
     if not _PANSAT_SECRET:
         authenticate()
 
-    if provider == "Copernicus":
+    if provider.lower() in ["copernicus", "ecmwf"]:
         print(
             f"Please enter the key for provider '{provider}' with url"
             f" '{user_name}':"

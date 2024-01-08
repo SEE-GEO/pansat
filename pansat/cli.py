@@ -43,7 +43,14 @@ provider :: username / password
         output += f"{provider} :: {user_name} / {password}\n"
     click.echo(output)
 
-@click.command()
+@click.command(name="add")
+@click.argument("provider_name")
+@click.argument("user_name")
+def add_account(provider_name, user_name):
+    pansat.download.accounts.add_identity(provider_name, user_name)
+
+
+@click.command("index")
 @click.argument("path")
 def index(
         path: Path
@@ -66,6 +73,7 @@ def index(
 
 
 account.add_command(list_accounts)
+account.add_command(add_account)
 
 pansat_cli.add_command(index)
 pansat_cli.add_command(config)

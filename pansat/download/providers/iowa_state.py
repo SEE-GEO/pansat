@@ -18,6 +18,7 @@ from typing import Optional
 import requests
 
 from pansat.time import to_datetime, Time
+from pansat import cache
 from pansat.geometry import Geometry
 from pansat.file_record import FileRecord
 from pansat.download.providers.discrete_provider import DiscreteProviderDay
@@ -26,6 +27,9 @@ PRODUCTS = {
     "ground_based.mrms.precip_rate": ["mrms", "ncep", "PrecipRate"],
     "ground_based.mrms.radar_quality_index": ["mrms", "ncep", "RadarQualityIndex"],
     "ground_based.mrms.precip_flag": ["mrms", "ncep", "PrecipFlag"],
+    "ground_based.mrms.precip_1h": ["mrms", "ncep", "RadarOnly_QPE_01H"],
+    "ground_based.mrms.precip_1h_gc": ["mrms", "ncep", "GaugeCorr_QPE_01H"],
+    "ground_based.mrms.precip_1h_ms": ["mrms", "ncep", "MultiSensor_QPE_01H_Pass2"],
 }
 
 
@@ -75,7 +79,10 @@ class IowaStateProvider(DiscreteProviderDay):
             List of the filenames of this product on the given day.
         """
         url = self.get_url(product, to_datetime(time))
-        with requests.get(url) as resp:
+        session = cache.get_session()
+        with session.get(url) as resp:
+            if resp.status_code == 404:
+                return []
             resp.raise_for_status()
             files_unique = set(product.filename_regexp.findall(resp.text))
             filenames = sorted(list(files_unique))
@@ -84,7 +91,9 @@ class IowaStateProvider(DiscreteProviderDay):
                 for fname in filenames
             ]
 
-    def download(self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
         """
         Download file from data provider.
 

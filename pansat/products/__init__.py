@@ -393,7 +393,7 @@ class GranuleProduct(Product):
         super().__init__(*args, **kwargs)
 
     @abstractmethod
-    def get_granules(self, file_record: FileRecord) -> list[Granule]:
+    def get_granules(self, file_record: FileRecord) -> List[Granule]:
         """
         Return a list of granules representing the temporal and spatial
         coverage of the data files identified by the given file record.

@@ -8,6 +8,7 @@ file.
 from copy import copy
 from datetime import timedelta
 from typing import Optional, List
+from tempfile import TemporaryDirectory
 
 from dataclasses import dataclass
 import json
@@ -155,8 +156,11 @@ class FileRecord:
                 " possible."
             )
         if destination is None:
+
+            data_dir = penv.get_active_data_dir()
+
             destination = (
-                penv.get_active_data_dir() / self.product.default_destination
+                data_dir / self.product.default_destination
             )
             destination.mkdir(parents=True, exist_ok=True)
 
@@ -166,6 +170,7 @@ class FileRecord:
         penv.register(new_rec)
 
         return self
+
 
     def get(
             self,

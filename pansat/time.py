@@ -287,7 +287,7 @@ class TimeRange:
     def find_closest_ind(
             self,
             time_ranges: List["TimeRange"]
-    ) -> List["TimeRange"]:
+    ) -> List[int]:
         """
         Same as find closest but returns indices of the closest time
         ranges.
