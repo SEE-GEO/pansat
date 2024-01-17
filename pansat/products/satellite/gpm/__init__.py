@@ -35,6 +35,7 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
     """
     Base class representing GPM products.
     """
+
     def __init__(
         self,
         level: str,
@@ -43,7 +44,7 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         algorithm: str,
         version: str,
         variant: str = "",
-        description: str = ""
+        description: str = "",
     ):
         """
         Args:
@@ -89,7 +90,7 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         return self._description
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         The product name that uniquely identifies the product within pansat.
         """
@@ -129,7 +130,6 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         else:
             date_string = match.group(2) + match.group(3)
         date = datetime.strptime(date_string, "%Y%m%d%H%M%S")
-
 
         return date
 
@@ -193,18 +193,9 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         return Path("gpm") / self.level / self.platform / self.sensor
 
     def __str__(self):
-        if self.variant:
-            variant = f"-{self.variant}"
-        else:
-            variant = ""
-        s = f"GPM_{self.level}{variant}_{self.platform}_{self.sensor}"
-        return s
+        return self.name
 
-    def open(
-            self,
-            rec: FileRecord,
-            slcs: Optional[dict[str, slice]] = None
-    ):
+    def open(self, rec: FileRecord, slcs: Optional[dict[str, slice]] = None):
         """
         Open file as xarray dataset.
 
@@ -249,6 +240,63 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
             return self.description.to_xarray_dataset(
                 file_handle, context=globals(), slcs=granule.get_slices()
             )
+
+
+class GPMITEProduct(GPMProduct):
+    """
+    Specialization of GPM products for ITE formats produced by the
+    PPS.
+    """
+
+    def __init__(
+        self,
+        level: str,
+        platform: str,
+        sensor: str,
+        algorithm: str,
+        ite_string: str,
+        variant: str = "",
+        description: str = "",
+    ):
+        """
+        Args:
+            level: The processing level of the GPM product (1b, 1c, etc.)
+            platform: The name of the platform that the data is derived from.
+            sensor: The name of the sensor that the data is derived from.
+            algorithm: The name of the algorithm used to process the data.
+            ite_string: String identifying the ITE product.
+            description: Description of the product.
+        """
+        self.ite_string = ite_string
+        super().__init__(level, platform, sensor, algorithm, "", variant, description)
+
+        self.filename_regexp = re.compile(
+            rf"{level}{variant}\.{platform}\.{sensor}"
+            rf"\.{algorithm}([\w-]*).(\d{{8}})-"
+            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.({ite_string}\.)?(HDF5|h5|nc|nc4)"
+        )
+        GranuleProduct.__init__(self)
+
+    @property
+    def name(self) -> str:
+        """
+        The product name that uniquely identifies the product within pansat.
+        """
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+        algo = self.algorithm.replace("-", "")
+        lvl = self.level
+        sensor = self.sensor
+        ite_string = self.ite_string
+        pltfrm = self.platform
+
+        if self.variant == "":
+            name = f"l{lvl}_{algo}_{pltfrm}_{sensor}_{ite_string}"
+        else:
+            variant = self.variant
+            name = f"l{lvl}_{variant}_{algo}_{pltfrm}_{sensor}_{ite_string}"
+        return ".".join([prefix, name])
 
 
 def _extract_scantime(scantime_group, slcs=None):
@@ -303,12 +351,30 @@ def _parse_products():
                 platform = description.properties["platform"]
                 sensor = description.properties["sensor"]
                 algorithm = description.properties["algorithm"]
-                version = description.properties["version"]
                 variant = description.properties["variant"]
 
-                product = GPMProduct(
-                    level, platform, sensor, algorithm, version, variant, description
-                )
+                if "ite" in description.properties:
+                    ite_string = description.properties["ite"]
+                    product = GPMITEProduct(
+                        level,
+                        platform,
+                        sensor,
+                        algorithm,
+                        ite_string,
+                        variant,
+                        description,
+                    )
+                else:
+                    version = description.properties["version"]
+                    product = GPMProduct(
+                        level,
+                        platform,
+                        sensor,
+                        algorithm,
+                        version,
+                        variant,
+                        description,
+                    )
                 globals()[python_name] = product
                 if "alias" in description.properties:
                     alias = description.properties["alias"]
@@ -332,6 +398,7 @@ class GPROFProduct(GPMProduct):
     Specialization of GPM product for GPROF products, which all have the same
     data format.
     """
+
     def __init__(self, gprof_algorithm, platform, sensor, version, variant=""):
         module_path = Path(__file__).parent
         description = ProductDescription(module_path / "gprof.ini")
@@ -366,7 +433,7 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
         Product.__init__(self)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "satellite.gpm.merged_ir"
 
     def get_temporal_coverage(self, rec):

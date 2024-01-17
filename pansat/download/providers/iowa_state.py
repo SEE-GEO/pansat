@@ -27,6 +27,9 @@ PRODUCTS = {
     "ground_based.mrms.precip_rate": ["mrms", "ncep", "PrecipRate"],
     "ground_based.mrms.radar_quality_index": ["mrms", "ncep", "RadarQualityIndex"],
     "ground_based.mrms.precip_flag": ["mrms", "ncep", "PrecipFlag"],
+    "ground_based.mrms.precip_1h": ["mrms", "ncep", "RadarOnly_QPE_01H"],
+    "ground_based.mrms.precip_1h_gc": ["mrms", "ncep", "GaugeCorr_QPE_01H"],
+    "ground_based.mrms.precip_1h_ms": ["mrms", "ncep", "MultiSensor_QPE_01H_Pass2"],
 }
 
 
@@ -78,6 +81,8 @@ class IowaStateProvider(DiscreteProviderDay):
         url = self.get_url(product, to_datetime(time))
         session = cache.get_session()
         with session.get(url) as resp:
+            if resp.status_code == 404:
+                return []
             resp.raise_for_status()
             files_unique = set(product.filename_regexp.findall(resp.text))
             filenames = sorted(list(files_unique))
@@ -86,7 +91,9 @@ class IowaStateProvider(DiscreteProviderDay):
                 for fname in filenames
             ]
 
-    def download(self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
         """
         Download file from data provider.
 
