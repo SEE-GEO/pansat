@@ -157,7 +157,6 @@ class Product(ABC):
             An 'xarray.Dataset' that contains the data of the provided file.
         """
         pass
-
     def download(
             self,
             time_range: TimeRange,

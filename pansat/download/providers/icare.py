@@ -6,12 +6,22 @@ This module providers the ``IcareProvider`` class, which implementes a data prov
 class for downloading data from the
 `Icare datacenter <https://www.icare.univ-lille.fr/>`_.
 """
+from pathlib import Path 
 from datetime import datetime
 from ftplib import FTP
 import logging
+import re 
+from typing import Optional
 
 from pansat.download.providers.discrete_provider import DiscreteProvider
 from pansat.download.accounts import get_identity
+
+from pansat.download.providers.discrete_provider import (
+    DiscreteProviderDay,
+)
+from pansat.file_record import FileRecord
+from pansat.time import to_datetime
+from pansat import cache
 
 
 LOGGER = logging.getLogger(__name__)
@@ -44,31 +54,19 @@ ICARE_PRODUCTS = {
 }
 
 
-class IcareProvider(DiscreteProvider):
+
+class IcareProvider(DiscreteProviderDay):
     """
     Base class for data products available from the ICARE ftp server.
     """
-
     base_url = "ftp.icare.univ-lille1.fr"
+    file_pattern = re.compile(r'"[^"]*\.(?:HDF5|h5)"')
 
-    def __init__(self, product):
+    def __init__(self):
         """
         Create a new product instance.
-
-        Args:
-
-            product(``Product``): Product class object with specific product for ICARE
-
         """
-        if str(product) not in ICARE_PRODUCTS:
-            available_products = list(ICARE_PRODUCTS.keys())
-            raise ValueError(
-                f"The product {product} is  not a available from the ICARE data"
-                f" provider. Currently available products are: "
-                f"{available_products}."
-            )
-        super().__init__(product)
-        self.product_path = "/".join(ICARE_PRODUCTS[str(product)])
+        super().__init__()
         self.cache = {}
 
     def _ftp_listing_to_list(self, path, item_type=int):
@@ -136,21 +134,89 @@ class IcareProvider(DiscreteProvider):
         LOGGER.info("Found %s files.", len(files))
         return files
 
-    def download_file(self, filename, destination):
+    def provides(self, product):
+        name = product.name
+        if not name.startswith("CloudSat"):
+            return False
+        return True
+
+    def find_files_by_day(self, product, time, roi=None):
         """
-        Download file from data provider.
+        Find files available data files at a given day.
 
         Args:
-            filename(``str``): The name of the file to download.
-            destination(``str`` or ``pathlib.Path``): path to directory where
-                the downloaded files should be stored.
-        """
-        date = self.product.filename_to_date(filename)
-        path = "/".join([self.product_path, str(date.year), date.strftime("%Y_%m_%d")])
+            product: A 'pansat.Product' object identifying the product
+               for which to retrieve available data files.
+            time: A time object specifying the day for which to retrieve
+               available products.
+            roi: An optional geometry object to limit the files to
+               only those that cover a certain geographical region.
 
+        Return:
+            A list of file records identifying the files from the requested
+            day.
+        """
+        time = to_datetime(time)
+        product_path ="/".join(ICARE_PRODUCTS[str(product)])
+
+        rel_url = "/".join([product_path, str(time.year), time.strftime("%Y_%m_%d")])
+        url = self.base_url +'/' + rel_url 
+
+        # response for FTP file listing 
+        user, pw = get_identity('Icare')
+        with FTP(self.base_url) as ftp: 
+            ftp.login(user = user, passwd = pw)
+            ftp.cwd(rel_url)
+            files = ftp.nlst()
+
+        files = [f[1:-1] for f in files]
+        recs = [
+            FileRecord.from_remote(product, self, url + f"/{fname}", fname)
+            for fname in files
+        ]
+        return recs
+
+
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
+        """
+        Download a product file to a given destination.
+
+        Args:
+            rec: A FileRecord identifying the
+            destination:
+
+        Return:
+            An updated file record whose 'local_path' attribute points
+            to the downloaded file.
+        """
+        if destination is None:
+            destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
+
+        if destination.is_dir():
+            destination = destination / rec.filename
+
+        url = rec.remote_path
+
+        self.download_url(url, destination)
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+        return new_rec
+
+
+    def download_url(self, url, destination):
+        """
+        Downloads file from ICARE server using the 'Icare' identity.
+        """
         user, password = get_identity("Icare")
         with FTP(self.base_url) as ftp:
             ftp.login(user=user, passwd=password)
-            ftp.cwd(path)
+            ftp.cwd(url)
             with open(destination, "wb") as file:
                 ftp.retrbinary("RETR " + filename, file.write)
+
+
+icare_provider = IcareProvider()

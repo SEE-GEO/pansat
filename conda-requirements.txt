@@ -23,3 +23,5 @@ pyarrow
 pyhdf
 h5py
 cfgrib
+tomlkit
+filelock
