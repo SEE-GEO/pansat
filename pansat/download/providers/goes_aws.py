@@ -106,23 +106,27 @@ class GOESAWSProvider(DiscreteProviderDay):
         prefix = f"{instr_str}-{lvl_str}-{prod_str}{reg_str}/{year}/{day:03}"
         kwargs = {"Bucket": bucket, "Prefix": prefix}
 
-        files = []
+        urls = []
         if prefix not in self.cache:
             while True:
                 response = self.client.list_objects_v2(**kwargs)
                 if "Contents" in response:
                     for cont in response["Contents"]:
-                        url = cont["Key"]
-                        rec = FileRecord.from_remote(
-                            product, self, url, url.split("/")[-1]
-                        )
-                        files.append(rec)
+                        urls.append(cont["Key"])
+
                 try:
                     kwargs["ContinuationToken"] = response["NextContinuationToken"]
                 except KeyError:
                     break
-            self.cache[prefix] = files
-        return self.cache[prefix]
+            self.cache[prefix] = urls
+
+        recs = []
+        for url in self.cache[prefix]:
+            rec = FileRecord.from_remote(
+                product, self, url, url.split("/")[-1]
+            )
+            recs.append(rec)
+        return recs
 
     def _get_request_url(self, product, time, filename):
         """

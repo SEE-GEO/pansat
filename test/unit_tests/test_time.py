@@ -247,3 +247,25 @@ def test_time_diff():
     assert time_range.time_diff(other[0]) > np.timedelta64(0, "s")
     assert time_range.time_diff(other[1]) == np.timedelta64(0, "s")
     assert time_range.time_diff(other[2]) > np.timedelta64(0, "s")
+
+
+def test_add():
+    """
+    Test adding of time differences to time range.
+    """
+    time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T02:00:00")
+    assert not time_range.covers("2020-01-01T02:30:00")
+
+    time_range = time_range + np.timedelta64(30, "m")
+    assert time_range.covers("2020-01-01T02:30:00")
+
+
+def test_sub():
+    """
+    Test subtracting of time differences from a time range.
+    """
+    time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T02:00:00")
+    assert not time_range.covers("2019-01-01T00:30:00")
+
+    time_range = time_range - np.timedelta64(30, "m")
+    assert time_range.covers("2020-01-01T00:45:00")

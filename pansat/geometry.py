@@ -234,6 +234,36 @@ class Geometry(ABC):
         Merge a geometry with another.
         """
 
+    @property
+    def bounding_box_corners(self):
+        """
+        Calculate corners of bounding box of the geometry.
+
+        Rerturn:
+            A tuple (lon_min, lat_min, lon_max, lat_min) containing the
+            longitude and latitude coordinates of the lower left corner
+            of the bounding box ('lon_min' and 'lat_min') as well as
+            the upper right corner ('lon_max' and 'lat_max').
+        """
+        shapely_geo = self.to_shapely().convex_hull
+        if hasattr(shapely_geo, "exterior"):
+            coords = np.array(shapely_geo.exterior.coords)
+        else:
+            coords = np.array(shapely_geo.coords)
+        lons = coords[:, 0]
+        lats = coords[:, 1]
+        lon_min = np.min(lons)
+        lon_max = np.max(lons)
+        lat_min = np.min(lats)
+        lat_max = np.max(lats)
+        if lon_max - lon_min > 180:
+            return [
+                (-180, lat_min, lon_min, lat_max),
+                (lon_max, lat_min, lon_max, lat_max)
+            ]
+        return (lon_min, lat_min, lon_max, lat_max)
+
+
     def _repr_html_(self):
         try:
             from ipyleaflet import Map, WKTLayer
@@ -397,11 +427,9 @@ def calc_intersect_antimeridian(p_1, p_2):
     lon_2 = p_2[0]
     delta_lon = 360 - (lon_2 - lon_1)
 
-
     lat_1 = p_1[1]
     lat_2 = p_2[1]
     delta_lat = lat_1 - lat_2
-
 
     return lat_2 + delta_lat * (180 - lon_2) / delta_lon
 
@@ -423,11 +451,9 @@ def split_at_antimeridian(coords):
 
     curr_point = coords[0]
     for next_point in coords[1:] + [curr_point]:
-
         parts[loc].append(curr_point)
 
         if abs(curr_point[0] - next_point[0]) > 180:
-
             lat_new = calc_intersect_antimeridian(curr_point, next_point)
             # Leaving to the left
             if curr_point[0] < next_point[0]:
@@ -452,6 +478,7 @@ def get_first_valid(data: np.ndarray):
     ind = np.where(np.isfinite(data))[0][0]
     return data[ind]
 
+
 def get_last_valid(data: np.ndarray):
     """
     Get last valid element in an array.
@@ -459,10 +486,9 @@ def get_last_valid(data: np.ndarray):
     ind = np.where(np.isfinite(data))[0][-1]
     return data[ind]
 
+
 def lonlats_to_polygon(
-        lons: np.ndarray,
-        lats: np.ndarray,
-        n_points: int = 2
+    lons: np.ndarray, lats: np.ndarray, n_points: int = 2
 ) -> Polygon:
     """
     Parse polygon from 2D longitude and latitude fields.
@@ -523,9 +549,7 @@ def lonlats_to_polygon(
         lon_coords += [lons[ind, 0] for ind in inds[1:-1]]
         lat_coords += [lats[ind, 0] for ind in inds[1:-1]]
 
-
     coords = list(zip(lon_coords, lat_coords))
-    print(coords)
     coords = split_at_antimeridian(coords)
 
     if len(coords) == 1:

@@ -8,7 +8,7 @@ data.
 """
 from dataclasses import dataclass
 import json
-from typing import Optional
+from typing import Optional, Tuple
 
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
@@ -26,9 +26,9 @@ class Granule:
     time_range: TimeRange
     geometry: Geometry
     primary_index_name: str = ""
-    primary_index_range: tuple[int] = (-1, -1)
+    primary_index_range: Tuple[int] = (-1, -1)
     secondary_index_name: str = ""
-    secondary_index_range: Optional[tuple[int]] = (-1, -1)
+    secondary_index_range: Optional[Tuple[int]] = (-1, -1)
 
     @staticmethod
     def from_file_record(rec: FileRecord) -> ["Granule"]:

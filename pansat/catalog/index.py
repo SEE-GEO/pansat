@@ -6,11 +6,14 @@ The ``pansat.catalog.index`` implements indices, which keep track of
 the temporal and spatial coverage of data files from a single product.
 """
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import logging
 from multiprocessing import Manager, TimeoutError
 from pathlib import Path
 import queue
 from typing import Dict, List, Optional, Tuple, Set, Union
 import logging
+
+from filelock import FileLock
 import numpy as np
 import xarray as xr
 import geopandas
@@ -22,6 +25,10 @@ from pansat.file_record import FileRecord
 from pansat.granule import Granule, merge_granules
 from pansat.products import Product, GranuleProduct, get_product
 from pansat.geometry import Geometry, ShapelyGeometry
+from pansat import database
+
+
+LOGGER = logging.getLogger(__file__)
 
 
 def find_pansat_catalog(path):
@@ -195,28 +202,22 @@ class Index:
         data: A 'geopandas.Dataframe' containing coverage information
             of all indexed files.
     """
-
-    @staticmethod
-    def list_index_files(path: Path) -> Dict[str, Path]:
-        """
-        List all index files within a given directory.
-
-        Args:
-            path: A Path object pointing to the directory in which to look
-                for indices.
-
-        Return:
-            A dictionary mapping product names to corresponding index files.
-        """
-        return {path.stem: path for path in Path(path).glob("*.idx")}
-
     @classmethod
-    def load(cls, path: Path):
+    def load(
+            cls,
+            product: Product,
+            db_path: Path,
+            time_range: Optional[TimeRange] = None
+    ) -> "Index":
         """
         Load an index.
 
         Args:
-            path: Path to an Apache parquet file containing the index.
+            product: The pansat product whose index to load from the databse.
+            db_path: Path to a pansat database containing a table with entries
+                for this index.
+            time_range: Optional time range object to restrict the granules
+                to load.
 
         Return:
             The loaded index.
@@ -225,11 +226,53 @@ class Index:
             'ValueError' if the product corresponding to the index could
             not be found.
         """
-        path = Path(path)
-        data = geopandas.read_parquet(path)
-        product_name = path.stem
-        product = get_product(product_name)
+        tables = database.get_table_names(db_path)
+        if product.name not in tables:
+            return cls(product, None)
+
+        data =  database.load_index_data(
+            product,
+            db_path,
+            time_range=time_range
+        )
         return cls(product, data)
+
+    @classmethod
+    def load_indices(
+            cls,
+            db_path,
+            time_range: Optional[TimeRange] = None
+    ) -> Dict[str, "Index"]:
+        """
+        Load all indices in a database.
+
+        Args:
+            db_path: Path to a pansat database containing a table with entries
+                for this index.
+            time_range: Optional time range object to restrict the granules
+                to load.
+
+        Return:
+            A dictionary mapping product names to indices.
+        """
+        table_names = database.get_table_names(db_path)
+        indices = {}
+        for table_name in table_names:
+            try:
+                product = get_product(table_name)
+            except ValueError:
+                LOGGER.warning(
+                    "Found table named '%s' in database but could not load find "
+                    "a corresponding pansat product."
+                )
+                continue
+            data = database.load_index_data(
+                product,
+                db_path,
+                time_range=time_range
+            )
+            indices[product.name] = cls(product, data)
+        return indices
 
     @classmethod
     def index(cls, product, files, n_processes=None):
@@ -250,10 +293,17 @@ class Index:
         dframes = []
         granules = []
 
-
         if n_processes is None:
             for rec in files:
-                granules += _get_index_data(product, rec)
+                try:
+                    granules += _get_index_data(product, rec)
+                except Exception as exc:
+                    LOGGER.warning(
+                        "Indexing of file record '%s' frailed with the "
+                        "following error:\n %s",
+                        rec,
+                        exc
+                    )
         else:
             pool = ProcessPoolExecutor(max_workers=n_processes)
             tasks = []
@@ -294,7 +344,7 @@ class Index:
         """Merge two indices."""
         if not self.product == other.product:
             raise ValueError(
-                "Combining to Index object requires them to refer to the"
+                "Combining two Index objects requires them to refer to the"
                 " same product."
             )
         product = self.product
@@ -316,6 +366,27 @@ class Index:
                 [self.data, other.data],
             ).drop_duplicates(subset=columns, ignore_index=True)
         return Index(product, data)
+
+    @property
+    def time_range(self):
+        """
+        The time range coverged by the granules in the index.
+        """
+        return TimeRange(
+            self.data.start_time.min(),
+            self.data.end_time.max()
+        )
+
+    @property
+    def granules(self):
+        """
+        Iterator over all granules in index.
+        """
+        if self.data is None:
+            return StopIteration
+        granules = _dataframe_to_granules(self.product, self.data)
+        for granule in granules:
+            yield granule
 
     def __len__(self):
         """The number of granules in the index."""
@@ -417,24 +488,21 @@ class Index:
 
         return _dataframe_to_granules(self.product, selected.loc[indices])
 
-    def save(self, path):
+    def save(self, db_path: Path, append: bool = False):
         """
         Save an index.
 
         Args:
-            path: Path to a directory to which to save the index.
-
-        Return:
-            A 'Path' object pointing to the saved index.
+            db_path: Path to a database to which to save the index.
+            append: Whether or not to append index data in the case that
+                the database already contains an index for this
+                index's product.
         """
         if self.data is None:
             raise ValueError("Cannot save an empty index.")
-        path = Path(path)
-        if not path.is_dir():
-            raise ValueError("'path' must point to a directory.")
-        output_file = path / f"{self.product.name}.idx"
-        data = self.data.to_parquet(output_file)
-        return output_file
+        db_path = Path(db_path)
+        database.save_index_data(self.product, self.data, db_path, append=append)
+
 
     def subset(
         self, time_range: Optional[TimeRange] = None, roi: Optional[Geometry] = None

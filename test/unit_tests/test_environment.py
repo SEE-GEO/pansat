@@ -3,6 +3,7 @@ Tests for the pansat.environment module.
 """
 from datetime import datetime
 import os
+from pathlib import Path
 
 import pytest
 
@@ -12,6 +13,33 @@ from pansat.download.providers.example import ExampleProvider
 from pansat.products.example import hdf5_product
 import pansat.environment as penv
 import pansat.config as pconf
+
+
+def test_on_the_fly(tmp_path, hdf5_product_data):
+    """
+    Ensure that 'PANSAT_ON_THE_FLY' environment variable cleans up temporary
+    files.
+    """
+    pansat_dir = tmp_path / ".pansat"
+    pansat_dir.mkdir()
+    os.chdir(pansat_dir)
+
+    pansat.config._CURRENT_CONFIG = None
+    os.environ["PANSAT_ON_THE_FLY"] = "True"
+    provider = ExampleProvider(hdf5_product_data, "hdf5")
+    time_range = TimeRange(datetime(2020, 1, 1, 1), datetime(2020, 1, 1, 3))
+    files = hdf5_product.find_files(time_range=time_range)
+    [rec.download() for rec in files]
+
+    assert files[0].local_path.parent.exists()
+    assert files[0].local_path.parent != Path(".")
+    local_path = files[0].local_path
+
+    penv.cleanup()
+
+    assert not local_path.exists()
+
+    os.environ.pop("PANSAT_ON_THE_FLY")
 
 
 @pytest.fixture
@@ -45,7 +73,6 @@ def test_download_tracking(custom_data_dir, hdf5_product_data):
 
     provider = ExampleProvider(hdf5_product_data, "hdf5")
 
-    files = hdf5_product
     time_range = TimeRange(datetime(2020, 1, 1), datetime(2020, 1, 2))
     files = hdf5_product.download(time_range)
 
@@ -85,7 +112,6 @@ def custom_data_dir_with_index(tmp_path_factory, hdf5_product_data):
     files = hdf5_product
     time_range = TimeRange(datetime(2020, 1, 1, 0), datetime(2020, 1, 1, 1))
     hdf5_product.download(time_range)
-    penv.save_registries()
 
     tmp_path_2 = tmp_path_factory.mktemp("data_dir_2")
     pansat_dir = tmp_path_2 / ".pansat"
@@ -120,7 +146,9 @@ def test_get_index(custom_data_dir_with_index, hdf5_product_data):
     assert len(index) == 0
 
     provider = ExampleProvider(hdf5_product_data, "hdf5")
-    files = hdf5_product
-    time_range = TimeRange(datetime(2020, 1, 1, 2), datetime(2020, 1, 1, 3))
+    time_range = TimeRange(datetime(2020, 1, 1, 1), datetime(2020, 1, 1, 3))
+    files = hdf5_product.get(time_range=time_range)
     index = penv.get_index(hdf5_product)
     assert len(index) == 4
+
+

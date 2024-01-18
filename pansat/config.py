@@ -6,6 +6,7 @@ This module handles the configuration of pansat.
 """
 from configparser import ConfigParser, SectionProxy
 from dataclasses import dataclass
+import logging
 import os
 from pathlib import Path
 from typing import List, Optional
@@ -15,6 +16,9 @@ from appdirs import user_config_dir
 import tomlkit
 
 from pansat.environment import Registry, DataDir
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 _CURRENT_CONFIG = None

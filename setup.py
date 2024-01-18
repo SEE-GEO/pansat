@@ -33,15 +33,13 @@ setuptools.setup(
         "rich",
         "click",
         "tomlkit",
-        "requests-cache"
-    ],
-    setup_requires=["pytest-runner"],
-    tests_require=[
+        "requests-cache",
+        "sqlalchemy",
+        "beautifulsoup4",
         "sphinx_rtd_theme",
         "pytest",
         "appdirs",
         "scipy",
-        "beautifulsoup4",
         "lxml",
         "netcdf4",
     ],

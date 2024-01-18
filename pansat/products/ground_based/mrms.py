@@ -36,6 +36,9 @@ PRODUCT_NAMES = {
     "precip_rate": "PrecipRate",
     "radar_quality_index": "RadarQualityIndex",
     "precip_flag": "PrecipFlag",
+    "precip_1h": "RadarOnly_QPE_01H",
+    "precip_1h_gc": "GaugeCorr_QPE_01H",
+    "precip_1h_ms": "MultiSensor_QPE_01H_Pass2",
 }
 
 
@@ -69,7 +72,6 @@ class MRMSProduct(FilenameRegexpMixin, Product):
         self.temporal_resolution = temporal_resolution
         Product.__init__(self)
 
-
     @property
     def default_destination(self):
         """Stores MRMS files in a folder called MRMS."""
@@ -90,12 +92,12 @@ class MRMSProduct(FilenameRegexpMixin, Product):
         return datetime.strptime(name, "00_%Y%m%d-%H%M%S")
 
     def get_temporal_coverage(self, rec: FileRecord):
-
         if isinstance(rec, (str, Path)):
             rec = FileRecord(Path(rec))
 
         start_time = self.filename_to_date(rec.filename)
-        end_time = to_datetime64(start_time) + self.temporal_resolution
+        start_time = to_datetime64(start_time) - 0.5 * self.temporal_resolution
+        end_time = start_time + self.temporal_resolution
         return TimeRange(start_time, end_time)
 
     def get_spatial_coverage(self, rec: FileRecord):
@@ -141,7 +143,7 @@ class MRMSProduct(FilenameRegexpMixin, Product):
                 """
             )
         if isinstance(rec, (str, Path)):
-            rec = FileRecord(rec)
+            rec = FileRecord(rec, product=self)
 
         path = rec.local_path
         if path.suffix == ".gz":
@@ -161,12 +163,11 @@ class MRMSProduct(FilenameRegexpMixin, Product):
         lons = dataset.longitude.data
         lons[lons > 180] = lons - 360
 
-        dataset = dataset.rename({"unknown": self.variable_name})
-        time_range = rec.temporal_coverage
-        start = to_datetime64(time_range.start)
-        end = to_datetime64(time_range.end)
-        time = start + 0.5 * (end - start)
-        dataset["time"] = time
+        dataset = dataset.rename(
+            {
+                "unknown": self.variable_name,
+            }
+        )
         return dataset
 
 
@@ -175,6 +176,9 @@ radar_quality_index = MRMSProduct(
     "radar_quality_index", "radar_quality_index", np.timedelta64(120, "s")
 )
 precip_flag = MRMSProduct("precip_flag", "precip_flag", np.timedelta64(120, "s"))
+precip_1h = MRMSProduct("precip_1h", "precip_1h", np.timedelta64(120, "s"))
+precip_1h_gc = MRMSProduct("precip_1h_gc", "precip_1h_gc", np.timedelta64(60 * 60, "s"))
+precip_1h_ms = MRMSProduct("precip_1h_ms", "precip_1h_ms", np.timedelta64(60 * 60, "s"))
 
 ######################################################################
 # Utility functions
@@ -190,6 +194,7 @@ PRECIP_TYPES = {
     "Tropical/stratiform mix": [91.0],
     "Tropical/convective rain mix": [96.0],
 }
+
 
 def extract_precip_class_map(mrms_precip_flag):
     """

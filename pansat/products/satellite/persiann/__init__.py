@@ -13,187 +13,149 @@ import re
 import numpy as np
 import xarray as xr
 
+import pansat
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.file_record import FileRecord
+from pansat.products import Product, FilenameRegexpMixin
+from pansat.geometry import LonLatRect
+from pansat.time import TimeRange
 
 
-class PersiannProduct(Product):
+DTYPES = {
+    "ccs": ">i2",
+    "cdr": "f4"
+}
+
+
+class PersiannProduct(FilenameRegexpMixin, Product):
     """
     Base class for PERSIANN precipitation products.
     """
 
-    def __init__(self, resolution=1):
-        self.resolution = resolution
+    def __init__(
+            self,
+            name: str,
+            file_prefix: str,
+            temporal_resolution: timedelta
+    ):
+        self._name = name
+        self.filename_regexp = re.compile(
+            rf"{file_prefix}[\w\d]*\.bin\.gz"
+        )
+        self.temporal_resolution = temporal_resolution
+        Product.__init__(self)
 
-    def filename_to_date(self, filename):
+    @property
+    def name(self) -> str:
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+        return prefix + "." + self._name
+
+    @property
+    def default_destination(self):
+        return Path("persiann")
+
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
         """
-        Determine the data from a given filename.
+        Determine temporal coverage of a given file.
 
         Args:
-            filename: The name of the file of which to determine the data.
+            rec: A file record identifying a given product file.
 
         Return:
-            A 'datetime.datetime' object representing the date corresponding
-            to the given file.
+            A TimeRange object representing the temporal coverage of the
+            product.
         """
-        filename = str(filename)
-        year = 2000 + int(filename[-14:-12])
-        day_of_year = int(filename[-12:-9])
-        hour = int(filename[-9:-7])
-        date = datetime(year=year, month=1, day=1, hour=hour) + timedelta(
-            days=day_of_year - 1
-        )
-        return date
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(rec)
 
-    def open(self, filename):
+        filename = rec.filename
+        if self.temporal_resolution >= timedelta(days=365):
+            year = int(filename.split(".")[0][-2:])
+            if year < 80:
+                year += 2_000
+            else:
+                year += 1_900
+            date = datetime(year=year, month=1, day=1)
+        elif self.temporal_resolution >= timedelta(days=30):
+            date = datetime.strptime(filename.split(".")[0][-4:], "%y%m")
+        elif self.temporal_resolution >= timedelta(days=1):
+            date = datetime.strptime(filename.split(".")[0][-5:], "%y%j")
+        else:
+            date = datetime.strptime(filename.split(".")[0][-7:], "%y%j%H")
+
+        return TimeRange(date, date + self.temporal_resolution)
+
+
+    def get_spatial_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        Determine spatial coverage of a given file.
+
+        Args:
+            rec: A file record identifying a given product file.
+
+        Return:
+            A geometry object representing the geographical coverage of the
+            data.
+        """
+        return LonLatRect(-180, -60, 180, 60)
+
+
+    def open(self, rec: FileRecord) -> xr.Dataset:
         """
         Open file as 'xarray.Dataset'.
 
         Args:
-            filename: Path to the file to open.
+            rec: A FileRecord pointing to a local PERSIANN file.
 
         Return:
             An 'xarray.Dataset' containing the data from the given
             file.
         """
-        bytes = gzip.open(filename).read()
-        shape = (3000, 9000)
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(rec)
 
-        data = np.frombuffer(bytes, ">i2").reshape(shape)
-        lons = np.linspace(0.02, 359.98, 9000)
-        lats = np.linspace(59.98, -59.98, 3000)
+        bytes = gzip.open(rec.local_path).read()
 
-        date = self.filename_to_date(filename)
+        dtype = DTYPES[self._name[:3]]
+        data = np.frombuffer(bytes, dtype)
+        n_pixels = data.size
+        n_rows = int(np.sqrt(n_pixels // 3))
+        shape = (n_rows, 3 * n_rows)
+        data = data.reshape(shape)
+        data = np.concatenate(
+            [data[..., shape[1] // 2:], data[..., :shape[1] // 2]],
+            axis=-1
+        )
 
-        data = data / 100
+        lats = np.linspace(60.0, -60.0, shape[0] + 1)
+        lats = 0.5 * (lats[1:] + lats[:-1])
+        lons = np.linspace(-180, 180, shape[1] + 1)
+        lons = 0.5 * (lons[1:] + lons[:-1])
+
+        time_range = rec.temporal_coverage
+
+        if self._name.startswith("ccs"):
+            data = data / 100
         data[data < 0] = np.nan
 
         dataset = xr.Dataset(
             {
-                "time": (("time",), [date]),
+                "time": (("time",), [time_range.start]),
                 "latitude": (("latitude",), lats),
                 "longitude": (("longitude",), lons),
-                "precipitation": (("time", "latitude", "longitude"), data[np.newaxis]),
+                "precipitation": (("time", "latitude", "longitude"), data[None]),
             }
         )
         return dataset
 
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {str(self)}."
-            )
-        return available_providers[0]
 
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
-
-
-class CCS(PersiannProduct):
-    """
-    The PERSIANN cloud classification system (CCS) precipitation retrieval.
-    """
-
-    RESOLUTIONS = {1: "hrly", 3: "3hrly", 6: "6hrly", 24: "daily"}
-
-    def __init__(self, resolution=1):
-        self.filename_regexp = re.compile("rgccs1h(\d{7}).bin.gz")
-        super().__init__(resolution=resolution)
-
-    @property
-    def default_destination(self):
-        """
-        Files are stored in a 'PERSIANN-CCS' sub-folder.
-        """
-        return Path("PERSIANN-CCS")
-
-    def __str__(self):
-        return "PERSIANN-CCS"
-
-    def get_path(self, year):
-        """
-        Use by the provider to determine the folder in which the
-        files corresponding this product are found.
-        """
-        path = f"PERSIANN-CCS/{CCS.RESOLUTIONS[self.resolution]}"
-        if self.resolution == 1:
-            path = path + f"/{year}"
-        return path
-
-
-class PDIRNow(PersiannProduct):
-    """
-    The PERSIANN cloud classification system (CCS) precipitation retrieval.
-    """
-
-    RESOLUTIONS = {1: "1hourly", 3: "3hourly", 6: "6hourly"}
-
-    def __init__(self, resolution=1):
-        super().__init__(resolution=resolution)
-
-    @property
-    def default_destination(self):
-        """
-        Files are stored in a 'PERSIANN-CCS' sub-folder.
-        """
-        return Path("PDIRNow")
-
-    def filename_to_date(self, filename):
-        """
-        Determine the data from a given filename.
-
-        Args:
-            filename: The name of the file of which to determine the data.
-
-        Return:
-            A 'datetime.datetime' object representing the date corresponding
-            to the given file.
-        """
-        filename = str(filename)
-        year = 2000 + int(filename[-15:-13])
-        month = int(filename[-13:-11])
-        day = int(filename[-11:-9])
-        hour = int(filename[-9:-7])
-        date = datetime(year=year, month=month, day=day, hour=hour)
-        return date
-
-    def __str__(self):
-        return "PDIRNow"
-
-    def get_path(self, year):
-        """
-        Use by the provider to determine the folder in which the
-        files corresponding this product are found.
-        """
-        path = f"PDIRNow/PDIRNow{PDIRNow.RESOLUTIONS[self.resolution]}"
-        if self.resolution == 1:
-            path = path + f"/{year}"
-        return path
+cdr_daily = PersiannProduct("cdr_daily", "aB1_", timedelta(days=1))
+cdr_monthly = PersiannProduct("cdr_monthly", "aB1_", timedelta(days=30))
+cdr_yearly = PersiannProduct("cdr_yearly", "aB1_", timedelta(days=365))
+ccs_3h = PersiannProduct("ccs_3h", "rgccs", timedelta(hours=3))
+ccs_6h = PersiannProduct("ccs_6h", "rgccs", timedelta(hours=6))
+ccs_daily = PersiannProduct("ccs_daily", "rgccs", timedelta(days=1))
+ccs_monthly = PersiannProduct("ccs_monthly", "rgccs", timedelta(days=30))
+ccs_yearly = PersiannProduct("ccs_yearly", "rgccs", timedelta(days=365))

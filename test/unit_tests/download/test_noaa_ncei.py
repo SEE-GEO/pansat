@@ -1,19 +1,62 @@
 """
 Test for NOAA NCEI provider.
 """
+from datetime import datetime
+from random import randint
+
 import pytest
-from pansat.download.providers.noaa_ncei import NOAANCEIProvider
-from pansat.products.satellite.gridsat import gridsat_goes, gridsat_b1
+
+from pansat import TimeRange
+from pansat.products.satellite.ncei import (
+    gridsat_goes,
+    gridsat_b1,
+    ssmi_csu
+)
 
 
-def test_noaa_ncei_provider():
+def test_find_provider():
     """
-    Ensures the NOAA NCEI provider returns the right number of files per day.
+    Ensure that a provider for GridSat GOES is found.
     """
-    data_provider = NOAANCEIProvider(gridsat_goes)
-    files = data_provider.get_files_by_day(2016, 10)
+    provider = gridsat_goes.find_provider()
+    assert provider is not None
+
+
+def test_noaa_ncei_provider_monthly():
+    """
+    Test NOAA NCEI provider for files listed by month.
+    """
+    time_range = TimeRange(
+        "2000-01-01T00:00:01",
+        "2000-01-01T23:29:59"
+    )
+    files = gridsat_goes.find_files(time_range)
+    # We expect 48 product because two GOES satellites are available.
     assert len(files) == 48
 
-    data_provider = NOAANCEIProvider(gridsat_b1)
-    files = data_provider.get_files_by_day(2016, 10)
+
+def test_noaa_ncei_provider_year():
+    """
+    Test NOAA NCEI provider for files listed by year.
+    """
+    time_range = TimeRange(
+        "2000-01-01T00:00:01",
+        "2000-01-01T22:29:59"
+    )
+    files = gridsat_b1.find_files(time_range)
+    # We expect 48 product because two GOES satellites are available.
     assert len(files) == 8
+
+
+@pytest.mark.slow
+def test_noaa_ncei_download(tmp_path):
+    """
+    Test NOAA NCEI provider for files listed by year.
+    """
+    products = [gridsat_b1, ssmi_csu]
+
+    date = datetime(2000, 1, 1, randint(0, 23))
+    for product in products:
+        files = product.find_files(TimeRange(date, date))
+        rec = files[0].get()
+        assert rec.local_path.exists()

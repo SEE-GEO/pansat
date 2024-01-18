@@ -1,24 +1,25 @@
 import os
+from pathlib import Path
+from typing import List, Optional
 
 import click
 
 import pansat.download
 from pansat.config import display_current_config
 
+
 @click.group()
 def pansat_cli():
     pass
+
 
 @click.command()
 def config():
     """
     Displays information about the current pansat configuration.
     """
-    pansat_passwd = os.environ.get("PANSAT_PASSWORD", "<not set>")
+    click.echo(display_current_config())
 
-    click.echo(
-        display_current_config()
-    )
 
 @click.group()
 def account():
@@ -26,6 +27,7 @@ def account():
     Inspect, add and modify accounts.
     """
     pass
+
 
 @click.command()
 def list_accounts(name="list"):
@@ -45,9 +47,39 @@ provider :: username / password
     click.echo(output)
 
 
+@click.command(name="add")
+@click.argument("provider_name")
+@click.argument("user_name")
+def add_account(provider_name, user_name):
+    pansat.download.accounts.add_identity(provider_name, user_name)
+
+
+@click.command("index")
+@click.argument("path")
+@click.option("--products", default=None)
+def index(path: Path, products: Optional[List[str]] = None):
+    """
+    Index files in a given directory and add the to the currently active
+    registry.
+    """
+    import pansat.environment as penv
+    from pansat.catalog import Catalog
+
+    reg = penv.get_active_registry()
+
+    catalog = Catalog.from_existing_files(path, products=products)
+
+    for name, index in catalog.indices.items():
+        if name in reg.indices:
+            reg.indices[name] = reg.indices[name] + index
+        else:
+            reg.indices[name] = index
+    reg.save()
+
+
 account.add_command(list_accounts)
+account.add_command(add_account)
 
-
-
+pansat_cli.add_command(index)
 pansat_cli.add_command(config)
 pansat_cli.add_command(account)
