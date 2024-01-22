@@ -293,7 +293,6 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
                 data files.
             roi: An optional geometry object limiting the search to files
                 within a given geographical region.
-
         Return:
             A list of file records identifying the found files.
         """
