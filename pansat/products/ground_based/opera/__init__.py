@@ -139,6 +139,10 @@ class OperaProduct(FilenameRegexpMixin, Product):
                 )
                 with HDF5File(opera_file, "r") as file_handle:
                     data = self.description.to_xarray_dataset(file_handle, globals())
+                    for variable in data.variables:
+                        if variable in ["latitude_grid", "longitude_grid"]:
+                            continue
+                        data[variable].data = data[variable].data.astype(np.float32)
                 data["time"] = time
                 datasets.append(data)
 

@@ -2,6 +2,7 @@
 Contains fixtures that are automatically available in all test files.
 """
 from datetime import datetime, timedelta
+import os
 from pathlib import PurePath, Path
 
 import numpy as np
@@ -158,3 +159,9 @@ GRANULE_PRODUCT_DATA = [
         marks=pytest.mark.skipif(not HAS_HDF5, reason="HDF5 library not available."),
     ),
 ]
+
+
+HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
+NEEDS_PANSAT_PASSWORD = pytest.mark.skipif(
+    not HAS_PANSAT_PASSWORD, reason="PANSAT_PASSWORD not set."
+)
