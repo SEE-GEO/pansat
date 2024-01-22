@@ -42,3 +42,24 @@ def test_find_closest(hdf5_product_provider):
     other = rec.find_closest_in_time(records[2:])
     assert len(other) == 1
     assert other[0] is records[2]
+
+
+def test_find_exact_match(hdf5_product_provider):
+    """
+    Ensure that search for temporally exactly matching file records returns
+    the file itself.
+    """
+    time_range = TimeRange(
+        "2020-01-01T00:00:00",
+        "2020-01-02T00:00:00"
+    )
+    records = hdf5_product.get(time_range)
+
+    rec = records[0]
+    other = rec.find_exact_match(records)
+    assert other is not None
+    assert rec.filename == other.filename
+
+    rec = records[0]
+    other = rec.find_exact_match(records[1:])
+    assert other is None
