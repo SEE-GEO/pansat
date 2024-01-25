@@ -22,14 +22,13 @@ import xml.etree.ElementTree as ET
 import requests
 from requests.exceptions import HTTPError
 
-from pansat import cache
+from pansat import cache, FileRecord
 from pansat.download import accounts
 from pansat.download.providers.discrete_provider import (
     DiscreteProviderDay,
     DiscreteProviderMonth,
     DiscreteProviderYear,
 )
-from pansat.file_record import FileRecord
 from pansat.time import to_datetime
 
 _DATA_FOLDER = Path(__file__).parent / "data"
@@ -154,7 +153,6 @@ class GesDiscProviderBase:
         new_rec.local_path = destination
 
         return new_rec
-
 
     def download_metadata(self, filename):
         """

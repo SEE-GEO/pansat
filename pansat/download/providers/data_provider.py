@@ -25,14 +25,12 @@ class DataProvider(ABC):
     """
     Abstract base class for data provider classes.
     """
+
     def __init__(self):
         ALL_PROVIDERS.append(self)
 
     @abstractmethod
-    def provides(
-            self,
-            product: Product
-    ) -> bool:
+    def provides(self, product: Product) -> bool:
         """
         Whether or not the given product is provided by this
         dataprovider.
@@ -48,9 +46,7 @@ class DataProvider(ABC):
 
     @abstractmethod
     def download(
-            self,
-            file_record: FileRecord,
-            destination: Optional[Path] = None
+        self, file_record: FileRecord, destination: Optional[Path] = None
     ) -> FileRecord:
         """
         Download a product file to a given destination.
@@ -65,11 +61,7 @@ class DataProvider(ABC):
 
     @abstractmethod
     def find_files(
-            self,
-            product: Product,
-            time_range: TimeRange,
-            roi: Optional[Geometry]
-
+        self, product: Product, time_range: TimeRange, roi: Optional[Geometry]
     ) -> List[FileRecord]:
         """
         Find available files within a given time range and optional geographic
@@ -93,6 +85,7 @@ class MetaDataprovider(ABC):
     """
     Abstract base class for data providers that also provide meta data.
     """
+
     @abstractclassmethod
     def get_available_products(cls):
         """
@@ -132,5 +125,6 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.noaa_ncei
     import pansat.download.providers.eumetsat
     import pansat.download.providers.uci
+    import pansat.download.providers.meteo_france
 
     return ALL_PROVIDERS
