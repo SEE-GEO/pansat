@@ -13,6 +13,7 @@ from typing import List
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 from pansat.products import Product
+from pansat.geometry import LonLatRect
 
 
 PARAMETERS = {
