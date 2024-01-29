@@ -38,7 +38,10 @@ def get_engine(path: Path) -> Engine:
     Return:
         A sqlalchemy engine to connect to the database.
     """
-    engine = create_engine(f"sqlite:///{path}")
+    engine = create_engine(
+        f"sqlite:///{path}",
+        connect_args={"timeout": 60}
+    )
     return engine
 
 
