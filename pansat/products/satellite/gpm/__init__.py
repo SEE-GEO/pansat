@@ -473,7 +473,7 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
 merged_ir = GPMMergedIR()
 
 
-def _imerg_parse_time(seconds_since_1970):
+def _imerg_parse_time(seconds_since_1970, slices=None):
     """
     Helper function to convert time from IMERG HDF5 files to
     numpy datetime.
@@ -483,7 +483,7 @@ def _imerg_parse_time(seconds_since_1970):
     )
 
 
-def _gpm_l1c_parse_time(scan_time_group):
+def _gpm_l1c_parse_time(scan_time_group, slices=None):
     """
     Helper function to convert time from GPM L1C to
     numpy datetime.
