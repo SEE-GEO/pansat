@@ -7,11 +7,7 @@ from random import randint
 import pytest
 
 from pansat import TimeRange
-from pansat.products.satellite.ncei import (
-    gridsat_goes,
-    gridsat_b1,
-    ssmi_csu
-)
+from pansat.products.satellite.ncei import gridsat_goes, gridsat_b1, ssmi_csu, isccp_hgm
 
 
 def test_find_provider():
@@ -26,10 +22,7 @@ def test_noaa_ncei_provider_monthly():
     """
     Test NOAA NCEI provider for files listed by month.
     """
-    time_range = TimeRange(
-        "2000-01-01T00:00:01",
-        "2000-01-01T23:29:59"
-    )
+    time_range = TimeRange("2000-01-01T00:00:01", "2000-01-01T23:29:59")
     files = gridsat_goes.find_files(time_range)
     # We expect 48 product because two GOES satellites are available.
     assert len(files) == 48
@@ -39,13 +32,19 @@ def test_noaa_ncei_provider_year():
     """
     Test NOAA NCEI provider for files listed by year.
     """
-    time_range = TimeRange(
-        "2000-01-01T00:00:01",
-        "2000-01-01T22:29:59"
-    )
+    time_range = TimeRange("2000-01-01T00:00:01", "2000-01-01T22:29:59")
     files = gridsat_b1.find_files(time_range)
-    # We expect 48 product because two GOES satellites are available.
+    # We expect 8 products.
     assert len(files) == 8
+
+
+def test_noaa_ncei_provider_all():
+    """
+    Test NOAA NCEI provider for files listed without subfolders..
+    """
+    time_range = TimeRange("2000-01-01T00:00:01", "2000-01-01T22:29:59")
+    files = isccp_hgm.find_files(time_range)
+    assert len(files) == 1
 
 
 @pytest.mark.slow
