@@ -14,7 +14,7 @@ from typing import Optional
 import requests
 from pansat.download.providers.discrete_provider import (
     DiscreteProviderYear,
-    DiscreteProviderMonth
+    DiscreteProviderMonth,
 )
 from pansat import cache
 from pansat.file_record import FileRecord
@@ -24,9 +24,7 @@ from pansat.time import to_datetime
 BASE_URL = "https://www.ncei.noaa.gov/data"
 
 
-NCEI_PRODUCTS = {
-    "ssmis": "ssmis-brightness-temperature-rss/access"
-}
+NCEI_PRODUCTS = {"ssmis": "ssmis-brightness-temperature-rss/access"}
 
 PRODUCTS_MONTH = {
     "gridsat_goes": "gridsat-goes/access/goes",
@@ -41,6 +39,10 @@ PRODUCTS_YEAR = {
     "patmosx_des": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
 }
 
+PRODUCTS_ALL = {
+    "isccp_hgm": "international-satellite-cloud-climate-project-isccp-h-series-data/access/isccp-basic/hgm/",
+}
+
 LINK_REGEX = re.compile(r'<a href="([^"]*\.nc)">')
 
 
@@ -48,6 +50,7 @@ class NOAANCEIProviderBase:
     """
     Data provider for datasets available at https://www.ncei.noaa.gov/data/.
     """
+
     def __init__(self):
         """
         Instantiate provider for given product.
@@ -68,9 +71,7 @@ class NOAANCEIProviderBase:
         return True
 
     def download(
-            self,
-            file_record: FileRecord,
-            destination: Optional[Path] = None
+        self, file_record: FileRecord, destination: Optional[Path] = None
     ) -> FileRecord:
         """
         Download the file to a given destination.
@@ -96,6 +97,58 @@ class NOAANCEIProviderBase:
         return new_record
 
 
+class NOAANCEIProviderAll(NOAANCEIProviderBase, DiscreteProviderYear):
+    """
+    Specialization of the NOAA NCEI provider for files that are not
+    sorted into subdirectories.
+
+    """
+
+    def __init__(self):
+        NOAANCEIProviderBase.__init__(self)
+        DiscreteProviderYear.__init__(self)
+
+    def provides(self, product: "pansat.Product") -> bool:
+        """
+        Whether or not this provider can provide data from the given
+        product.
+        """
+        is_ncei_product = super().provides(product)
+        is_all = product.name.split(".")[-1] in PRODUCTS_ALL
+        return is_ncei_product and is_all
+
+    def find_files_by_year(self, product, time):
+        """
+
+        Args:
+            time: A datetime or numpy.datetime64 object specifying the
+                year for which to retrieve the files.
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        year = time.year
+
+        ncei_name = product.name.split(".")[-1]
+        url = f"{BASE_URL}/{PRODUCTS_ALL[ncei_name]}/"
+        session = cache.get_session()
+        response = session.get(url)
+        pattern = re.compile(r'<a href="([^"]*\.nc)">')
+        links = LINK_REGEX.findall(response.text)
+
+        recs = []
+        for link in links:
+            filename = link.split("/")[-1]
+            remote_path = url + link
+            rec = FileRecord.from_remote(product, self, remote_path, filename)
+            if product.matches(rec):
+                time_range = product.get_temporal_coverage(rec)
+                if time_range.start.year == year or time_range.end == year:
+                    recs.append(rec)
+        return recs
+
+
 class NOAANCEIProviderYear(NOAANCEIProviderBase, DiscreteProviderYear):
     def __init__(self):
         NOAANCEIProviderBase.__init__(self)
@@ -107,7 +160,7 @@ class NOAANCEIProviderYear(NOAANCEIProviderBase, DiscreteProviderYear):
         product.
         """
         is_ncei_product = super().provides(product)
-        is_yearly = product.name.split('.')[-1] in PRODUCTS_YEAR
+        is_yearly = product.name.split(".")[-1] in PRODUCTS_YEAR
         return is_ncei_product and is_yearly
 
     def find_files_by_year(self, product, time):
@@ -135,12 +188,7 @@ class NOAANCEIProviderYear(NOAANCEIProviderBase, DiscreteProviderYear):
         for link in links:
             filename = link.split("/")[-1]
             remote_path = url + link
-            rec = FileRecord.from_remote(
-                product,
-                self,
-                remote_path,
-                filename
-            )
+            rec = FileRecord.from_remote(product, self, remote_path, filename)
             if product.matches(rec):
                 recs.append(rec)
         return recs
@@ -157,9 +205,8 @@ class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
         product.
         """
         is_ncei_product = super().provides(product)
-        is_monthly = product.name.split('.')[-1] in PRODUCTS_MONTH
+        is_monthly = product.name.split(".")[-1] in PRODUCTS_MONTH
         return is_ncei_product and is_monthly
-
 
     def find_files_by_month(self, product, time):
         """
@@ -178,6 +225,7 @@ class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
 
         ncei_name = product.name.split(".")[-1]
         url = f"{BASE_URL}/{PRODUCTS_MONTH[ncei_name]}/{year:04}/{month:02}"
+        print(url)
         session = cache.get_session()
         response = session.get(url)
         links = LINK_REGEX.findall(response.text)
@@ -186,16 +234,12 @@ class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
         for link in links:
             filename = link.split("/")[-1]
             remote_path = url + link
-            rec = FileRecord.from_remote(
-                product,
-                self,
-                remote_path,
-                filename
-            )
+            rec = FileRecord.from_remote(product, self, remote_path, filename)
             if product.matches(rec):
                 recs.append(rec)
         return recs
 
 
+noaa_ncei_provider_all = NOAANCEIProviderAll()
 noaa_ncei_provider_year = NOAANCEIProviderYear()
 noaa_ncei_provider_month = NOAANCEIProviderMonth()

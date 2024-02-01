@@ -1,15 +1,14 @@
-from .gridsat import (
-    gridsat_conus,
-    gridsat_goes,
-    gridsat_b1
-)
+"""
+pansat.products.satellite.ncei
+==============================
 
-from .ssmi import (
-    ssmi_csu
-)
+This module provides satellite products that are available from NOAA NCEI.
+"""
 
-from .patmosx import (
-    patmosx,
-    patmosx_asc,
-    patmosx_des
-)
+from .gridsat import gridsat_conus, gridsat_goes, gridsat_b1
+
+from .ssmi import ssmi_csu
+
+from .patmosx import patmosx, patmosx_asc, patmosx_des
+
+from .isccp import isccp_hgm
