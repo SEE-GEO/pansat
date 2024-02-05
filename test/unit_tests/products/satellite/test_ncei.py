@@ -11,6 +11,7 @@ from pansat.products.satellite.ncei import (
     gridsat_goes,
     gridsat_b1,
     ssmi_csu,
+    amsr2_csu_gridded,
     patmosx,
     patmosx_asc,
     patmosx_des,
@@ -88,6 +89,25 @@ def test_ssmi_csu():
 
     time_range = ssmi_csu.get_temporal_coverage(rec)
     assert time_range.covers(datetime(1987, 7, 9, 2))
+
+
+AMSR2_CSU_FILENAME = "CSU_AMSR2_FCDR-GRID_V02R00_GCOMW1_D20230114.nc"
+
+
+def test_amsr2_csu():
+    """
+    Ensure that amsr2_csu product:
+       - Matches filename
+       - Correctly parses timestamps
+    """
+    path = Path(AMSR2_CSU_FILENAME)
+    rec = FileRecord(
+        local_path=path,
+    )
+    assert amsr2_csu_gridded.matches(rec)
+
+    time_range = amsr2_csu_gridded.get_temporal_coverage(rec)
+    assert time_range.covers(datetime(2023, 1, 14))
 
 
 PATMOSX_FILENAME = "patmosx_v06r00-preliminary_NOAA-15_des_d20230116_c20230125.nc"

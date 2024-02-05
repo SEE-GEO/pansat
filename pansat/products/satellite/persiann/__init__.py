@@ -85,7 +85,7 @@ class PersiannProduct(FilenameRegexpMixin, Product):
         else:
             date = datetime.strptime(filename.split(".")[0][-7:], "%y%j%H")
 
-        return TimeRange(date, date + self.temporal_resolution)
+        return TimeRange(date - self.temporal_resolution, date)
 
 
     def get_spatial_coverage(self, rec: FileRecord) -> TimeRange:
@@ -134,7 +134,7 @@ class PersiannProduct(FilenameRegexpMixin, Product):
         lons = np.linspace(-180, 180, shape[1] + 1)
         lons = 0.5 * (lons[1:] + lons[:-1])
 
-        time_range = rec.temporal_coverage
+        time_range = self.get_temporal_coverage(rec)
 
         if self._name.startswith("ccs"):
             data = data / 100
