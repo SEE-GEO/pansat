@@ -41,6 +41,7 @@ from pansat.download.providers.discrete_provider import DiscreteProvider
 PRODUCTS = {
     "CloudSat_2C-ICE": "2C-ICE.P1_R05",
     "CloudSat_2B-CLDCLASS": "2B-CLDCLASS.P1_R05",
+    "CloudSat_2B-CLDCLASS-LIDAR": "2B-CLDCLASS-LIDAR.P1_R05",
     "CloudSat_2C-RAIN PROFILE": "2C-RAIN-PROFILE.P1_R05",
 }
 
