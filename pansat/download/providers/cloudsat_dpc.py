@@ -47,7 +47,6 @@ PRODUCTS = {
     "satellite.cloudsat.l2b_cldclass": "2B-CLDCLASS.P1_R05",
     "satellite.cloudsat.l2b_cldclass_lidar": "2B-CLDCLASS-LIDAR.P1_R05",
     "satellite.cloudsat.l2c_rain_profile": "2C-RAIN-PROFILE.P1_R05",
-    "satellite.cloudsat.l2c_cldclass_lidar": "2C-RAIN-PROFILE.P1_R05",
 }
 
 ######################################################################

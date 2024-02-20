@@ -60,7 +60,8 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace("/", ".")
 
-        name = f"l{self.level.lower()}_{self.product_name.lower()}"
+        pname = self.product_name.lower().replace("-", "_")
+        name = f"l{self.level.lower()}_{pname}"
 
         return ".".join([prefix, name])
 
