@@ -21,6 +21,7 @@ registered email as user name.
 
     pansat account add ecmwf <email>
 """
+from copy import copy
 from typing import Optional, List
 from pathlib import Path
 
@@ -46,15 +47,15 @@ class ECMWF(DataProvider):
 
     def _get_server(
         self,
-    ) -> ECMWFDataServer:
+    ) -> "ECMWFDataServer":
         """
         Get ECMWFDataServer instance with credentials from saved identities.
         """
         from ecmwfapi import ECMWFDataServer
 
         url = ECMWF_URL
-        email, api_key = accounts.get_identity("ecmwf")
-        return ECMWFDataServer(url=url, email=email, api_key=api_key)
+        email, key = accounts.get_identity("ecmwf")
+        return ECMWFDataServer(url=url, email=email, key=key)
 
     def provides(self, product: Product) -> bool:
         """

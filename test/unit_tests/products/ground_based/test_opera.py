@@ -3,21 +3,23 @@ Tests for the Opera product.
 """
 from datetime import datetime
 import os
-import pytest
-import pansat.products.ground_based.opera as opera
 
+import pytest
+from conftest import NEEDS_PANSAT_PASSWORD
 import numpy as np
 
-PRODUCTS = [opera.rainfall_rate, opera.maximum_reflectivity]
+from pansat import TimeRange
+import pansat.products.ground_based.opera as opera
+
+
+PRODUCTS = [opera.precip_rate, opera.reflectivity]
 TEST_NAMES = {
-    str(opera.rainfall_rate): ("OPERA_RAINFALL_RATE_2020_275_10_15.hdf"),
-    str(opera.maximum_reflectivity): (
-        "OPERA_MAXIMUM_REFLECTIVITY" "_2020_275_10_15.hdf"
-    ),
+    opera.precip_rate.name: ("20180101_RAINFALL_RATE.tar"),
+    opera.reflectivity.name: ("20180101_REFLECTIVITY.tar"),
 }
 TEST_TIMES = {
-    str(opera.rainfall_rate): datetime(2020, 10, 1, 10, 15),
-    str(opera.maximum_reflectivity): datetime(2020, 10, 1, 10, 15),
+    opera.precip_rate.name: datetime(2018, 1, 1, 0, 0),
+    opera.reflectivity.name: datetime(2018, 1, 1, 0, 0),
 }
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
@@ -28,7 +30,7 @@ def test_matches(product):
     """
     Assert that matches method returns true on the filename.
     """
-    filename = TEST_NAMES[str(product)]
+    filename = TEST_NAMES[product.name]
     assert product.matches(filename)
 
 
@@ -37,29 +39,21 @@ def test_filename_to_date(product):
     """
     Assert that matches method returns true on the filename.
     """
-    filename = TEST_NAMES[str(product)]
-    reference_time = TEST_TIMES[str(product)]
+    filename = TEST_NAMES[product.name]
+    reference_time = TEST_TIMES[product.name]
     time = product.filename_to_date(filename)
     assert time == reference_time
 
 
-def test_grids():
-    lats = opera.get_latitude_grid()
-    lons = opera.get_longitude_grid()
-
-    assert np.isclose(lats.min(), 31.7575)
-    assert np.isclose(lats.max(), 73.918)
-    assert np.isclose(lons.min(), -39.5024)
-    assert np.isclose(lons.max(), 57.7779)
-
-
-@pytest.mark.skip(reason="Product outdated.")
+@NEEDS_PANSAT_PASSWORD
 @pytest.mark.usefixtures("test_identities")
-def test_download():
+@pytest.mark.slow
+def test_open_file(tmp_path):
     """
-    Download CloudSat L1B file.
+    Assert that matches method returns true on the filename.
     """
-    product = opera.maximum_reflectivity
-    t_0 = datetime(2018, 6, 1, 10)
-    t_1 = datetime(2018, 6, 1, 10, 15)
-    product.download(t_0, t_1)
+    time_range = TimeRange("2020-01-01T12:00:00", "2020-01-01T12:00:00")
+    file_recs = opera.precip_rate.get(time_range=time_range)
+    assert len(file_recs) == 1
+    data = opera.precip_rate.open(file_recs[0])
+    assert "precip_rate" in data.variables

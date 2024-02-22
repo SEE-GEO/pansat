@@ -38,7 +38,10 @@ def get_engine(path: Path) -> Engine:
     Return:
         A sqlalchemy engine to connect to the database.
     """
-    engine = create_engine(f"sqlite:///{path}")
+    engine = create_engine(
+        f"sqlite:///{path}",
+        connect_args={"timeout": 60}
+    )
     return engine
 
 
@@ -110,8 +113,9 @@ def save_index_data(
             index data that already exists in the database.
     """
     engine = get_engine(path)
-    data = pd.DataFrame(data)
-    data["geometry"] = data["geometry"].apply(shapely.wkb.dumps)
+    geom = data["geometry"].apply(shapely.wkb.dumps)
+    data = pd.DataFrame(data.drop(columns="geometry"))
+    data["geometry"] = geom
     if append:
         if_exists="append"
     else:

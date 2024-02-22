@@ -263,7 +263,8 @@ class Index:
             except ValueError:
                 LOGGER.warning(
                     "Found table named '%s' in database but could not load find "
-                    "a corresponding pansat product."
+                    "a corresponding pansat product.",
+                    table_name
                 )
                 continue
             data = database.load_index_data(

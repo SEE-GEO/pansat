@@ -1,11 +1,23 @@
-from datetime import datetime, timedelta
-import http
-import time
-from pathlib import Path
-from xml.etree import ElementTree
+"""
+pansat.download.providers.meteo_france
+======================================
 
-from pansat.download.providers.data_provider import DataProvider
+Provides a provider for downloading data from Meteo France APIs.
+"""
+from copy import copy
+from datetime import datetime, timedelta
+import json
+from pathlib import Path
+import requests
+import shutil
+import time
+from typing import List, Dict, Optional
+
+from pansat import FileRecord, TimeRange
+from pansat.time import to_datetime
+from pansat.download.providers.discrete_provider import DiscreteProviderDay, Time
 from pansat.download.accounts import get_identity
+from pansat.geometry import Geometry
 
 
 def ensure_extension(path, ext):
@@ -14,98 +26,111 @@ def ensure_extension(path, ext):
     return path
 
 
-class GeoservicesProvider(DataProvider):
+PARTNER_PRODUCTS = {
+    "ground_based.opera.precip_rate": (
+        "partner/radar/europe/odyssey/1.1/archive/composite/RAINFALL_RATE"
+    ),
+    "ground_based.opera.reflectivity": (
+        "partner/radar/europe/odyssey/1.1/archive/composite/REFLECTIVITY"
+    ),
+}
+
+
+ARCHIVE = "partner/radar/europe/odyssey/1.1/archive?date={date_str}"
+
+
+class MeteoFrancePartnerProvider(DiscreteProviderDay):
     """
     Base class for data products available from the ICARE ftp server.
     """
 
-    base_url = "https://geoservices.meteofrance.fr/services"
+    base_url = "https://partner-api.meteofrance.fr"
 
-    def __init__(self, product):
+    def provides(self, product: "pansat.Product") -> bool:
         """
-        Create a new product instance.
-
-        Arguments:
-
-        product_path(str): The path of the product. This should point to
-            the folder that bears the product name and contains the directory
-            tree which contains the data files sorted by date.
-
-        name_to_date(function): Funtion to convert filename to datetime object.
+        Check if provider provides the product.
         """
-        super().__init__()
-        self.product = product
-        name, password = get_identity("GeoservicesMeteofrance")
-        request = (
-            GeoservicesProvider.base_url
-            + f"/GetAPIKey?username={name}&password={password}"
+        return product.name in PARTNER_PRODUCTS
+
+    def get_authentication_headers(self, accept: str) -> Dict[str, str]:
+        """
+        Get dictionary of authentication headers for a MeteoFrance API
+        request.
+
+        The apikey is retrieved from the pansat identify file.
+
+        Args:
+            accept: String specifying the accepted responses.
+        """
+        _, api_key = get_identity("MeteoFrance")
+        return {"accept": accept, "apikey": api_key}
+
+    def get_request_url(self, product: "pansat.Product", time: Time) -> str:
+        """
+        Get URL for requesting an Opera composite file.
+
+        Args:
+            product: The OPERA product to request.
+            time: A time stamp specifying the day for which to download the data.
+
+        Return:
+
+            A string containing the URL for the file request.
+        """
+        product_url = PARTNER_PRODUCTS[product.name]
+        date = to_datetime(time)
+        date_str = date.strftime("%Y-%m-%d")
+        url = "/".join([self.base_url, product_url, date_str + "?format=HDF5"])
+        return url
+
+    def find_files_by_day(
+        self, product: "pansat.Product", time: Time, roi: Optional[Geometry] = None
+    ) -> List[FileRecord]:
+        date = to_datetime(time)
+        date_str = date.strftime("%Y-%m-%d")
+        url = "/".join([self.base_url, ARCHIVE.format(date_str=date_str)])
+        resp = requests.get(
+            url, headers=self.get_authentication_headers(accept="application/json")
         )
-        c = http.client.HTTPSConnection("geoservices.meteofrance.fr")
-        c.request("GET", request)
-        r = c.getresponse().read().decode()
-        root = ElementTree.fromstring(r)
-        self.token = root.text
+        resp.raise_for_status()
+        products = json.loads(resp.text)
+        if "composite" in products:
+            return [
+                FileRecord.from_remote(
+                    product=product,
+                    provider=self,
+                    filename=product.get_filename(time),
+                    remote_path=self.get_request_url(product, time),
+                )
+            ]
+        return []
 
-    @classmethod
-    def get_available_products(cls):
-        return [
-            "OPERA_RAINFALL_RATE",
-            "OPERA_MAXIMUM_REFLECTIVITY",
-            "OPERA_HOURLY_RAINFALL",
-        ]
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
+        if destination is None:
+            destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
 
-    def _get_times_in_range(self, start_time, end_time):
-        seconds_since_hour = start_time.minute * 60 + start_time.second
-        d_t = (15 * 60 - seconds_since_hour) % (15 * 60)
-        d_t = timedelta(seconds=d_t)
-        time = start_time + d_t
-        while time < end_time:
-            yield time
-            time += timedelta(minutes=15)
-
-    def _get_filename(self, time):
-        product_name = str(self.product)[6:]
-        year = time.year
-        day = time.timetuple().tm_yday
-        hour = time.hour
-        minute = time.minute
-        filename = f"OPERA_{product_name}_{year}_{day:03}_" f"{hour:02}_{minute:02}.hdf"
-        return filename
-
-    def _download_file(self, time, destination):
-        """
-        Download a given product file.
-
-        Arguments:
-
-            filename(str): The name of the file to download.
-
-            dest(str): Where to store the file.
-        """
-        # if Path(destination).exists:
-        #    return destination
-        product_name = str(self.product)[6:]
-        c = http.client.HTTPSConnection("geoservices.meteofrance.fr")
-        time_str = time.strftime("%Y-%m-%dT%H:%M:%SZ")
-        request = (
-            GeoservicesProvider.base_url
-            + f"/odyssey?product={product_name}"
-            + f"&time={time_str}&token={self.token}&format=HDF5"
-        )
-        c.request("GET", request)
-        r = c.getresponse()
-        with open(destination, "wb") as f:
-            f.write(r.read())
-        return destination
-
-    def download(self, start_time, end_time, destination):
         destination = Path(destination)
-        files = []
-        for time in self._get_times_in_range(start_time, end_time):
-            filename = self._get_filename(time)
-            files.append(self._download_file(time, destination / filename))
-        return files
+        if destination.is_dir():
+            destination = destination / rec.filename
 
-    def name_to_date(self, name):
-        s = "_".join(name.split("_")[-4:])
-        return datetime.strptime(s.split(".")[0], "%Y_%j_%H_%M")
+        time = rec.temporal_coverage.start
+        url = self.get_request_url(rec.product, time)
+        headers = self.get_authentication_headers(accept="application/tar")
+
+        with requests.get(url, headers=headers, stream=True) as resp:
+            resp.raise_for_status()
+            with open(destination, "wb") as output:
+                shutil.copyfileobj(resp.raw, output)
+
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+
+        return new_rec
+
+
+meteo_france_partner_provider = MeteoFrancePartnerProvider()

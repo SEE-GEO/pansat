@@ -71,24 +71,12 @@ class GOESAWSProvider(DiscreteProviderDay):
     def provides(self, product):
         return self.product_regexp.match(product.name) is not None
 
-    @classmethod
-    def get_available_products(cls):
-        """
-        Return the names of products available from this data provider.
-
-        Return:
-            A list of strings containing the names of the products that can
-            be downloaded from this data provider.
-        """
-        return GOES_AWS_PRODUCTS
-
     def _get_keys(
         self, product: "pansat.Product", date: Union[datetime, np.datetime64]
     ) -> List[str]:
         """
         Args:
            prefix: Prefix string to limit search.
-
 
         Return:
             List of available filename.

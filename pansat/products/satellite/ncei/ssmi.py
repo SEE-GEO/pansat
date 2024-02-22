@@ -24,7 +24,7 @@ class SSMIProduct(FilenameRegexpMixin, Product):
     def __init__(self, variant):
         self.variant = variant
         self.filename_regexp = re.compile(
-            rf"{variant.upper()}_SSMI_FCDR_V\w*_\w*_D(\d{{8}})_S(\d{{4}})"
+            rf"{variant.upper()}_(SSMI|AMSR2)_FCDR_V\w*_\w*_D(\d{{8}})_S(\d{{4}})"
             r"_E(\d{4})_\w*.nc"
         )
 
@@ -57,9 +57,9 @@ class SSMIProduct(FilenameRegexpMixin, Product):
                 "Provided file record doesn't match filename patter of "
                 f"the {self.name} product."
             )
-        date = match.group(1)
-        start = match.group(2)
-        end = match.group(3)
+        date = match.group(2)
+        start = match.group(3)
+        end = match.group(4)
         start = datetime.strptime(date + start, "%Y%m%d%H%M")
         end = datetime.strptime(date + end, "%Y%m%d%H%M")
         return TimeRange(start, end)

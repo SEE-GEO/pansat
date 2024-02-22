@@ -5,20 +5,44 @@ pansat.products.ground_based.opera
 This module defines the ``OperaProduct`` class, which is used to represent data
 products from the EUMETNET Opera ground-radar network.
 """
-import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import re
+from tarfile import TarFile
+from tempfile import TemporaryDirectory
+from typing import Union
 
 import numpy as np
 import pyproj
+import xarray as xr
 
+import pansat
+from pansat import FileRecord, TimeRange
+from pansat.time import to_datetime
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.geometry import Geometry, Polygon
+from pansat.products import FilenameRegexpMixin, Product
 from pansat.products.product_description import ProductDescription
-from pansat.exceptions import NoAvailableProvider
 
 
-class OperaProduct(Product):
+OPERA_NAMES = {
+    "precip_rate": "RAINFALL_RATE",
+    "reflectivity": "REFLECTIVITY",
+}
+
+
+OPERA_DOMAIN = Polygon(
+    [
+        [-10.434576838640398, 31.746215319325056],  # lower left
+        [29.421038635578032, 31.98765027794496],  # lower right
+        [57.81196475014995, 67.62103710275053],  # upper right
+        [67.02283275830867, -39.5357864125034],  # upper left
+        [-10.434576838640398, 31.746215319325056],  # lower left
+    ]
+)
+
+
+class OperaProduct(FilenameRegexpMixin, Product):
     """
     Class representing Opera products.
 
@@ -28,39 +52,26 @@ class OperaProduct(Product):
 
     def __init__(self, product_name, description):
         self.product_name = product_name
-        self._description = description
-        self.filename_regexp = re.compile(
-            rf"OPERA_{self.product_name}_(\d{{4}})_(\d{{3}})"
-            rf"_(\d{{2}})_(\d{{2}})\.hdf"
-        )
+        self.description = description
+        self.filename_regexp = re.compile(rf"(\d{{8}})_{OPERA_NAMES[product_name]}.tar")
 
     @property
-    def variables(self):
-        return []
+    def name(self):
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+        return ".".join([prefix, self.product_name])
 
     @property
-    def description(self):
-        return self._description
-
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            filename(``str``): The filename
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
+    def default_destination(self) -> Path:
+        return Path("opera")
 
     def filename_to_date(self, filename):
         """
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of an Opera product.
+            filename(``str``): Filename of the OPERA product.
 
         Returns:
             ``datetime`` object representing the timestamp of the
@@ -68,71 +79,74 @@ class OperaProduct(Product):
         """
         path = Path(filename)
         match = self.filename_regexp.match(path.name)
-        date_string = match.group(1) + match.group(2) + match.group(3) + match.group(4)
-        date = datetime.datetime.strptime(date_string, "%Y%j%H%M")
+        date = datetime.strptime(match.group(1), "%Y%m%d")
         return date
 
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {self.name}."
-            )
-        return available_providers[0]
-
-    @property
-    def default_destination(self):
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
         """
-        The default destination for Opera product is
-        ``Opera/<product_name>``>
+        Return temporal coverage of OPERA file.
         """
-        return Path("Opera") / Path(self.product_name)
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(Path(rec))
 
-    def __str__(self):
-        s = f"OPERA_{self.product_name}"
-        return s
+        start_time = self.filename_to_date(rec.filename)
+        end_time = start_time + timedelta(days=1)
+        return TimeRange(start_time, end_time)
 
-    def download(self, start_time, end_time, destination=None, provider=None):
+    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
-        Download data product for given time range.
+        Returns a polygon representation of the OPERA domain.
+        """
+        return OPERA_DOMAIN
+
+    def get_filename(self, time: Union[datetime, np.datetime64]) -> str:
+        """
+        Determine filename of opera product for a given day.
 
         Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
+            time: A time stamp specifying the current day.
+
+        Return:
+            A string specifying the filename of a data file of this opera
+            product for the given day.
         """
+        date = to_datetime(time)
+        date_str = date.strftime("%Y%m%d")
+        filename = f"{date_str}_{OPERA_NAMES[self.product_name]}.tar"
+        return filename
 
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        return provider.download(start_time, end_time, destination)
-
-    def open(self, filename):
+    def open(self, rec: FileRecord) -> xr.Dataset:
         """
-        Open file as xarray dataset.
+        Open OPERA files as xarray.Dataset
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The Opera file to open.
+            rec: A FileRecord object whose local_path attribute points
+                to a local OPERA product file to load.
+
+        Return:
+            An xarray.Dataset containing the loaded data.
         """
         from pansat.formats.hdf5 import HDF5File
 
-        file_handle = HDF5File(filename, "r")
-        return self.description.to_xarray_dataset(file_handle, globals())
+        with TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            TarFile(rec.local_path).extractall(tmp)
+            files = sorted(list(tmp.glob("*h5")))
+            datasets = []
+            for opera_file in files:
+                time = datetime.strptime(
+                    opera_file.name.split("_")[1][:-3], "%Y%m%d%H%M"
+                )
+                with HDF5File(opera_file, "r") as file_handle:
+                    data = self.description.to_xarray_dataset(file_handle, globals())
+                    for variable in data.variables:
+                        if variable in ["latitude_grid", "longitude_grid"]:
+                            continue
+                        data[variable].data = data[variable].data.astype(np.float32)
+                data["time"] = time
+                datasets.append(data)
+
+        return xr.concat(datasets, dim="time")
 
 
 def edges_to_centers(grid):

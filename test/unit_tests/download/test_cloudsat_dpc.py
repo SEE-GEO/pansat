@@ -1,10 +1,12 @@
 """
 Test for CloudSat DPC provider.
 """
+from datetime import datetime
 import os
 import pytest
+
 from pansat.download.providers.cloudsat_dpc import CloudSatDPCProvider
-from pansat.products.satellite.cloud_sat import l2c_ice
+from pansat.products.satellite.cloudsat import l2c_ice
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
@@ -17,10 +19,12 @@ def test_cloudsat_dpc_provider():
     """
     Ensures the GES DISC provider finds files for the CloudSat 2C-Ice product.
     """
-    data_provider = CloudSatDPCProvider(l2c_ice)
-    files = data_provider.get_files_by_day(2016, 10)
+    data_provider = CloudSatDPCProvider()
+    date = datetime(2016, 10, 1)
+    files = data_provider.find_files_by_day(l2c_ice, date)
     assert len(files) == 15
 
     filename = files[0]
-    date = l2c_ice.filename_to_date(filename)
-    assert date.day == 10
+    time_range = l2c_ice.get_temporal_coverage(filename)
+    assert time_range.start.month == 10
+    assert time_range.start.day == 1

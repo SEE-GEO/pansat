@@ -5,7 +5,7 @@ Tests for NOAA NCEI satellite products.
 from datetime import datetime
 from pathlib import Path
 
-from pansat import FileRecord
+from pansat import FileRecord, TimeRange
 from pansat.products.satellite.ncei import (
     gridsat_conus,
     gridsat_goes,
@@ -13,7 +13,8 @@ from pansat.products.satellite.ncei import (
     ssmi_csu,
     patmosx,
     patmosx_asc,
-    patmosx_des
+    patmosx_des,
+    isccp_hgm,
 )
 
 CONUS_FILENAME = "GridSat-CONUS.goes08.1994.09.01.0000.v01.nc"
@@ -107,3 +108,19 @@ def test_patmosx():
 
     time_range = patmosx_des.get_temporal_coverage(PATMOSX_FILENAME)
     assert time_range.start == datetime(2023, 1, 16)
+
+
+ISCCP_FILENAME = "ISCCP-Basic.HGM.v01r00.GLOBAL.1983.07.99.9999.GPC.10KM.CS00.EA1.00.nc"
+
+
+def test_isccp():
+    """
+    Ensure that ISCCP HGM product:
+        - Matches filename
+        - Correctly parses timestamps
+    """
+    assert isccp_hgm.matches(ISCCP_FILENAME)
+
+    time_range = isccp_hgm.get_temporal_coverage(ISCCP_FILENAME)
+    assert time_range.start < datetime(1983, 7, 1)
+    assert time_range.end > datetime(1983, 7, 1)
