@@ -34,6 +34,11 @@ PRODUCTS_MONTH = {
 PRODUCTS_YEAR = {
     "gridsat_b1": "geostationary-ir-channel-brightness-temperature-gridsat-b1/access",
     "ssmi_csu": "ssmis-brightness-temperature-csu/access/FCDR/",
+    "ssmi_csu_gridded": "ssmis-brightness-temperature-csu/access/FCDR-GRID/",
+    "ssmis_csu": "ssmis-brightness-temperature-csu/access/FCDR/",
+    "ssmis_csu_gridded": "ssmis-brightness-temperature-csu/access/FCDR-GRID/",
+    "amsr2_csu": "ssmis-brightness-temperature-csu/access/FCDR/",
+    "amsr2_csu_gridded": "ssmis-brightness-temperature-csu/access/FCDR-GRID/",
     "patmosx": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
     "patmosx_asc": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
     "patmosx_des": "avhrr-hirs-reflectance-and-cloud-properties-patmosx/access/",
