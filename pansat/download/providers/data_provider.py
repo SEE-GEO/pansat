@@ -126,5 +126,6 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.eumetsat
     import pansat.download.providers.uci
     import pansat.download.providers.meteo_france
+    import pansat.download.providers.cloudsat_dpc
 
     return ALL_PROVIDERS

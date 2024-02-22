@@ -29,19 +29,25 @@ as the password.
    purposes as you cannot expect them to be save when added to
    pansat.
 """
+from copy import copy
 from datetime import datetime
 from io import StringIO
 import paramiko
 from pathlib import Path
+from typing import Optional
 
+from pansat.file_record import FileRecord
 from pansat.download.accounts import get_identity
-from pansat.download.providers.discrete_provider import DiscreteProvider
+from pansat.download.providers.discrete_provider import DiscreteProviderDay
+from pansat.time import to_datetime
 
 
 PRODUCTS = {
-    "CloudSat_2C-ICE": "2C-ICE.P1_R05",
-    "CloudSat_2B-CLDCLASS": "2B-CLDCLASS.P1_R05",
-    "CloudSat_2C-RAIN PROFILE": "2C-RAIN-PROFILE.P1_R05",
+    "satellite.cloudsat.l2c_ice": "2C-ICE.P1_R05",
+    "satellite.cloudsat.l2b_cldclass": "2B-CLDCLASS.P1_R05",
+    "satellite.cloudsat.l2b_cldclass_lidar": "2B-CLDCLASS-LIDAR.P1_R05",
+    "satellite.cloudsat.l2c_rain_profile": "2C-RAIN-PROFILE.P1_R05",
+    "satellite.cloudsat.l2c_cldclass_lidar": "2C-RAIN-PROFILE.P1_R05",
 }
 
 ######################################################################
@@ -130,19 +136,23 @@ class SFTPConnection:
 ######################################################################
 
 
-class CloudSatDPCProvider(DiscreteProvider):
+class CloudSatDPCProvider(DiscreteProviderDay):
     """
     Data provider class for the CloudSat DPC SFTP server.
     """
 
-    def __init__(self, product):
+    def __init__(self):
         """
         Args:
             product: The pansat product to download.
         """
-        super().__init__(product)
-        self.product = product
+        super().__init__()
         self._connection = None
+
+
+    def provides(self, product) -> bool:
+        return product.name in PRODUCTS
+
 
     @property
     def connection(self):
@@ -157,32 +167,40 @@ class CloudSatDPCProvider(DiscreteProvider):
     def connection(self, con):
         self._connection = con
 
-    @staticmethod
-    def get_available_products():
-        return list(PRODUCTS.keys())
 
-    def get_files_by_day(self, year, day):
+    def find_files_by_day(self, product, date):
         """
-        Get the available for a given day of a year.
+        Get the available files for a given day.
 
         Args:
-            year: The year
-            day: The Julian day
+            date: A timestamp identifying the day for which to retrieve available
+                files.
 
         Return:
-            List of files available for the given day.
+            A list of file record a available for the given day.
         """
+        date = to_datetime(date)
+        year = date.year
+        jday = (date - datetime(year=date.year, month=1, day=1)).days + 1
         self.connection = SFTPConnection(
             "www.cloudsat.cira.colostate.edu", "CloudSatDPC"
         )
         try:
-            directory = f"/Data/{PRODUCTS[self.product.name]}/{year:04}/{day:03}"
+            directory = f"/Data/{PRODUCTS[product.name]}/{year:04}/{jday:03}"
             self.connection.ensure_connection()
-            return self.connection.list_files(directory)
+            files = self.connection.list_files(directory)
+
         except FileNotFoundError as e:
             return []
 
-    def download_file(self, filename, destination):
+        recs = []
+        for filename in files:
+            recs.append(FileRecord.from_remote(
+                product, self, "/".join([directory, filename]), filename
+            ))
+        return recs
+
+    def download_file(self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
         """
         Download a given file and write the results to the given destination.
 
@@ -190,10 +208,35 @@ class CloudSatDPCProvider(DiscreteProvider):
             filename: The filename of the file to download.
             destination: The destination to which to write the downloaded file.
         """
-        date = self.product.filename_to_date(filename)
-
-        year = date.year
-        day = (date - datetime(date.year, 1, 1)).days + 1
-        path = f"/Data/{PRODUCTS[self.product.name]}/" f"{year:04}/{day:03}/{filename}"
         self.connection.ensure_connection()
-        self.connection.download(path, destination)
+        self.connection.download(rec.remote_path, destination)
+
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+        return new_rec
+
+
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
+        """
+        Download a product file to a given destination.
+
+        Args:
+            file_record: A FileRecord identifying the
+
+        Return:
+            An updated file record whose 'local_path' attribute points
+            to the downloaded file.
+        """
+        if destination is None:
+            destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
+
+        self.connection.ensure_connection()
+        self.connection.download(rec.remote_path, destination)
+
+
+cloudsat_dpc_provider = CloudSatDPCProvider()

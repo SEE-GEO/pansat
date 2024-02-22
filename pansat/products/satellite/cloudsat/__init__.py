@@ -1,24 +1,27 @@
 """
-pansat.products.satellite.cloud_sat
+pansat.products.satellite.cloudsat
 ===================================
 
-This module defines the CloudSat product class, which represents all
-supported CloudSat products.
+This module defines various CloudSat data products
 """
 import re
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np
+import xarray as xr
+
+import pansat
 from pansat.file_record import FileRecord
-from pansat.products import GranuleProduct
+from pansat.granule import Granule
+from pansat.products import GranuleProduct, FilenameRegexpMixin
 from pansat.products.product_description import ProductDescription
 import pansat.download.providers as providers
 from pansat.exceptions import NoAvailableProvider
 from pansat import geometry
 from pansat.time import TimeRange
 
-class CloudSatProduct(GranuleProduct):
+class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
     """
     The CloudSat class defines a generic interface for CloudSat products.
 
@@ -28,14 +31,14 @@ class CloudSatProduct(GranuleProduct):
             product.
     """
 
-    def __init__(self, product_name, level, version, description):
+    def __init__(self, level, product_name, version, description):
         self.product_name = product_name
         self.level = level
         self.version = version
         self._description = description
         name = level.upper() + "-" + product_name.upper()
         self.filename_regexp = re.compile(
-            r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P_R([\d]*)_E([\d]*)\.*"
+            r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P\d*_R([\d]*)_E([\d]*)\.*"
         )
 
     @property
@@ -43,63 +46,23 @@ class CloudSatProduct(GranuleProduct):
         # Product description object describing the CloudSat product.
         return self._description
 
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            filename(``str``): The filename
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
-
-    def filename_to_date(self, filename):
-        """
-        Extract timestamp from filename.
-
-        Args:
-            filename(``str``): Filename of a CloudSat product.
-
-        Returns:
-            ``datetime`` object representing the timestamp of the
-            filename.
-        """
-        filename = os.path.basename(filename)
-        filename = filename.split("_")[0]
-        return datetime.strptime(filename, "%Y%j%H%M%S")
-
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {self.name}."
-            )
-        return available_providers[0]
-
     @property
     def default_destination(self):
         """
         The default destination for CloudSat product is
         ``CloudSat/<product_name>``>
         """
-        return Path("CloudSat") / Path(self.name)
+        return Path("cloudsat") / Path(self.name)
 
     @property
     def name(self):
-        return f"CloudSat_{self.level}-{self.product_name}"
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
 
-    def __str__(self):
-        """The full product name."""
-        return f"CloudSat_{self.level}-{self.product_name}"
+        name = f"l{self.level.lower()}_{self.product_name.lower()}"
 
+        return ".".join([prefix, name])
 
     def open(self, filename):
         """
@@ -124,14 +87,12 @@ class CloudSatProduct(GranuleProduct):
             granules.append(Granule(rec, *granule_data))
         return granules
 
-    def open_granule(self, granule):
+    def open_granule(self, granule: Granule) -> xr.Dataset:
         from pansat.formats.hdf4 import HDF4File
         filename = granule.file_record.local_path
         file_handle = HDF4File(filename)
         return self.description.to_xarray_dataset(
                 file_handle, context=globals(), slcs=granule.get_slices())
-
-
 
     def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
         """
@@ -159,12 +120,10 @@ class CloudSatProduct(GranuleProduct):
                 " match the products filename regexp "
                 f"{self.filename_regexp.pattern}. "
             )
-        date = match[2]
-        start = match[3]
-        end = match[4]
+        date = match[1]
         fmt = "%Y%j%H%M%S"
-        start = datetime.strptime(date + start, fmt)
-        end = datetime.strptime(date + end, fmt)
+        start = datetime.strptime(date, fmt)
+        end = datetime.strptime(date, fmt) + timedelta(minutes=90)
         if end < start:
             end += timedelta(days=1)
         return TimeRange(start, end)
@@ -259,7 +218,7 @@ def _parse_products():
             level = description.properties["level"]
             version = description.properties["version"]
             globals()[python_name] = CloudSatProduct(
-                product_name, level, version, description
+                level, product_name, version, description
             )
 
 
