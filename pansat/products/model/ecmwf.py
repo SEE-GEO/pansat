@@ -8,7 +8,9 @@ ECMWF datasets.
 from calendar import monthrange
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+
+import xarray as xr
 
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
@@ -49,33 +51,39 @@ def get_weekdays(
     return dates
 
     
-
-
 class ECMWFDataset(Product):
     """
-
-
+    Dataset class for data available from ECMWF.
     """
     def __init__(
             self,
             clss: str,
             dataset: str,
             origin: str,
-            variable: str = "total_precip"
+            variable: str = "total_precip",
+            number: Optional[int] = None
     ):
         self.clss = clss
         self.dataset = dataset
         self.origin = origin
         self.variable = variable
-        self.filename_pattern = (
-            f"{self.dataset}_{self.origin}_{self.variable}_%Y%m.grib"
-        )
+        if number is None:
+            self.filename_pattern = (
+                f"{self.dataset}_{self.origin}_{self.variable}_%Y%m.grib"
+            )
+        else:
+            self.filename_pattern = (
+                f"{self.dataset}_{self.origin}_{self.variable}_{number}_%Y%m.grib"
+            )
+        self.number = number
         super().__init__()
 
     @property
     def name(self):
-        return f"model.ecmwf.{self.dataset}_{self.origin}_{self.variable}"
-
+        name = f"model.ecmwf.{self.dataset}_{self.origin}_{self.variable}"
+        if self.number is not None:
+            name += f"_{self.number:02}"
+        return name
 
     @property
     def default_destination(self) -> Path:
@@ -92,9 +100,18 @@ class ECMWFDataset(Product):
             rec: TimeRange
     ):
         time_range = rec.temporal_coverage
-        print(time_range)
+
         dates = get_weekdays(time_range.start, time_range.end, [0, 3])
         dates = "/".join(date.strftime("%Y-%m-%d") for date in dates)
+        start_date = time_range.start.strftime("%Y-%m-%d")
+        month_days = monthrange(time_range.start.year, time_range.start.month)[1]
+        end_date = time_range.start + timedelta(days=month_days - 1)
+        end_date = end_date.strftime("%Y-%m-%d")
+        dates = start_date + "/to/" + end_date
+
+        steps = range(0, 720, 6)
+        if self.origin == "egrr":
+            steps = steps[1:]
 
         request = {
             "class": self.clss,
@@ -105,11 +122,16 @@ class ECMWFDataset(Product):
             "model": "glob",
             "origin": self.origin,
             "param": PARAMETERS[self.variable],
-            "step": "/".join(map(str, range(0, 673, 6))),
+            "step": "/".join(map(str, steps)),
             "stream": "enfo",
             "time": "00:00:00",
             "type": "cf",
         }
+        if self.number is not None:
+            request["number"] = "/".join(map(str, range(1, self.number + 1)))
+            request["type"] = "pf"
+            request["target"] = "output"
+
         return request
 
     def get_filename(self, date):
@@ -139,12 +161,29 @@ class ECMWFDataset(Product):
         return LonLatRect(-180, -90, 180, 90)
 
 
-    def open(self, rec: FileRecord):
+    def open(self, rec: FileRecord) -> xr.Dataset:
+        """
+        Open data in file record.
 
+        Args:
+            rec: A file record with a 'local_path' attribute pointing
+                to the file to open.
+
+        Return:
+            The forecast data from the local product file identified
+            by the given file record.
+
+        """
         if not isinstance(rec, FileRecord):
             rec = FileRecord
 
-        return xr.load_dataset(rec.local_path)
+        data = xr.load_dataset(rec.local_path)
+
+        lons = data.longitude.data
+        lons = (lons + 180.0) % 360.0 - 180.0
+        data.coords["longitude"] = lons
+        data = data.sortby("longitude")
+        return data
 
 
 s2s_ecmwf_total_precip = ECMWFDataset(
@@ -152,4 +191,51 @@ s2s_ecmwf_total_precip = ECMWFDataset(
     "s2s",
     "ecmf",
     "total_precip"
+)
+
+s2s_ecmwf_total_precip_10 = ECMWFDataset(
+    "s2",
+    "s2s",
+    "ecmf",
+    "total_precip",
+    number=10
+)
+
+s2s_ecmwf_total_precip_50 = ECMWFDataset(
+    "s2",
+    "s2s",
+    "ecmf",
+    "total_precip",
+    number=50
+)
+
+s2s_ecmwf_total_precip_10 = ECMWFDataset(
+    "s2",
+    "s2s",
+    "ecmf",
+    "total_precip",
+    number=10
+)
+
+s2s_ecmwf_total_precip_50 = ECMWFDataset(
+    "s2",
+    "s2s",
+    "ecmf",
+    "total_precip",
+    number=50
+)
+
+s2s_ukmo_total_precip = ECMWFDataset(
+    "s2",
+    "s2s",
+    "egrr",
+    "total_precip"
+)
+
+s2s_ukmo_total_precip_3 = ECMWFDataset(
+    "s2",
+    "s2s",
+    "egrr",
+    "total_precip",
+    number=3
 )

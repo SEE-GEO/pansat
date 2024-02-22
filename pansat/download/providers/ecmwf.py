@@ -111,6 +111,7 @@ class ECMWF(DataProvider):
             destination = destination / file_record.filename
 
         request = file_record.product.get_request(file_record)
+        print(request)
         server = self._get_server()
 
         request["target"] = str(destination)

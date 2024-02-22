@@ -169,4 +169,5 @@ class SSMIGriddedProduct(SSMIProduct):
 
 
 ssmi_csu_gridded = SSMIGriddedProduct("csu")
+ssmis_csu_gridded = SSMIGriddedProduct("csu", sensor="ssmis")
 amsr2_csu_gridded = SSMIGriddedProduct("csu", sensor="amsr2")
