@@ -32,5 +32,4 @@ ALL_PROVIDERS = [
     HimawariAWSProvider,
     IowaStateProvider,
     CloudnetProvider,
-    CloudSatDPCProvider,
 ]
