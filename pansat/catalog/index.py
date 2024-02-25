@@ -299,8 +299,8 @@ class Index:
                 try:
                     granules += _get_index_data(product, rec)
                 except Exception as exc:
-                    LOGGER.warning(
-                        "Indexing of file record '%s' frailed with the "
+                    LOGGER.exception(
+                        "Indexing of file record '%s' failed with the "
                         "following error:\n %s",
                         rec,
                         exc
