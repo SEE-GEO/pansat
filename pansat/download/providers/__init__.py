@@ -12,7 +12,6 @@ to download files of the data product.
 """
 from pansat.download.providers.data_provider import DataProvider
 from pansat.download.providers.copernicus import CopernicusProvider
-from pansat.download.providers.icare import IcareProvider
 from pansat.download.providers.noaa import NOAAProvider
 from pansat.download.providers.laads_daac import LAADSDAACProvider
 from pansat.download.providers.goes_aws import GOESAWSProvider
@@ -25,7 +24,6 @@ import pansat.download.providers.iowa_state
 
 ALL_PROVIDERS = [
     CopernicusProvider,
-    IcareProvider,
     NOAAProvider,
     LAADSDAACProvider,
     GOESAWSProvider,
