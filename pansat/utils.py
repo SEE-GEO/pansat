@@ -6,7 +6,8 @@ Miscellaneous utility functions.
 """
 from math import ceil
 import numpy as np
-from pyresample import AreaDefinition
+from pyresample import AreaDefinition, SwathDefinition
+from pyresample import kd_tree
 import xarray as xr
 
 from pansat import geometry
@@ -121,6 +122,11 @@ def resample_data(
     """
     lons = dataset.longitude.data
     lats = dataset.latitude.data
+
+    if lats.ndim == 1:
+        dataset = dataset.transpose(..., "latitude", "longitude")
+        lons, lats = np.meshgrid(lons, lats)
+
     if isinstance(target_grid, tuple):
         lons_t, lats_t = target_grid
         shape = lons_t.shape
@@ -129,11 +135,12 @@ def resample_data(
         shape = target_grid.shape
 
     valid_pixels = (
-        (lons_t >= lons.min())
-        * (lons_t <= lons.max())
-        * (lats_t >= lats.min())
-        * (lats_t <= lats.max())
+        (lons_t >= np.nanmin(lons))
+        * (lons_t <= np.nanmax(lons))
+        * (lats_t >= np.nanmin(lats))
+        * (lats_t <= np.nanmax(lats))
     )
+    print(valid_pixels.sum())
 
     swath = SwathDefinition(lons=lons, lats=lats)
     target = SwathDefinition(lons=lons_t[valid_pixels], lats=lats_t[valid_pixels])
@@ -142,6 +149,7 @@ def resample_data(
         swath, target, radius_of_influence=radius_of_influence, neighbours=1
     )
     ind_in, ind_out, inds, _ = info
+
 
     resampled = {}
     resampled["latitude"] = (("latitude",), lats_t[:, 0])
