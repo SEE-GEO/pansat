@@ -2,12 +2,14 @@
 pansat.products.satellite.cloudsat
 ===================================
 
-This module defines various CloudSat data products
+This module defines various CloudSat data products.
 """
-import re
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
+import os
+import re
+from typing import List
+
 import numpy as np
 import xarray as xr
 
@@ -24,14 +26,22 @@ from pansat.time import TimeRange
 class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
     """
     The CloudSat class defines a generic interface for CloudSat products.
-
-    Attributes:
-        name(``str``): The name of the product
-        description(``list``): List of variable names provided by this
-            product.
     """
 
-    def __init__(self, level, product_name, version, description):
+    def __init__(
+            self,
+            level: str,
+            product_name: str,
+            version: str,
+            description: ProductDescription
+    ):
+        """
+        Args:
+            level: The processing level of the product, i.e., 'l1b', 'l2b', etc.
+            product_name: The name of the product, e.g., 'geoprof'
+            version: The product version.
+            description: The product description defining the variables to be loaded.
+        """
         self.product_name = product_name
         self.level = level
         self.version = version
@@ -43,19 +53,21 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
 
     @property
     def description(self):
-        # Product description object describing the CloudSat product.
         return self._description
 
     @property
     def default_destination(self):
         """
-        The default destination for CloudSat product is
-        ``CloudSat/<product_name>``>
+        Defauult destination used to store pansat products.
         """
-        return Path("cloudsat") / Path(self.name)
+        dirname = f"{self.level.lower()}_{self.product_name.lower()}_{self.version.lower()}"
+        return Path("cloudsat") / dirname
 
     @property
     def name(self):
+        """
+        The name of the product used to identify it within pansat.
+        """
         module = Path(__file__).parent
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace("/", ".")
@@ -65,35 +77,22 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
 
         return ".".join([prefix, name])
 
-    def open(self, filename):
+    def open(self, rec: FileRecord) -> xr.Dataset:
         """
         Open file as xarray dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The CloudSat file to open.
+            rec: A file record pointing whose 'local_path' attribute points to the file to
+                open.
+
+        Return:
+            An xarray.Dataset containing the data loaded from the given file.
         """
         from pansat.formats.hdf4 import HDF4File
-
-        file_handle = HDF4File(filename)
-        return self.description.to_xarray_dataset(file_handle, globals())
-
-    def get_granules(self, rec):
-        from pansat.formats.hdf4 import HDF4File
-        if not isinstance(rec, FileRecord):
+        if isinstance(rec, str):
             rec = FileRecord(rec)
-        granules = []
         file_handle = HDF4File(rec.local_path)
-        for granule_data in self.description.get_granule_data(
-                file_handle, globals() ):
-            granules.append(Granule(rec, *granule_data))
-        return granules
-
-    def open_granule(self, granule: Granule) -> xr.Dataset:
-        from pansat.formats.hdf4 import HDF4File
-        filename = granule.file_record.local_path
-        file_handle = HDF4File(filename)
-        return self.description.to_xarray_dataset(
-                file_handle, context=globals(), slcs=granule.get_slices())
+        return self.description.to_xarray_dataset(file_handle, globals())
 
     def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
         """
@@ -128,6 +127,44 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
         if end < start:
             end += timedelta(days=1)
         return TimeRange(start, end)
+
+    def get_granules(self, rec: FileRecord) -> List[Granule]:
+        """
+        Return granules in file.
+
+        Args:
+            rec: A file record object pointing to a local CloudSat file.
+
+        Return:
+            A list of granules representing the temporal and spatial coverage
+            of the data.
+        """
+        from pansat.formats.hdf4 import HDF4File
+        if not isinstance(rec, FileRecord):
+            rec = FileRecord(rec)
+        granules = []
+        file_handle = HDF4File(rec.local_path)
+        for granule_data in self.description.get_granule_data(
+                file_handle, globals() ):
+            granules.append(Granule(rec, *granule_data))
+        return granules
+
+    def open_granule(self, granule: Granule) -> xr.Dataset:
+        """
+        Open a given granule.
+
+        Args:
+            granule: The granule to open.
+
+        Return:
+            An xarray.Dataset containing only the data from the granule.
+        """
+        from pansat.formats.hdf4 import HDF4File
+        filename = granule.file_record.local_path
+        file_handle = HDF4File(filename)
+        return self.description.to_xarray_dataset(
+                file_handle, context=globals(), slcs=granule.get_slices())
+
 
 
 def _cloud_scenario_to_cloud_scenario_flag(cloud_scenario):
@@ -207,6 +244,27 @@ def _cloud_scenario_to_precipitation_flag(cloud_scenario):
     """
     mask = 0x6000
     return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 13)
+
+
+def _calculate_profile_time(handle, *args, **kwargs) -> np.ndarray:
+    """
+    Calculate profile time as np.datetime64 objects.
+
+    Args:
+        handle: The k
+
+    """
+    start_time = getattr(handle, "TAI_start")[:][..., 0]
+    profile_time = getattr(handle, "Profile_time")[:][..., 0]
+    start_time = np.datetime64("1993-01-01") + np.round(start_time).astype("timedelta64[s]")[0]
+    offsets = np.round(profile_time).astype("timedelta64[s]")
+    return (start_time + offsets).astype("datetime64[ns]")
+
+def _squeeze(handle, *args) -> np.ndarray:
+    """
+    Used trailing dimensions in latitude and longitude arrays.
+    """
+    return np.array(handle[:]).squeeze()
 
 
 def _parse_products():
