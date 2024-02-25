@@ -218,12 +218,13 @@ class Variable:
         Get dict of xarray attributes containing unit and description.
         """
         attributes = {}
-        field = getattr(file_handle, self.field_name)
-        if hasattr(field, "attrs"):
-            for key, value in field.attrs.items():
-                if isinstance(value, bytes):
-                    value = value.decode()
-                attributes[key] = value
+        if self.field_name != "":
+            field = getattr(file_handle, self.field_name)
+            if hasattr(field, "attrs"):
+                for key, value in field.attrs.items():
+                    if isinstance(value, bytes):
+                        value = value.decode()
+                    attributes[key] = value
 
         if self.unit:
             attributes["unit"] = self.unit
@@ -254,7 +255,11 @@ class Variable:
 
         if self.callback:
             callback = context[self.callback]
-            data = callback(getattr(file_handle, self.field_name), slcs)
+            if self.field_name != "":
+                handle = getattr(file_handle, self.field_name)
+            else:
+                handle = file_handle
+            data = callback(handle, slcs)
         else:
             data = getattr(file_handle, self.field_name)[slcs]
 
@@ -440,7 +445,7 @@ class ProductDescription(ConfigParser):
                     attrs = variable.get_attributes(file_handle)
                 variables[name] = (variable.dimensions, data, attrs)
             except KeyError:
-                LOGGER.warning(
+                LOGGER.exception(
                     f"Failed loading variable '{variable.name}'. Something "
                     " may be wrong with the product you are using."
                 )
