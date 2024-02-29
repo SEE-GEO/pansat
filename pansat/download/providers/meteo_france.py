@@ -27,7 +27,7 @@ def ensure_extension(path, ext):
 
 
 PARTNER_PRODUCTS = {
-    "ground_based.opera.precip_rate": (
+    "ground_based.opera.surface_precip": (
         "partner/radar/europe/odyssey/1.1/archive/composite/RAINFALL_RATE"
     ),
     "ground_based.opera.reflectivity": (

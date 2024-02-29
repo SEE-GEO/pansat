@@ -26,7 +26,7 @@ from pansat.products.product_description import ProductDescription
 
 
 OPERA_NAMES = {
-    "precip_rate": "RAINFALL_RATE",
+    "surface_precip": "RAINFALL_RATE",
     "reflectivity": "REFLECTIVITY",
 }
 
