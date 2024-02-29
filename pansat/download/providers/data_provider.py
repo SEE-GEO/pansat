@@ -121,11 +121,11 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.ges_disc
     import pansat.download.providers.iowa_state
     import pansat.download.providers.goes_aws
-    import pansat.download.providers.icare
     import pansat.download.providers.noaa_ncei
     import pansat.download.providers.eumetsat
     import pansat.download.providers.uci
     import pansat.download.providers.meteo_france
     import pansat.download.providers.cloudsat_dpc
+    import pansat.download.providers.icare
 
     return ALL_PROVIDERS
