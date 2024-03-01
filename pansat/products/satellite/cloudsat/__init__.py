@@ -246,7 +246,7 @@ def _cloud_scenario_to_precipitation_flag(cloud_scenario):
     return np.right_shift(np.bitwise_and(cloud_scenario[:], mask), 13)
 
 
-def _calculate_profile_time(handle, *args, **kwargs) -> np.ndarray:
+def _calculate_profile_time(handle, slcs) -> np.ndarray:
     """
     Calculate profile time as np.datetime64 objects.
 
@@ -255,16 +255,16 @@ def _calculate_profile_time(handle, *args, **kwargs) -> np.ndarray:
 
     """
     start_time = getattr(handle, "TAI_start")[:][..., 0]
-    profile_time = getattr(handle, "Profile_time")[:][..., 0]
+    profile_time = getattr(handle, "Profile_time")[slcs][..., 0]
     start_time = np.datetime64("1993-01-01") + np.round(start_time).astype("timedelta64[s]")[0]
     offsets = np.round(profile_time).astype("timedelta64[s]")
     return (start_time + offsets).astype("datetime64[ns]")
 
-def _squeeze(handle, *args) -> np.ndarray:
+def _squeeze(handle, slcs) -> np.ndarray:
     """
     Used trailing dimensions in latitude and longitude arrays.
     """
-    return np.array(handle[:]).squeeze()
+    return np.array(handle.__getitem__(slcs)).squeeze()
 
 
 def _parse_products():
