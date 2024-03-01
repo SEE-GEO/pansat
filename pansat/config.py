@@ -82,7 +82,7 @@ class PansatConfig:
 
         parsed_regs = []
 
-        for reg, reg_dict in reg_tables.items():
+        for reg, reg_dict in list(reg_tables.items())[::-1]:
             path = reg_dict.get("path", None)
             if path is None:
                 raise RuntimeError(f"Registry entry {reg} lack 'path' argument.")
@@ -103,10 +103,11 @@ class PansatConfig:
             parsed_regs.append(
                 reg_class(reg, path, transparent=transparent, parent=parent)
             )
+            parent = parsed_regs[-1]
 
-        self.registries += parsed_regs[::-1]
+        self.registries += parsed_regs
 
-    def write(self, path: Path) -> None:
+    def write(self, path: Optional[Path]=None) -> None:
         """
         Write configuration to .toml file.
 
@@ -114,6 +115,11 @@ class PansatConfig:
             path: Path pointing to a .toml file that the configuration will
                 be written to.
         """
+        if path is None:
+            path = USER_CONFIG_DIR / "config.toml"
+            if not path.exists():
+                path.mkdir(exist_ok=True)
+
         doc = tomlkit.document()
         doc.add(tomlkit.comment("pansat configuration file"))
         doc.add(tomlkit.nl())
@@ -123,7 +129,9 @@ class PansatConfig:
         doc.add("general", general)
 
         registries = tomlkit.table()
-        for registry in self.registries:
+        for registry in self.registries[::-1]:
+            if registry.name == "user_registry":
+                continue
             reg_table = tomlkit.table()
             reg_table.add("path", str(registry.path))
             reg_table.add("transparent", registry.transparent)

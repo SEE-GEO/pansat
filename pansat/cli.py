@@ -1,3 +1,10 @@
+"""
+pansat.cli
+==========
+
+Defines the command line interface (CLI) of pansat.
+"""
+import logging
 import os
 from pathlib import Path
 from typing import List, Optional
@@ -5,7 +12,15 @@ from typing import List, Optional
 import click
 
 import pansat.download
-from pansat.config import display_current_config
+from pansat.config import (
+    get_current_config,
+    display_current_config,
+    Registry,
+    DataDir
+)
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @click.group()
@@ -53,6 +68,8 @@ provider :: username / password
 def add_account(provider_name, user_name):
     pansat.download.accounts.add_identity(provider_name, user_name)
 
+account.add_command(list_accounts)
+account.add_command(add_account)
 
 @click.command("index")
 @click.argument("path")
@@ -77,9 +94,67 @@ def index(path: Path, products: Optional[List[str]] = None):
     reg.save()
 
 
-account.add_command(list_accounts)
-account.add_command(add_account)
+@click.group()
+def registry():
+    """
+    Inspect, add and modify registries and data directories.
+    """
+    pass
+
+@click.command("list")
+def list_registries():
+    """
+    List currently activate registries and data directories.
+    """
+    import pansat.environment as penv
+
+    reg = penv.get_active_registry()
+    print(reg.print_summary())
+
+@click.command("add")
+@click.argument("kind")
+@click.argument("name")
+@click.argument("path")
+@click.option("--opaque", is_flag=True, default=False)
+def add_registry(
+        kind: str,
+        name: str,
+        path: str,
+        opaque: bool = True
+):
+    kind = kind.lower()
+    if kind == "registry":
+        reg_cls = Registry
+    elif kind == "data_directory":
+        reg_cls = DataDir
+    else:
+        LOGGER.error(
+            "'kind' should be 'registry' or 'data_directory' not %s.",
+            kind
+        )
+        return 1
+
+    path = Path(path)
+    if not path.exists():
+        LOGGER.error(
+            "The provided path '%s' does not point to an existing directory."
+        )
+
+    config = get_current_config()
+
+    new_reg = reg_cls(name, path, transparent=~opaque)
+    config.registries.insert(0, new_reg)
+    config.write()
+
+
+
+registry.add_command(list_registries)
+registry.add_command(add_registry)
+
+
+
 
 pansat_cli.add_command(index)
 pansat_cli.add_command(config)
 pansat_cli.add_command(account)
+pansat_cli.add_command(registry)

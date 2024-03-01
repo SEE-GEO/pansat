@@ -45,6 +45,7 @@ class Registry(Catalog):
         transparent: bool = True,
         parent: Optional["Registry"] = None,
     ):
+        self.path = path
         if path.is_dir():
             path = path / f"{name}.pansat.db"
         super().__init__(db_path=path)
@@ -134,6 +135,20 @@ class Registry(Catalog):
 
         index = index + self.parent.get_index(product)
         return index
+
+    def print_summary(self, verbosity:int = 0) -> str:
+        """
+        Print summary of registry contents.
+        """
+        s = ""
+        if self.parent is not None:
+            s = self.parent.print_summary(verbosity=verbosity)
+
+        s += self.name + ":\n"
+        for name, index in self.indices.items():
+            s += "\t" + name + f": {len(index)} granules\n"
+        s += "\n"
+        return s
 
 
 class DataDir(Registry):
