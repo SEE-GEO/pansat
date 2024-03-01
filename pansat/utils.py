@@ -66,7 +66,6 @@ def parse_polygon(
     lat_coords += list(lats[inds, 0])
 
     coords = list(zip(lon_coords, lat_coords))
-    print(coords)
 
     polygon = geometry.Polygon(coords)
     return polygon
@@ -140,7 +139,6 @@ def resample_data(
         * (lats_t >= np.nanmin(lats))
         * (lats_t <= np.nanmax(lats))
     )
-    print(valid_pixels.sum())
 
     swath = SwathDefinition(lons=lons, lats=lats)
     target = SwathDefinition(lons=lons_t[valid_pixels], lats=lats_t[valid_pixels])
