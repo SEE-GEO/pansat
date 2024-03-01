@@ -553,7 +553,6 @@ def lonlats_to_polygon(
     coords = split_at_antimeridian(coords)
 
     if len(coords) == 1:
-        print(coords[0])
         return Polygon(coords[0])
 
     mpolygon = MultiPolygon(coords)
