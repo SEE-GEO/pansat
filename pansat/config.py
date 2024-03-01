@@ -24,7 +24,12 @@ LOGGER = logging.getLogger(__name__)
 _CURRENT_CONFIG = None
 
 # The directory containing the configuration file.
-USER_CONFIG_DIR = Path(user_config_dir("pansat", "pansat"))
+if "PANSAT_CONFIG_DIR" in os.environ:
+    PANSAT_CONFIG_DIR = Path(os.environ["PANSAT_CONFIG_DIR"]) / "pansat"
+    if not PANSAT_CONFIG_DIR.exists():
+        PANSAT_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+else:
+    PANSAT_CONFIG_DIR = Path(user_config_dir("pansat", "pansat"))
 
 
 @dataclass
@@ -50,7 +55,7 @@ class PansatConfig:
             registries: A list of registries.
         """
         if identity_file is None:
-            identity_file = Path(USER_CONFIG_DIR) / Path("identities.json")
+            identity_file = Path(PANSAT_CONFIG_DIR) / Path("identities.json")
         self.identity_file = identity_file
 
         if registries is None:
@@ -116,7 +121,7 @@ class PansatConfig:
                 be written to.
         """
         if path is None:
-            path = USER_CONFIG_DIR / "config.toml"
+            path = PANSAT_CONFIG_DIR / "config.toml"
             if not path.exists():
                 path.mkdir(exist_ok=True)
 
@@ -153,7 +158,7 @@ def get_user_registry() -> Registry:
     """
     global _USER_REGISTRY
     if _USER_REGISTRY is None:
-        registry_dir = Path(USER_CONFIG_DIR / "registry")
+        registry_dir = Path(PANSAT_CONFIG_DIR / "registry")
         registry_dir.mkdir(exist_ok=True)
         _USER_REGISTRY = Registry("user_registry", registry_dir)
     return _USER_REGISTRY
@@ -175,8 +180,7 @@ def find_config_dir() -> Path:
             return pansat_path
         curr_path = curr_path.parent
 
-    config_dir = Path(user_config_dir("pansat", "pansat"))
-    return config_dir
+    return PANSAT_CONFIG_DIR
 
 
 def get_current_config() -> PansatConfig:
