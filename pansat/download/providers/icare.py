@@ -40,6 +40,7 @@ ICARE_PRODUCTS = {
     #"CloudSat_2B-GEOPROF-LIDAR": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
     #"CloudSat_2B-TAU": ["SPACEBORNE", "CLOUDSAT", "2B-TAU"],
     #"CloudSat_2C-PRECIP-COLUMN": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
+    "satellite.cloudsat.cstrack_cs_modis_aux": ["SPACEBORNE", "CLOUDSAT", "CSTRACK_CS-MODIS-AUX"]
     #"satellite.cloudsat.l2c": ["SPACEBORNE", "CLOUDSAT", "2B-PRECIP-COLUMN"],
     #"CloudSat_2C-SNOW-PROFILE": ["SPACEBORNE", "CLOUDSAT", "2B-GEOPROF-LIDAR"],
     #"Calipso_333mCLay": ["SPACEBORNE", "CALIOP", "333mCLay"],
@@ -126,6 +127,10 @@ class IcareProvider(DiscreteProviderDay):
             A list of file records identifying the files from the requested
             day.
         """
+        LOGGER.debug(
+            "Looking up files for day %s",
+            time
+        )
         time = to_datetime(time)
         product_path ="/".join(ICARE_PRODUCTS[product.name])
 
@@ -168,7 +173,13 @@ class IcareProvider(DiscreteProviderDay):
         if destination.is_dir():
             destination = destination / rec.filename
 
+
         url = rec.remote_path
+
+        LOGGER.debug(
+            "Starting download of file %s from %s.",
+            rec.filename, url
+        )
 
         self.download_url(rec.remote_path, rec.filename, destination)
         new_rec = copy(rec)
