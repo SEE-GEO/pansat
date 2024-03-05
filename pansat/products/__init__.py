@@ -6,6 +6,7 @@ The ``products`` module provides functionality for handling supported data produ
 """
 from abc import ABC, abstractmethod, abstractproperty
 from dataclasses import dataclass
+import logging
 import importlib
 from pathlib import Path
 from typing import Optional, List, Union
@@ -16,6 +17,9 @@ from pansat.file_record import FileRecord
 from pansat.granule import Granule
 from pansat.time import TimeRange
 from pansat import geometry
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Geometry:
@@ -179,6 +183,7 @@ class Product(ABC):
             A list of 'pansat.FileRecords' specifying the downloaded
             files.
         """
+        time_range = TimeRange.to_time_range(time_range)
         files = self.find_files(time_range, roi=roi)
         downloaded = []
         for rec in files:
@@ -189,7 +194,8 @@ class Product(ABC):
             self,
             time_range: TimeRange,
             roi: Optional[Geometry] = None,
-            destination=None
+            destination: Optional[Path] = None,
+            provider: Optional['Provider'] = None
     ) -> List[FileRecord]:
         """
         Find available files within a given time range and optional
@@ -201,18 +207,25 @@ class Product(ABC):
                 range within which to look for available files.
             roi: An optional region of interest (roi) restricting the search
                 to a given geographical area.
+            provider: An optional provider to retrieve the product from. If
+                this is not provided, a suitable provider is determined from
+                all available providers.
 
         Return:
             A list of 'pansat.FileRecords' specifying the downloaded
             files.
         """
+        time_range = TimeRange.to_time_range(time_range)
         files = self.find_files(time_range, roi=roi)
         local = []
         for rec in files:
             local.append(rec.get(destination=destination))
         return local
 
-    def find_provider(self) -> Optional['Provider']:
+    def find_provider(
+            self,
+            provider: Optional['Provider'] = None
+    ) -> Optional['Provider']:
         """
         Find provider for this product.
 
@@ -220,6 +233,14 @@ class Product(ABC):
             A data provider object providing this product or None.
         """
         from pansat.download.providers.data_provider import get_providers
+
+        if provider is not None:
+            if provider.provides(self):
+                return provider
+            LOGGER.warning(
+                "An explicit provider has been provided but it doesn't provide"
+                " the given product and will therefore be ignored.."
+            )
         product_provider = None
         for provider in get_providers():
             try:
@@ -234,7 +255,8 @@ class Product(ABC):
     def find_files(
             self,
             time_range: TimeRange,
-            roi: Optional[Geometry] = None
+            roi: Optional[Geometry] = None,
+            provider: Optional["Provider"] = None
     ) -> List[FileRecord]:
         """
         Find available files within a given time range and optional geographic
@@ -247,13 +269,18 @@ class Product(ABC):
                 range within which to look for available files.
             roi: An optional region of interest (roi) restricting the search
                 to a given geographical area.
+            provider: An optional provider to retrieve the product from. If
+                this is not provided, a suitable provider is determined from
+                all available providers.
 
         Return:
             A list of 'pansat.FileRecords' specifying the available
             files.
         """
         from pansat.download.providers.data_provider import get_providers
-        product_provider = self.find_provider()
+
+        time_range = TimeRange.to_time_range(time_range)
+        product_provider = self.find_provider(provider=provider)
         if product_provider is None:
             raise RuntimeError(f"Could not find a provider for the product '{self}'.")
         return product_provider.find_files(self, time_range, roi=roi)

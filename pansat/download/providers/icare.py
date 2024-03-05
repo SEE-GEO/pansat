@@ -14,6 +14,7 @@ import logging
 import re 
 from typing import Optional
 
+from .utils import SFTPConnection
 from pansat.download.providers.discrete_provider import DiscreteProvider
 from pansat.download.accounts import get_identity
 
@@ -70,40 +71,9 @@ class IcareProvider(DiscreteProviderDay):
         """
         super().__init__()
         self.cache = {}
-
-    def _ftp_listing_to_list(self, path, item_type=int):
-        """
-        Retrieve directory content from ftp listing as list.
-
-        Args:
-
-            path(``str``): The path from which to retrieve the ftp listing.
-
-            item_type(``type``): Type constructor to apply to the elements of the
-                listing. To retrieve a list of strings use t = str.
-
-        Return:
-
-            A list containing the content of the ftp directory.
-
-        """
-        if not path in self.cache:
-            with FTP(IcareProvider.base_url) as ftp:
-                user, password = get_identity("Icare")
-                ftp.login(user=user, passwd=password)
-                try:
-                    ftp.cwd(path)
-                    listing = ftp.nlst()
-                    listing = [item_type(l) for l in listing]
-                except:
-                    LOGGER.exception(
-                        "An error was encountered when listing files on "
-                        "ICARE ftp server."
-                    )
-                    listing = []
-
-            self.cache[path] = listing
-        return self.cache[path]
+        self.connection = SFTPConnection(
+            "sftp.icare.univ-lille.fr", "Icare"
+        )
 
     def provides(self, product) -> bool:
         """
@@ -135,17 +105,16 @@ class IcareProvider(DiscreteProviderDay):
         product_path ="/".join(ICARE_PRODUCTS[product.name])
 
         rel_url = "/".join([product_path, str(time.year), time.strftime("%Y_%m_%d")])
-        url = self.base_url +'/' + rel_url 
 
-        # response for FTP file listing 
-        user, pw = get_identity('Icare')
-        with FTP(self.base_url) as ftp: 
-            ftp.login(user = user, passwd = pw)
-            ftp.cwd(rel_url)
-            files = ftp.nlst()
+        if rel_url not in self.cache:
+            with self.connection as conn:
+                files = self.connection.list_files(rel_url)
+            self.cache[rel_url] = files
+        else:
+            files = self.cache[rel_url]
 
         recs = [
-            FileRecord.from_remote(product, self, rel_url, fname)
+            FileRecord.from_remote(product, self, rel_url + "/" + fname, fname)
             for fname in files
         ]
         return recs
@@ -181,7 +150,9 @@ class IcareProvider(DiscreteProviderDay):
             rec.filename, url
         )
 
-        self.download_url(rec.remote_path, rec.filename, destination)
+        self.connection.ensure_connection()
+        self.connection.download(url, destination)
+
         new_rec = copy(rec)
         new_rec.local_path = destination
         return new_rec

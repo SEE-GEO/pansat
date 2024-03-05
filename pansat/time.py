@@ -86,7 +86,7 @@ class TimeRange:
     start: np.datetime64
     end: np.datetime64 = None
 
-    def __init__(self, start, end):
+    def __init__(self, start, end=None):
         """
         Create a time range from a given start and end time.
 
@@ -99,12 +99,29 @@ class TimeRange:
             end: The end time of the time range as a string, Python
                 datetime object or a numpy.datetime64 object.
         """
+        if isinstance(start, TimeRange):
+            return self.__init__(start.start, end)
+
+        if end is None:
+            end = start
         if isinstance(start, str):
             start = np.datetime64(start)
         if isinstance(end, str):
             end = np.datetime64(end)
         self.start = to_datetime(start)
         self.end = to_datetime(end)
+
+    @staticmethod
+    def to_time_range(time_range: Union[Time, "TimeRange"]) -> "TimeRange":
+        if isinstance(time_range, TimeRange):
+            return time_range
+        try:
+            time_range = TimeRange(time_range)
+        except ValueError:
+            raise ValueError(
+               f"Could not convert object '{time_range}' to time range."
+            )
+        return time_range
 
     def __eq__(self, other):
         if not isinstance(other, TimeRange):
