@@ -269,3 +269,27 @@ def test_sub():
 
     time_range = time_range - np.timedelta64(30, "m")
     assert time_range.covers("2020-01-01T00:45:00")
+
+
+def test_to_time_range():
+    """
+    Ensure that 'time_diff' method
+
+        - returns 0, when time intervals overlap.
+        - returns a positive number when they don't.
+    """
+    time_range = TimeRange("2020-01-01T01:00:00", "2020-01-01T01:00:00")
+    tr_1 = TimeRange.to_time_range(time_range)
+    assert isinstance(tr_1, TimeRange)
+
+    tr_2 = TimeRange.to_time_range("2020-01-01T01:00:00")
+    assert isinstance(tr_2, TimeRange)
+    assert tr_1 == tr_2
+
+    tr_3 = TimeRange.to_time_range(np.datetime64("2020-01-01T01:00:00"))
+    assert isinstance(tr_3, TimeRange)
+    assert tr_1 == tr_3
+
+    tr_4 = TimeRange.to_time_range(datetime(2020, 1, 1, 1))
+    assert isinstance(tr_4, TimeRange)
+    assert tr_1 == tr_4

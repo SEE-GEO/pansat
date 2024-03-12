@@ -30,8 +30,12 @@ class SSMIProduct(FilenameRegexpMixin, Product):
         """
         self.variant = variant.lower()
         self.sensor = sensor.lower()
+        if sensor.lower() == "all":
+            sensor = r"\w*"
+        else:
+            sensor = sensor.upper()
         self.filename_regexp = re.compile(
-            rf"{variant.upper()}_{sensor.upper()}_FCDR_V\w*_\w*_D(\d{{8}})_S(\d{{4}})"
+            rf"{variant.upper()}_{sensor}_FCDR_V\w*_\w*_D(\d{{8}})_S(\d{{4}})"
             r"_E(\d{4})_\w*.nc"
         )
 
@@ -116,8 +120,12 @@ class SSMIGriddedProduct(SSMIProduct):
         """
         self.variant = variant
         super().__init__(variant, sensor=sensor)
+        if sensor.lower() == "all":
+            sensor = r"\w*"
+        else:
+            sensor = sensor.upper()
         self.filename_regexp = re.compile(
-            rf"{variant.upper()}_{sensor.upper()}_FCDR-GRID_V\w*_\w*_D(\d{{8}}).nc"
+            rf"{variant.upper()}_{sensor}_FCDR-GRID_V\w*_\w*_D(\d{{8}}).nc"
         )
 
     @property
@@ -169,5 +177,6 @@ class SSMIGriddedProduct(SSMIProduct):
 
 
 ssmi_csu_gridded = SSMIGriddedProduct("csu")
+ssmi_csu_gridded_all = SSMIGriddedProduct("csu", sensor="all")
 ssmis_csu_gridded = SSMIGriddedProduct("csu", sensor="ssmis")
 amsr2_csu_gridded = SSMIGriddedProduct("csu", sensor="amsr2")

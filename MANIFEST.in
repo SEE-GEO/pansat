@@ -1,3 +1,4 @@
 include LICENSE
 global-include *.ini
 include pansat/download/providers/data/gpm_products.json
+include pansat/products/satellite/goes/*.json

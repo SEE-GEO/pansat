@@ -24,7 +24,12 @@ LOGGER = logging.getLogger(__name__)
 _CURRENT_CONFIG = None
 
 # The directory containing the configuration file.
-USER_CONFIG_DIR = Path(user_config_dir("pansat", "pansat"))
+if "PANSAT_CONFIG_DIR" in os.environ:
+    PANSAT_CONFIG_DIR = Path(os.environ["PANSAT_CONFIG_DIR"]) / "pansat"
+    if not PANSAT_CONFIG_DIR.exists():
+        PANSAT_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+else:
+    PANSAT_CONFIG_DIR = Path(user_config_dir("pansat", "pansat"))
 
 
 @dataclass
@@ -50,7 +55,7 @@ class PansatConfig:
             registries: A list of registries.
         """
         if identity_file is None:
-            identity_file = Path(USER_CONFIG_DIR) / Path("identities.json")
+            identity_file = Path(PANSAT_CONFIG_DIR) / Path("identities.json")
         self.identity_file = identity_file
 
         if registries is None:
@@ -82,7 +87,7 @@ class PansatConfig:
 
         parsed_regs = []
 
-        for reg, reg_dict in reg_tables.items():
+        for reg, reg_dict in list(reg_tables.items())[::-1]:
             path = reg_dict.get("path", None)
             if path is None:
                 raise RuntimeError(f"Registry entry {reg} lack 'path' argument.")
@@ -103,10 +108,11 @@ class PansatConfig:
             parsed_regs.append(
                 reg_class(reg, path, transparent=transparent, parent=parent)
             )
+            parent = parsed_regs[-1]
 
-        self.registries += parsed_regs[::-1]
+        self.registries += parsed_regs
 
-    def write(self, path: Path) -> None:
+    def write(self, path: Optional[Path]=None) -> None:
         """
         Write configuration to .toml file.
 
@@ -114,6 +120,11 @@ class PansatConfig:
             path: Path pointing to a .toml file that the configuration will
                 be written to.
         """
+        if path is None:
+            path = PANSAT_CONFIG_DIR / "config.toml"
+            if not path.exists():
+                path.mkdir(exist_ok=True)
+
         doc = tomlkit.document()
         doc.add(tomlkit.comment("pansat configuration file"))
         doc.add(tomlkit.nl())
@@ -123,7 +134,9 @@ class PansatConfig:
         doc.add("general", general)
 
         registries = tomlkit.table()
-        for registry in self.registries:
+        for registry in self.registries[::-1]:
+            if registry.name == "user_registry":
+                continue
             reg_table = tomlkit.table()
             reg_table.add("path", str(registry.path))
             reg_table.add("transparent", registry.transparent)
@@ -145,7 +158,7 @@ def get_user_registry() -> Registry:
     """
     global _USER_REGISTRY
     if _USER_REGISTRY is None:
-        registry_dir = Path(USER_CONFIG_DIR / "registry")
+        registry_dir = Path(PANSAT_CONFIG_DIR / "registry")
         registry_dir.mkdir(exist_ok=True)
         _USER_REGISTRY = Registry("user_registry", registry_dir)
     return _USER_REGISTRY
@@ -167,8 +180,7 @@ def find_config_dir() -> Path:
             return pansat_path
         curr_path = curr_path.parent
 
-    config_dir = Path(user_config_dir("pansat", "pansat"))
-    return config_dir
+    return PANSAT_CONFIG_DIR
 
 
 def get_current_config() -> PansatConfig:

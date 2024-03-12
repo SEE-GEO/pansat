@@ -5,13 +5,18 @@ from datetime import datetime
 import os
 import numpy as np
 import pytest
-import pansat.products.satellite.cloud_sat as cloud_sat
+from pansat.products.satellite import cloudsat
 
 TEST_NAMES = {
-    "CloudSat_1B-CPR": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf"
+    "satellite.cloudsat.l1b_cpr": "2018143004115_64268_CS_1B-CPR_GRANULE_P_R05_E07_F00.hdf",
+    "satellite.cloudsat.cstrack_cs_modis_aux": "CSTRACK_CS-MODIS-AUX_2012146193300_32326_V2-20.hdf"
 }
-TEST_TIMES = {"CloudSat_1B-CPR": datetime(2018, 5, 23, 00, 41, 15)}
-PRODUCTS = [cloud_sat.l1b_cpr]
+TEST_TIMES = {
+    "satellite.cloudsat.l1b_cpr": datetime(2018, 5, 23, 00, 41, 15),
+    "satellite.cloudsat.cstrack_cs_modis_aux": datetime(2012, 5, 25, 19, 33)
+}
+
+PRODUCTS = [cloudsat.l1b_cpr, cloudsat.cstrack_modis_aux]
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 HAS_HDF = False
@@ -25,13 +30,14 @@ except Exception:
 
 
 @pytest.mark.parametrize("product", PRODUCTS)
-def test_filename_to_date(product):
+def test_temporal_coverage(product):
     """
     Assert that time is correctly extracted from filename.
     """
     filename = TEST_NAMES[product.name]
-    time = product.filename_to_date(filename)
-    assert time == TEST_TIMES[product.name]
+    time_range = product.get_temporal_coverage(filename)
+    print("TR :: ", time_range)
+    assert time_range.start == TEST_TIMES[product.name]
 
 
 @pytest.mark.parametrize("product", PRODUCTS)
@@ -50,7 +56,7 @@ def test_download():
     """
     Download CloudSat L1B file.
     """
-    product = cloud_sat.l1b_cpr
+    product = cloudsat.l1b_cpr
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 6, 1, 12)
     files = product.download(t_0, t_1)
@@ -65,13 +71,13 @@ def test_cloud_class_masks():
     as expected.
     """
     data = np.array([2081])
-    assert cloud_sat._cloud_scenario_to_cloud_scenario_flag(data) == 1
-    assert cloud_sat._cloud_scenario_to_cloud_class(data) == 0
-    assert cloud_sat._cloud_scenario_to_land_sea_flag(data) == 1
-    assert cloud_sat._cloud_scenario_to_latitude_flag(data) == 0
-    assert cloud_sat._cloud_scenario_to_algorithm_flag(data) == 0
-    assert cloud_sat._cloud_scenario_to_quality_flag(data) == 1
-    assert cloud_sat._cloud_scenario_to_precipitation_flag(data) == 0
+    assert cloudsat._cloud_scenario_to_cloud_scenario_flag(data) == 1
+    assert cloudsat._cloud_scenario_to_cloud_class(data) == 0
+    assert cloudsat._cloud_scenario_to_land_sea_flag(data) == 1
+    assert cloudsat._cloud_scenario_to_latitude_flag(data) == 0
+    assert cloudsat._cloud_scenario_to_algorithm_flag(data) == 0
+    assert cloudsat._cloud_scenario_to_quality_flag(data) == 1
+    assert cloudsat._cloud_scenario_to_precipitation_flag(data) == 0
 
 
 @pytest.mark.slow
@@ -81,7 +87,7 @@ def test_download_rain_profile():
     """
     Download CloudSat rain profile.
     """
-    product = cloud_sat.l2c_rain_profile
+    product = cloudsat.l2c_rain_profile
     t_0 = datetime(2018, 6, 1, 10)
     t_1 = datetime(2018, 6, 1, 12)
     files = product.download(t_0, t_1)
