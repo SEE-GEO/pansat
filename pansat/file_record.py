@@ -189,6 +189,11 @@ class FileRecord:
         """
         import pansat.environment as penv
 
+        if self.local_path is not None and self.local_path.exists():
+            new_rec = copy(self)
+            new_rec.local_path = self.local_path
+            return new_rec
+
         local_path = penv.lookup_file(self)
         if local_path is None:
             return self.download(destination)
