@@ -16,6 +16,7 @@ from pansat.products import (
     Product,
     FilenameRegexpMixin
 )
+from pansat import FileRecord
 from pansat import geometry
 from pansat.time import TimeRange
 from pansat.geometry import LonLatRect
@@ -54,7 +55,7 @@ class SSMIProduct(FilenameRegexpMixin, Product):
         """Default destination for downloads."""
         return f"{self.sensor}_{self.variant}"
 
-    def get_temporal_coverage(self, rec):
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
         """
         Args:
             rec: A FileRecord pointing to a remote or local SSMI CDR file.
@@ -62,6 +63,9 @@ class SSMIProduct(FilenameRegexpMixin, Product):
             A TimeRange object representing the temporal coverage of the given
             file.
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
         match = self.filename_regexp.match(rec.filename)
         if match is None:
             raise ValueError(
@@ -143,7 +147,7 @@ class SSMIGriddedProduct(SSMIProduct):
         """Default destination for downloads."""
         return f"ssmi_{self.variant}"
 
-    def get_temporal_coverage(self, rec):
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
         """
         Args:
             rec: A FileRecord pointing to a remote or local SSMI CDR file.
@@ -151,6 +155,9 @@ class SSMIGriddedProduct(SSMIProduct):
             A TimeRange object representing the temporal coverage of the given
             file.
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
         match = self.filename_regexp.match(rec.filename)
         if match is None:
             raise ValueError(
