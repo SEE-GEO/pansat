@@ -108,7 +108,10 @@ class IcareProvider(DiscreteProviderDay):
 
         if rel_url not in self.cache:
             with self.connection as conn:
-                files = self.connection.list_files(rel_url)
+                try:
+                    files = self.connection.list_files(rel_url)
+                except IOError:
+                    files = []
             self.cache[rel_url] = files
         else:
             files = self.cache[rel_url]
