@@ -153,8 +153,8 @@ class IcareProvider(DiscreteProviderDay):
             rec.filename, url
         )
 
-        self.connection.ensure_connection()
-        self.connection.download(url, destination)
+        with self.connection as conn:
+            conn.download(url, destination)
 
         new_rec = copy(rec)
         new_rec.local_path = destination

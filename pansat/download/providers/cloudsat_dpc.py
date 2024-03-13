@@ -47,6 +47,7 @@ PRODUCTS = {
     "satellite.cloudsat.l2b_cldclass": "2B-CLDCLASS.P1_R05",
     "satellite.cloudsat.l2b_cldclass_lidar": "2B-CLDCLASS-LIDAR.P1_R05",
     "satellite.cloudsat.l2c_rain_profile": "2C-RAIN-PROFILE.P1_R05",
+    "satellite.cloudsat.lmod06_1km_aux": "MOD06-1KM-AUX.P1_R05",
 }
 
 ######################################################################
@@ -194,26 +195,11 @@ class CloudSatDPCProvider(DiscreteProviderDay):
 
         recs = []
         for filename in files:
-            recs.append(FileRecord.from_remote(
-                product, self, "/".join([directory, filename]), filename
-            ))
+            if product.matches(filename):
+                recs.append(FileRecord.from_remote(
+                    product, self, "/".join([directory, filename]), filename
+                ))
         return recs
-
-    def download_file(self, rec: FileRecord, destination: Optional[Path] = None) -> FileRecord:
-        """
-        Download a given file and write the results to the given destination.
-
-        Args:
-            filename: The filename of the file to download.
-            destination: The destination to which to write the downloaded file.
-        """
-        self.connection.ensure_connection()
-        self.connection.download(rec.remote_path, destination)
-
-        new_rec = copy(rec)
-        new_rec.local_path = destination
-        return new_rec
-
 
     def download(
         self, rec: FileRecord, destination: Optional[Path] = None
@@ -234,8 +220,14 @@ class CloudSatDPCProvider(DiscreteProviderDay):
         else:
             destination = Path(destination)
 
+        destination = destination / rec.filename
+
         self.connection.ensure_connection()
         self.connection.download(rec.remote_path, destination)
+
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+        return new_rec
 
 
 cloudsat_dpc_provider = CloudSatDPCProvider()
