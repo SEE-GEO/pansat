@@ -460,14 +460,21 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
         """
         return Path("gpm") / "merged_ir"
 
-    def open(self, path):
+    def open(self, rec: FileRecord):
         """
         Open file as xarray dataset.
 
         Args:
             filename(``pathlib.Path`` or ``str``): The GPM file to open.
         """
-        return xr.load_dataset(path)
+        if isinstance(rec, FileRecord):
+            path = rec.local_path
+        else:
+            path = rec
+        return xr.load_dataset(path).rename({
+            "lat": "latitude",
+            "lon": "longitude"
+        })
 
 
 merged_ir = GPMMergedIR()

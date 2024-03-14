@@ -49,7 +49,7 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
         self._description = description
         name = level.upper() + "-" + product_name.upper()
         self.filename_regexp = re.compile(
-            r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P\d*_R([\d]*)_E([\d]*)\.*"
+            r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P\d*_R([\d]*)_E([\d]*).*\.hdf"
         )
 
     @property

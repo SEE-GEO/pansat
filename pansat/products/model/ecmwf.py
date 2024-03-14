@@ -8,13 +8,14 @@ ECMWF datasets.
 from calendar import monthrange
 from datetime import datetime, timedelta
 from pathlib import Path
+import re
 from typing import List, Optional
 
 import xarray as xr
 
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
-from pansat.products import Product
+from pansat.products import FilenameRegexpMixin, Product
 from pansat.geometry import LonLatRect
 
 
@@ -51,7 +52,7 @@ def get_weekdays(
     return dates
 
     
-class ECMWFDataset(Product):
+class ECMWFDataset(FilenameRegexpMixin, Product):
     """
     Dataset class for data available from ECMWF.
     """
@@ -71,9 +72,15 @@ class ECMWFDataset(Product):
             self.filename_pattern = (
                 f"{self.dataset}_{self.origin}_{self.variable}_%Y%m.grib"
             )
+            self.filename_regexp = re.compile(
+                f"{self.dataset}_{self.origin}_{self.variable}_\d{{6}}.grib"
+            )
         else:
             self.filename_pattern = (
                 f"{self.dataset}_{self.origin}_{self.variable}_{number}_%Y%m.grib"
+            )
+            self.filename_regexp = re.compile(
+                f"{self.dataset}_{self.origin}_{self.variable}_\d*_\d{{6}}.grib"
             )
         self.number = number
         super().__init__()
@@ -107,7 +114,6 @@ class ECMWFDataset(Product):
         month_days = monthrange(time_range.start.year, time_range.start.month)[1]
         end_date = time_range.start + timedelta(days=month_days - 1)
         end_date = end_date.strftime("%Y-%m-%d")
-        dates = start_date + "/to/" + end_date
 
         steps = range(0, 720, 6)
         if self.origin == "egrr":
@@ -136,10 +142,6 @@ class ECMWFDataset(Product):
 
     def get_filename(self, date):
         return date.strftime(self.filename_pattern)
-
-
-    def matches(self, rec: FileRecord) -> bool:
-        return True
 
 
     def get_temporal_coverage(self, rec: FileRecord):
@@ -174,8 +176,8 @@ class ECMWFDataset(Product):
             by the given file record.
 
         """
-        if not isinstance(rec, FileRecord):
-            rec = FileRecord
+        if isinstance(rec, (Path, str)):
+            rec = FileRecord(rec)
 
         data = xr.load_dataset(rec.local_path)
 

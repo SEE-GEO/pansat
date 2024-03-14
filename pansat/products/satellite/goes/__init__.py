@@ -115,6 +115,9 @@ class GOESProduct(FilenameRegexpMixin, Product):
             A 'TimeRange' object representing the time range covered by the
             data file.
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
         match = self.filename_regexp.match(rec.filename)
         start_time = datetime.strptime(match.group(2)[:-1], "%Y%j%H%M%S")
         end_time = datetime.strptime(match.group(3)[:-1], "%Y%j%H%M%S")
