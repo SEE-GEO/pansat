@@ -67,7 +67,7 @@ class PersiannProduct(FilenameRegexpMixin, Product):
             A TimeRange object representing the temporal coverage of the
             product.
         """
-        if not isinstance(rec, FileRecord):
+        if isinstance(rec, (str, Path)):
             rec = FileRecord(rec)
 
         filename = rec.filename

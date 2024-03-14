@@ -136,6 +136,8 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         """
         Implements interface to extract temporal coverage of file.
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
         match = self.filename_regexp.match(rec.filename)
         if match is None:
             raise RuntimeError(
