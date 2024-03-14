@@ -97,7 +97,7 @@ class PansatConfig:
                     f"Path argument in registry '{reg}' does not point to an "
                     "existing folder. It will therefore be ignored."
                 )
-            is_data_dir = reg_dict.get("is_data_dir", False)
+            is_data_dir = reg_dict.get("data_dir", False)
             transparent = reg_dict.get("transparent", True)
 
             if is_data_dir:
