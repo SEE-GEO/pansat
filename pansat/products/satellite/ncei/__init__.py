@@ -17,4 +17,4 @@ from .ssmi import (
 
 from .patmosx import patmosx, patmosx_asc, patmosx_des
 
-from .isccp import isccp_hgm
+from .isccp import isccp_hgm, isccp_hxg
