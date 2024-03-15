@@ -27,9 +27,9 @@ BASE_URL = "https://www.ncei.noaa.gov/data"
 NCEI_PRODUCTS = {"ssmis": "ssmis-brightness-temperature-rss/access"}
 
 PRODUCTS_MONTH = {
-    "gridsat_goes": ("{year}/{month:02}", "gridsat-goes/access/goes"),
-    "gridsat_conus": ("{year}/{month:02}", "gridsat-goes/access/conus"),
-    "isccp_hxg": ("{year}{month:02}", "international-satellite-cloud-climate-project-isccp-h-series-data/access/isccp/hxg"),
+    "gridsat_goes": ("{year}/{month:02}/", "gridsat-goes/access/goes"),
+    "gridsat_conus": ("{year}/{month:02}/", "gridsat-goes/access/conus"),
+    "isccp_hxg": ("{year}{month:02}/", "international-satellite-cloud-climate-project-isccp-h-series-data/access/isccp/hxg"),
 }
 
 PRODUCTS_YEAR = {
@@ -232,7 +232,6 @@ class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
         ncei_name = product.name.split(".")[-1]
         yearmonth, path = PRODUCTS_MONTH[ncei_name]
         url = f"{BASE_URL}/{path}/{yearmonth.format(year=year, month=month)}"
-        print(url)
         session = cache.get_session()
         response = session.get(url)
         links = LINK_REGEX.findall(response.text)
