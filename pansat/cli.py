@@ -44,8 +44,8 @@ def account():
     pass
 
 
-@click.command()
-def list_accounts(name="list"):
+@click.command(name="list")
+def list_accounts():
     identities = pansat.download.accounts.get_identities()
     output = """
 
