@@ -16,6 +16,7 @@ import queue
 import numpy as np
 import xarray as xr
 import geopandas
+import rich
 import rich.progress
 
 from pansat.time import TimeRange, to_datetime64
@@ -55,7 +56,7 @@ class Catalog:
         """
         if products is None:
             LOGGER.warning(
-                "No list of product provided to Catalog.from_existing_files, "
+                "No list of products provided to 'Catalog.from_existing_files', "
                 "which will cause all currently known products to be "
                 " considered. This may be slow."
             )
@@ -67,6 +68,7 @@ class Catalog:
         indices = {}
 
         for prod in products:
+            print(prod)
             matching = np.array(list(map(prod.matches, files)))
             files_p = files[matching]
             if files_p.size == 0:
@@ -74,8 +76,7 @@ class Catalog:
             files = files[~matching]
             indices[prod.name] = Index.index(prod, files_p)
 
-        db_path = path / ".pansat_catalog"
-        cat = Catalog(db_path, indices=indices)
+        cat = Catalog(db_path=None, indices=indices)
         return cat
 
     def __init__(
@@ -181,6 +182,27 @@ class Catalog:
 
         index = self.indices[pname]
         return index.get_local_path(rec)
+
+    def to_table(self) -> rich.table.Table:
+        """
+        Render catalog summary as rich table.
+        """
+        table = rich.table.Table(title=f"🗃️️   [bold]{self.name}[/bold] ({self.db_path})")
+        table.add_column("Product")
+        table.add_column("# entries")
+        table.add_column("Start time")
+        table.add_column("End time")
+        for index_name, index in self.indices.items():
+            time_range = index.time_range
+            if time_range is not None:
+                start = time_range.start.strftime("%Y-%m-%d %H:%M:%S")
+                end = time_range.end.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                start = ""
+                end = ""
+            table.add_row(index_name, str(len(index)), start, end)
+        return table
+
 
 
 def find_files(product: "pansat.products.Prodcut", path: Path):

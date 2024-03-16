@@ -14,6 +14,9 @@ import os
 from tempfile import TemporaryDirectory
 from typing import Optional, Union, List
 
+import rich
+import rich.tree
+
 from pathlib import Path
 from pansat.catalog import Catalog, Index
 from pansat.file_record import FileRecord
@@ -134,19 +137,13 @@ class Registry(Catalog):
         index = index + self.parent.get_index(product)
         return index
 
-    def print_summary(self, verbosity:int = 0) -> str:
+    def print_summary(self, root: rich.tree.Tree, verbosity:int = 0) -> None:
         """
         Print summary of registry contents.
         """
-        s = ""
         if self.parent is not None:
-            s = self.parent.print_summary(verbosity=verbosity)
-
-        s += self.name + ":\n"
-        for name, index in self.indices.items():
-            s += "\t" + name + f": {len(index)} granules\n"
-        s += "\n"
-        return s
+            self.parent.print_summary(root, verbosity=verbosity)
+        tree = root.add(self.to_table())
 
 
 class DataDir(Registry):
