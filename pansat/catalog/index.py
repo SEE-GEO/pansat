@@ -25,16 +25,18 @@ from pansat.file_record import FileRecord
 from pansat.granule import Granule, merge_granules
 from pansat.products import Product, GranuleProduct, get_product
 from pansat.geometry import Geometry, ShapelyGeometry
+from pansat.database import IndexData
 from pansat import database
 
 
 LOGGER = logging.getLogger(__file__)
 
 
+
 def find_pansat_catalog(path):
     """
     Walks down the directory tree starting from a given path and looks
-    for '.pansat' folders that may a catalog.
+    for '.pansat' folders that may be a catalog.
 
     Args:
         path: Path object pointing to a directory at which to start searching
@@ -195,12 +197,10 @@ def _granules_to_dataframe(granules: List[Granule]) -> geopandas.GeoDataFrame:
 
 class Index:
     """
-    A index keeps track of data files of specific product.
-
+    An index keeps track of data files of a specific product.
 
     Attributes:
-        data: A 'geopandas.Dataframe' containing coverage information
-            of all indexed files.
+
     """
     @classmethod
     def load(
@@ -226,16 +226,15 @@ class Index:
             'ValueError' if the product corresponding to the index could
             not be found.
         """
-        tables = database.get_table_names(db_path)
-        if product.name not in tables:
+        db_path = Path(db_path)
+        db_files = db_path.glob("*.db")
+        dbs = {
+            path.stem: path for path in db_files
+        }
+        if product.name not in dbs:
             return cls(product, None)
 
-        data =  database.load_index_data(
-            product,
-            db_path,
-            time_range=time_range
-        )
-        return cls(product, data)
+        return cls(product, IndexData(product, path))
 
     @classmethod
     def load_indices(
@@ -255,9 +254,13 @@ class Index:
         Return:
             A dictionary mapping product names to indices.
         """
-        table_names = database.get_table_names(db_path)
+        db_path = Path(db_path)
+        db_files = db_path.glob("*.db")
+        dbs = {
+            path.stem: path for path in db_files
+        }
         indices = {}
-        for table_name in table_names:
+        for table_name in dbs:
             try:
                 product = get_product(table_name)
             except ValueError:
@@ -267,12 +270,7 @@ class Index:
                     table_name
                 )
                 continue
-            data = database.load_index_data(
-                product,
-                db_path,
-                time_range=time_range
-            )
-            indices[product.name] = cls(product, data)
+            indices[product.name] = cls(product, IndexData(product, path=db_path))
         return indices
 
     @classmethod
@@ -328,18 +326,25 @@ class Index:
                 prog.refresh()
 
         data = _granules_to_dataframe(granules)
-        return cls(product, data)
+        return cls(product, IndexData.from_geodataframe(product, data))
 
-    def __init__(self, product, data: Optional[geopandas.GeoDataFrame] = None):
+    def __init__(
+            self,
+            product,
+            data: Optional[IndexData] = None,
+            db_path: Optional[Path] = None):
         """
         Args:
             product: The pansat product whose data files are indexed by
                 this index.
-            data: A geopandas.GeoDataFrame containing the start and end time
-                and geographical coverage of all data files.
+            index_data: Optional index data containing already existing records.
+            db_path: An optional path to use to store the index. Only used if data is None.
         """
         self.product = product
-        self.data = data
+        if data is None:
+            self.data = IndexData(product, path=db_path)
+        else:
+            self.data = data
 
     def __add__(self, other):
         """Merge two indices."""
@@ -349,23 +354,12 @@ class Index:
                 " same product."
             )
         product = self.product
-        if self.data is None:
-            data = other.data
-        else:
-            columns = [
-                "start_time",
-                "end_time",
-                "filename",
-                "primary_index_name",
-                "primary_index_start",
-                "primary_index_end",
-                "secondary_index_name",
-                "secondary_index_start",
-                "secondary_index_end",
-            ]
-            data = pd.concat(
-                [self.data, other.data],
-            ).drop_duplicates(subset=columns, ignore_index=True)
+
+        data = IndexData(product)
+        if self.data is not None:
+            data.insert(self.data.load())
+        if other.data is not None:
+            data.insert(other.data.load())
         return Index(product, data)
 
     @property
@@ -373,10 +367,7 @@ class Index:
         """
         The time range coverged by the granules in the index.
         """
-        return TimeRange(
-            self.data.start_time.min(),
-            self.data.end_time.max()
-        )
+        return self.data.time_range
 
     @property
     def granules(self):
@@ -391,9 +382,7 @@ class Index:
 
     def __len__(self):
         """The number of granules in the index."""
-        if self.data is None:
-            return 0
-        return self.data.shape[0]
+        return len(self.data)
 
     def insert(self, granules: Union[List[Granule], FileRecord]) -> None:
         """
@@ -407,25 +396,10 @@ class Index:
             granules = [granules]
         elif isinstance(granules, FileRecord):
             granules = Granule.from_file_record(granules)
-
         new_data = _granules_to_dataframe(granules)
         if self.data is None:
-            self.data = new_data
-        else:
-            columns = [
-                "start_time",
-                "end_time",
-                "filename",
-                "primary_index_name",
-                "primary_index_start",
-                "primary_index_end",
-                "secondary_index_name",
-                "secondary_index_start",
-                "secondary_index_end",
-            ]
-            self.data = pd.concat(
-                [self.data, new_data],
-            ).drop_duplicates(subset=columns, ignore_index=True)
+            self.data = IndexData()
+        self.data.insert(new_data)
 
     def __repr__(self):
         if self.data is None:
@@ -435,7 +409,7 @@ class Index:
             f"{self.data.start_time.size} entries>"
         )
 
-    def find_local_path(self, file_record: FileRecord) -> Optional[None]:
+    def get_local_path(self, file_record: FileRecord) -> Optional[None]:
         """
         Find the local path corresponding to a given file record.
 
@@ -448,14 +422,8 @@ class Index:
         """
         if self.data is None:
             return None
+        return self.data.get_local_path(file_record)
 
-        inds = self.data.filename == file_record.filename
-        if np.any(inds):
-            path = Path(self.data.loc[inds].iloc[0].local_path)
-            if path == "":
-                return None
-            return path
-        return None
 
     def find(
         self, time_range: Optional[TimeRange] = None, roi: Optional[Geometry] = None
@@ -465,29 +433,14 @@ class Index:
         """
         if self.data is None:
             return []
-
-        if time_range is None and roi is None:
-            return _dataframe_to_granules(self.product, self.data)
-
-        if time_range is None:
-            selected = self.data
-        else:
-            if not isinstance(time_range, TimeRange):
-                time_range = TimeRange(time_range, time_range)
-            selected = self.data.loc[
-                ~(
-                    (self.data.start_time > time_range.end)
-                    | (self.data.end_time < time_range.start)
-                )
-            ]
-
+        if not time_range is None and not isinstance(time_range, TimeRange):
+            time_range = TimeRange(time_range, time_range)
+        data = self.data.load(time_range)
         if roi is None:
-            return _dataframe_to_granules(self.product, selected)
-
+            return _dataframe_to_granules(self.product, data)
         roi = roi.to_shapely()
-        indices = selected.intersects(roi)
-
-        return _dataframe_to_granules(self.product, selected.loc[indices])
+        indices = data.intersects(roi)
+        return _dataframe_to_granules(self.product, data.loc[indices])
 
     def save(self, db_path: Path, append: bool = False):
         """
@@ -499,10 +452,8 @@ class Index:
                 the database already contains an index for this
                 index's product.
         """
-        if self.data is None:
-            raise ValueError("Cannot save an empty index.")
         db_path = Path(db_path)
-        database.save_index_data(self.product, self.data, db_path, append=append)
+        self.data.persist(db_path)
 
 
     def subset(
@@ -522,24 +473,16 @@ class Index:
         if time_range is None and roi is None:
             return self
 
-        if time_range is None:
-            selected = self.data
-        else:
-            if not isinstance(time_range, TimeRange):
-                time_range = TimeRange(time_range, time_range)
-            selected = self.data.loc[
-                ~(
-                    (self.data.start_time > time_range.end)
-                    | (self.data.end_time < time_range.start)
-                )
-            ]
+        recs = self.data.load(time_range=time_range)
+        if roi is not None:
+            roi = roi.to_shapely()
+            indices = recs.intersects(roi)
+            recs = recs.loc[indices]
 
-        if roi is None:
-            return Index(self.product, selected)
-        roi = roi.to_shapely()
-        indices = selected.intersects(roi)
+        data_new = IndexData(self.product)
+        data_new.insert(recs)
+        return Index(self.product, data_new)
 
-        return Index(self.product, self.data.loc[indices])
 
     def search_interactive(self):
         from pansat.catalog.interactive import visualize_index
@@ -699,8 +642,8 @@ def _find_matches_rec(
 
 
 def find_matches(
-    index_l: Index,
-    index_r: Index,
+    index_l: Union[Index, geopandas.GeoDataFrame],
+    index_r: Union[Index, geopandas.GeoDataFrame],
     time_diff: Optional[np.timedelta64] = None,
     n_processes: Optional[int] = None,
     merge: bool = True,
@@ -722,16 +665,15 @@ def find_matches(
         from the first index to a list of overlapping granules from
         the second index.
     """
-
     if time_diff is None:
         time_diff = np.timedelta64("5", "m")
 
     if n_processes is None:
         return _find_matches_rec(
             index_l.product,
-            index_l.data,
+            index_l.data.load(),
             index_r.product,
-            index_r.data,
+            index_r.data.load(),
             time_diff=time_diff,
             merge=merge,
         )

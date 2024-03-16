@@ -97,7 +97,7 @@ def test_load_indices(
     """
     Test loading of all indices in a database.
     """
-    db_path = tmp_path / "pansat.db"
+    db_path = tmp_path
 
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files, n_processes=2)
@@ -117,7 +117,7 @@ def test_save_and_load_index(tmp_path, hdf5_product_data):
     files = (hdf5_product_data / "remote").glob("*")
     index = Index.index(hdf5_product, files)
 
-    pansat_db = tmp_path / "pansat.db"
+    pansat_db = tmp_path
     index_name = index.save(pansat_db)
     assert len(list(tmp_path.glob("*.db")))
 
@@ -173,7 +173,7 @@ def test_insert(hdf5_product_data):
     index = Index.index(hdf5_product, files[:-1])
     index.insert(records[-1])
 
-    assert (index_ref.data == index.data).all().all()
+    assert (index_ref.data.load() == index.data.load()).all().all()
 
 
 def test_add(hdf5_product_data):
@@ -188,7 +188,7 @@ def test_add(hdf5_product_data):
     index_1 = Index.index(hdf5_product, files[:2])
     index_2 = Index.index(hdf5_product, files[2:])
     index = index_1 + index_2
-    assert (index_ref.data == index.data).all().all()
+    assert (index_ref.data.load() == index.data.load()).all().all()
 
 def test_subset_index(hdf5_product_data):
     """

@@ -158,9 +158,9 @@ def get_user_registry() -> Registry:
     """
     global _USER_REGISTRY
     if _USER_REGISTRY is None:
-        registry_dir = Path(PANSAT_CONFIG_DIR / "registry")
+        registry_dir = Path(PANSAT_CONFIG_DIR / "user_catalog")
         registry_dir.mkdir(exist_ok=True)
-        _USER_REGISTRY = Registry("user_registry", registry_dir)
+        _USER_REGISTRY = Registry("user_catalog", registry_dir)
     return _USER_REGISTRY
 
 

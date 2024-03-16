@@ -54,7 +54,7 @@ def custom_data_dir(tmp_path_factory):
     config_file = """
     [registry.test]
     path = '{tmp_path}'
-    is_data_dir = true
+    data_dir = true
     transparent = false
     """
     config_file = config_file.format(tmp_path=str(tmp_path))
