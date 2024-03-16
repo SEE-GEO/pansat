@@ -27,7 +27,7 @@ from sqlalchemy.sql.expression import (
 import shapely
 
 from pansat.products import Product
-from pansat.time import TimeRange
+from pansat.time import TimeRange, to_datetime
 from pansat.granule import Granule
 
 
@@ -170,7 +170,12 @@ class IndexData:
         The time range covered by the files in the index.
         """
         data = self.load()
-        return TimeRange(data.start_time.min(), data.end_time.max())
+        if len(data) == 0:
+            return None
+        return TimeRange(
+            to_datetime(data.start_time.min()),
+            to_datetime(data.end_time.max())
+        )
 
 
     def _create_table(self):
