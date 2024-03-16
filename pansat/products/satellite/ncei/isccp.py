@@ -97,6 +97,7 @@ class ISCCPBasicProduct(FilenameRegexpMixin, Product):
         return xr.open_dataset(rec.local_path)
 
 
+isccp_hgg = ISCCPBasicProduct("hgg", timedelta(hours=3))
 isccp_hgm = ISCCPBasicProduct("hgm", timedelta(days=31))
 
 

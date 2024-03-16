@@ -30,6 +30,7 @@ PRODUCTS_MONTH = {
     "gridsat_goes": ("{year}/{month:02}/", "gridsat-goes/access/goes"),
     "gridsat_conus": ("{year}/{month:02}/", "gridsat-goes/access/conus"),
     "isccp_hxg": ("{year}{month:02}/", "international-satellite-cloud-climate-project-isccp-h-series-data/access/isccp/hxg"),
+    "isccp_hgg": ("{year}{month:02}/", "international-satellite-cloud-climate-project-isccp-h-series-data/access/isccp-basic/hgg"),
 }
 
 PRODUCTS_YEAR = {
