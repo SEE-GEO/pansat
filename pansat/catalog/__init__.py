@@ -68,7 +68,6 @@ class Catalog:
         indices = {}
 
         for prod in products:
-            print(prod)
             matching = np.array(list(map(prod.matches, files)))
             files_p = files[matching]
             if files_p.size == 0:
