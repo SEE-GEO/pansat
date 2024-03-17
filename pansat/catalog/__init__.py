@@ -16,6 +16,7 @@ import queue
 import numpy as np
 import xarray as xr
 import geopandas
+import rich
 import rich.progress
 
 from pansat.time import TimeRange, to_datetime64
@@ -55,7 +56,7 @@ class Catalog:
         """
         if products is None:
             LOGGER.warning(
-                "No list of product provided to Catalog.from_existing_files, "
+                "No list of products provided to 'Catalog.from_existing_files', "
                 "which will cause all currently known products to be "
                 " considered. This may be slow."
             )
@@ -67,6 +68,7 @@ class Catalog:
         indices = {}
 
         for prod in products:
+            print(prod)
             matching = np.array(list(map(prod.matches, files)))
             files_p = files[matching]
             if files_p.size == 0:
@@ -74,8 +76,7 @@ class Catalog:
             files = files[~matching]
             indices[prod.name] = Index.index(prod, files_p)
 
-        db_path = path / ".catalog.pansat.db"
-        cat = Catalog(db_path, indices=indices)
+        cat = Catalog(db_path=None, indices=indices)
         return cat
 
     def __init__(
@@ -85,7 +86,7 @@ class Catalog:
     ):
         """
         Args:
-            db_path: If provided, this path should point to a database containing
+            db_path: If provided, this path should point to directory containing
                 previously stored indices. If the path is provided, but no such
                 database exists, the database will be created when the catalog's
                 save method is called.
@@ -95,7 +96,10 @@ class Catalog:
         self.db_path = db_path
         if db_path is not None:
             self.db_path = Path(db_path)
-
+            if not self.db_path.is_dir():
+                raise RuntimeError(
+                    "Path for storing catalog must be a directory."
+                )
         self.indices = indices
         if indices is None and self.db_path is not None:
             self.indices = Index.load_indices(self.db_path)
@@ -106,6 +110,9 @@ class Catalog:
         """
         if self.db_path is None:
             return None
+
+        if not self.db_path.exists():
+            self.db_path.mkdir()
 
         for index in self.indices.values():
             index.save(self.db_path, append=True)
@@ -152,21 +159,12 @@ class Catalog:
         Return:
             The index for the requested product.
         """
-        if self.db_path is not None and self.db_path.exists():
-            index = Index.load(prod, self.db_path, time_range=time_range)
-            if self.indices is None:
-                self.indices = {product.name: index}
-            else:
-                self.indices[prod.name] = index
-            return index
-
         if self.indices is None or prod.name not in self.indices:
-            None
+            return Index(prod, db_path=self.db_path)
+        return self.indices[prod.name]
 
-        return self.indices[product.name]
 
-
-    def find_local_path(self, rec: FileRecord) -> Optional[Path]:
+    def get_local_path(self, rec: FileRecord) -> Optional[Path]:
         """
         Find the local path of a given file in the current catalog.
 
@@ -179,16 +177,32 @@ class Catalog:
 
         """
         pname = rec.product.name
-        if self.db_path is not None:
-            time_range = rec.temporal_coverage
-            index = Index.load(rec.product, self.db_path, time_range=time_range)
-            return index.find_local_path(rec)
-
         if not pname in self.indices:
             return None
 
         index = self.indices[pname]
-        return index.find_local_path(rec)
+        return index.get_local_path(rec)
+
+    def to_table(self) -> rich.table.Table:
+        """
+        Render catalog summary as rich table.
+        """
+        table = rich.table.Table(title=f"🗃️️   [bold]{self.name}[/bold] ({self.db_path})")
+        table.add_column("Product")
+        table.add_column("# entries")
+        table.add_column("Start time")
+        table.add_column("End time")
+        for index_name, index in self.indices.items():
+            time_range = index.time_range
+            if time_range is not None:
+                start = time_range.start.strftime("%Y-%m-%d %H:%M:%S")
+                end = time_range.end.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                start = ""
+                end = ""
+            table.add_row(index_name, str(len(index)), start, end)
+        return table
+
 
 
 def find_files(product: "pansat.products.Prodcut", path: Path):

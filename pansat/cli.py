@@ -10,6 +10,14 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
+import rich
+import rich.tree
+import rich.panel
+import rich.padding
+import rich.box
+from rich.logging import RichHandler
+from rich.console import Console
+from rich.logging import RichHandler
 
 import pansat.download
 from pansat.config import (
@@ -19,6 +27,15 @@ from pansat.config import (
     DataDir
 )
 
+CONSOLE = Console()
+
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level="INFO",
+    format=FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler()]
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,8 +61,8 @@ def account():
     pass
 
 
-@click.command()
-def list_accounts(name="list"):
+@click.command(name="list")
+def list_accounts():
     identities = pansat.download.accounts.get_identities()
     output = """
 
@@ -73,7 +90,11 @@ account.add_command(add_account)
 
 @click.command("index")
 @click.argument("path")
-@click.option("--products", default=None)
+@click.option(
+    "--products",
+    default=None,
+    help="List of product names to consider."
+)
 def index(path: Path, products: Optional[List[str]] = None):
     """
     Index files in a given directory and add the to the currently active
@@ -109,7 +130,11 @@ def list_registries():
     import pansat.environment as penv
 
     reg = penv.get_active_registry()
-    print(reg.print_summary())
+    root = rich.tree.Tree(
+        "📖 [bold] Active catalogs: [/bold]"
+    )
+    reg.print_summary(root)
+    rich.print(root)
 
 @click.command("add")
 @click.argument("kind")

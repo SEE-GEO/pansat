@@ -77,8 +77,8 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
         return Path("msg")
 
     def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
-        if not isinstance(rec, FileRecord):
-            rec = FileRecord(local_path(rec))
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
 
         filename = rec.filename
         match = self.filename_regexp.match(filename)
@@ -105,6 +105,9 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
             An 'xarray.Dataset' containing the loaded data.
 
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
         with TemporaryDirectory() as tmp:
             with ZipFile(rec.local_path, 'r') as zip_ref:
                 zip_ref.extractall(tmp)

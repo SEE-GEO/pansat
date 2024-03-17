@@ -62,8 +62,16 @@ def all_products() -> List["Product"]:
     """
     Return a list of all currently known products.
     """
-    from pansat.products.satellite import gpm
     from pansat.products.ground_based import mrms
+    from pansat.products.ground_based import opera
+    from pansat.products.satellite import cloudsat
+    from pansat.products.satellite import goes
+    from pansat.products.satellite import gpm
+    from pansat.products.satellite import meteosat
+    from pansat.products.satellite import modis
+    from pansat.products.satellite import ncei
+    from pansat.products.satellite import persiann
+
     return list(Product.PRODUCTS.values())
 
 
@@ -216,7 +224,7 @@ class Product(ABC):
             files.
         """
         time_range = TimeRange.to_time_range(time_range)
-        files = self.find_files(time_range, roi=roi)
+        files = self.find_files(time_range, roi=roi, provider=provider)
         local = []
         for rec in files:
             local.append(rec.get(destination=destination))

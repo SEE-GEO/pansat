@@ -14,6 +14,9 @@ import os
 from tempfile import TemporaryDirectory
 from typing import Optional, Union, List
 
+import rich
+import rich.tree
+
 from pathlib import Path
 from pansat.catalog import Catalog, Index
 from pansat.file_record import FileRecord
@@ -46,9 +49,7 @@ class Registry(Catalog):
         parent: Optional["Registry"] = None,
     ):
         self.path = path
-        if path.is_dir():
-            path = path / f"{name}.pansat.db"
-        super().__init__(db_path=path)
+        super().__init__(db_path=self.path)
         self.name = name
         self.transparent = transparent
         self.parent = parent
@@ -72,7 +73,7 @@ class Registry(Catalog):
         """
         return self.db_path
 
-    def find_local_path(self, rec: FileRecord) -> Optional[Path]:
+    def get_local_path(self, rec: FileRecord) -> Optional[Path]:
         """
         Lookup the local path of a given file in the current registry
         hierarchy.
@@ -84,7 +85,7 @@ class Registry(Catalog):
             A 'pathlib.Path' object pointing to the local file or 'None'
             if the file is not present in this catalog.
         """
-        found = Catalog.find_local_path(self, rec)
+        found = Catalog.get_local_path(self, rec)
         if found is not None:
             if not found.exists():
                 LOGGER.warning(
@@ -94,11 +95,11 @@ class Registry(Catalog):
                     self.name
                 )
                 if self.parent is not None:
-                    return self.parent.find_local_path(rec)
+                    return self.parent.get_local_path(rec)
                 return None
             return found
         if self.parent is not None:
-            return self.parent.find_local_path(rec)
+            return self.parent.get_local_path(rec)
         return found
 
     def get_active_data_dir(self) -> Path:
@@ -136,24 +137,18 @@ class Registry(Catalog):
         index = index + self.parent.get_index(product)
         return index
 
-    def print_summary(self, verbosity:int = 0) -> str:
+    def print_summary(self, root: rich.tree.Tree, verbosity:int = 0) -> None:
         """
         Print summary of registry contents.
         """
-        s = ""
         if self.parent is not None:
-            s = self.parent.print_summary(verbosity=verbosity)
-
-        s += self.name + ":\n"
-        for name, index in self.indices.items():
-            s += "\t" + name + f": {len(index)} granules\n"
-        s += "\n"
-        return s
+            self.parent.print_summary(root, verbosity=verbosity)
+        tree = root.add(self.to_table())
 
 
 class DataDir(Registry):
     """
-    A data directory is simply a special registry that is also used as a
+    A data directory is  a special registry that is also used as a
     default location to store downloaded files.
 
     The data directory slightly diverges from the behavior of the registry
@@ -176,7 +171,7 @@ class DataDir(Registry):
                 f" path '{path}' does not."
             )
         self._location = path
-        registry_dir = path / f".{name}.pansat.db"
+        registry_dir = path / f".pansat_catalog"
         registry_dir.mkdir(exist_ok=True)
         super().__init__(name, registry_dir, transparent, parent)
 
@@ -311,4 +306,4 @@ def lookup_file(rec: FileRecord) -> Optional[Path]:
         rec:
     """
     reg = get_active_registry()
-    return reg.find_local_path(rec)
+    return reg.get_local_path(rec)

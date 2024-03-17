@@ -51,6 +51,7 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
         self.filename_regexp = re.compile(
             r"([\d]*)_([\d]*)_CS_" + name + r"_GRANULE_P\d*_R([\d]*)_E([\d]*).*\.hdf"
         )
+        super().__init__()
 
     @property
     def description(self):

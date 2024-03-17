@@ -97,7 +97,7 @@ class PansatConfig:
                     f"Path argument in registry '{reg}' does not point to an "
                     "existing folder. It will therefore be ignored."
                 )
-            is_data_dir = reg_dict.get("is_data_dir", False)
+            is_data_dir = reg_dict.get("data_dir", False)
             transparent = reg_dict.get("transparent", True)
 
             if is_data_dir:
@@ -158,9 +158,9 @@ def get_user_registry() -> Registry:
     """
     global _USER_REGISTRY
     if _USER_REGISTRY is None:
-        registry_dir = Path(PANSAT_CONFIG_DIR / "registry")
+        registry_dir = Path(PANSAT_CONFIG_DIR / "user_catalog")
         registry_dir.mkdir(exist_ok=True)
-        _USER_REGISTRY = Registry("user_registry", registry_dir)
+        _USER_REGISTRY = Registry("user_catalog", registry_dir)
     return _USER_REGISTRY
 
 

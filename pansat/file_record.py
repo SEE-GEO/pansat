@@ -7,6 +7,7 @@ file.
 """
 from copy import copy
 from datetime import timedelta
+import logging
 from typing import Optional, List, Union
 from tempfile import TemporaryDirectory
 
@@ -17,6 +18,9 @@ import numpy as np
 
 
 from pansat.time import TimeRange
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -192,8 +196,14 @@ class FileRecord:
         new_rec = self.provider.download(self, destination=destination)
         self.local_path = new_rec.local_path
 
-        penv.register(new_rec)
-
+        try:
+            penv.register(new_rec)
+        except:
+            LOGGER.exception(
+                "Encountered an error when trying to insert file record for file %s into"
+                " the regristry.",
+                new_rec.local_path
+            )
         return self
 
 
@@ -219,7 +229,16 @@ class FileRecord:
             new_rec.local_path = self.local_path
             return new_rec
 
-        local_path = penv.lookup_file(self)
+        try:
+            local_path = penv.lookup_file(self)
+        except Exception:
+            LOGGER.exception(
+                "Encountered an error when trying to look up file record for file '%s' in"
+                " the regristry.",
+                self.filename
+            )
+            local_path = None
+
         if local_path is None:
             return self.download(destination)
 

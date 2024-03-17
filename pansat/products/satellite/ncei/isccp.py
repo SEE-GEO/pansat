@@ -18,7 +18,7 @@ from pansat.products import Product, FilenameRegexpMixin
 from pansat.time import TimeRange
 
 
-class ISCCPProduct(FilenameRegexpMixin, Product):
+class ISCCPBasicProduct(FilenameRegexpMixin, Product):
     """
     Class for ISCCP products.
     """
@@ -34,7 +34,7 @@ class ISCCPProduct(FilenameRegexpMixin, Product):
         self.temporal_resolution = temporal_resolution
         self.filename_regexp = re.compile(
             rf"ISCCP-Basic\.{variant.upper()}\.v01r00\.GLOBAL\."
-            r"(\d{4}\.\d{2})\.\d{2}\.\d{4}\.[\w\.]*\.nc"
+            r"(\d{4}\.\d{2})\.(\d{2})\.(\d{4})\.[\w\.]*\.nc"
         )
         Product.__init__(self)
 
@@ -64,7 +64,16 @@ class ISCCPProduct(FilenameRegexpMixin, Product):
                 f"The provided file record '{rec}' does not point to a "
                 f"{self.name} file."
             )
-        time_stamp = datetime.strptime(match.group(1), "%Y.%m")
+        if match.group(3) == "9999":
+            if match.group(2) == "99":
+                time_stamp = datetime.strptime(match.group(1), "%Y.%m")
+            else:
+                time_stamp = datetime.strptime(f"{match.group(1)}.{match.group(2)}", "%Y.%m.%d")
+        else:
+            time_stamp = datetime.strptime(
+                f"{match.group(1)}.{match.group(2)}.{match.group(3)}",
+                "%Y.%m.%d.%H%M"
+            )
         start_time = time_stamp - 0.5 * self.temporal_resolution
         end_time = time_stamp + 0.5 * self.temporal_resolution
         return TimeRange(start_time, end_time)
@@ -88,4 +97,27 @@ class ISCCPProduct(FilenameRegexpMixin, Product):
         return xr.open_dataset(rec.local_path)
 
 
-isccp_hgm = ISCCPProduct("hgm", timedelta(days=31))
+isccp_hgg = ISCCPBasicProduct("hgg", timedelta(hours=3))
+isccp_hgm = ISCCPBasicProduct("hgm", timedelta(days=31))
+
+
+class ISCCPProduct(ISCCPBasicProduct):
+    """
+    Class for ISCCP products.
+    """
+
+    def __init__(self, variant: str, temporal_resolution: timedelta):
+        """
+        Args:
+            variant: The variant of the GridSat product: 'conus' or 'goes'.
+            temporal_resolution: timdelta object representing the temporal
+                resolution of the product.
+        """
+        super().__init__(variant=variant, temporal_resolution=temporal_resolution)
+        Product.__init__(self)
+        self.filename_regexp = re.compile(
+            rf"ISCCP\.{self.variant.upper()}\.v01r00\.GLOBAL\."
+            r"(\d{4}\.\d{2})\.(\d{2})\.(\d{4})\.[\w\.]*\.nc"
+        )
+
+isccp_hxg = ISCCPProduct("hxg", timedelta(hours=3))

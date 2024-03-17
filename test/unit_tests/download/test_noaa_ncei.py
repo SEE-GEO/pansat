@@ -7,7 +7,13 @@ from random import randint
 import pytest
 
 from pansat import TimeRange
-from pansat.products.satellite.ncei import gridsat_goes, gridsat_b1, ssmi_csu, isccp_hgm
+from pansat.products.satellite.ncei import (
+    gridsat_goes,
+    gridsat_b1,
+    ssmi_csu,
+    isccp_hgm,
+    isccp_hxg
+)
 
 
 def test_find_provider():
@@ -40,11 +46,20 @@ def test_noaa_ncei_provider_year():
 
 def test_noaa_ncei_provider_all():
     """
-    Test NOAA NCEI provider for files listed without subfolders..
+    Test NOAA NCEI provider for files listed without subfolders.
     """
     time_range = TimeRange("2000-01-01T00:00:01", "2000-01-01T22:29:59")
     files = isccp_hgm.find_files(time_range)
     assert len(files) == 1
+
+
+def test_find_isccp_hxg_files():
+    """
+    Ensure that providers finds ISCCP HXG files.
+    """
+    time_range = TimeRange("2001-01-01", "2001-01-02")
+    recs = isccp_hxg.find_files(time_range)
+    assert len(recs) == 9
 
 
 @pytest.mark.slow

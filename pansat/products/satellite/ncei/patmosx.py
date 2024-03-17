@@ -37,6 +37,7 @@ class PATMOSXProduct(FilenameRegexpMixin, Product):
             f"patmosx_v\d\dr\d\d(-\w*)?_{sensor}_{orbit}_"
             f"d(?P<date>\d{{8}})_c\d{{8}}.nc"
         )
+        super().__init__()
 
     @property
     def name(self):

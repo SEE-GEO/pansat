@@ -16,6 +16,7 @@ from pansat.products.satellite.ncei import (
     patmosx_asc,
     patmosx_des,
     isccp_hgm,
+    isccp_hxg,
 )
 
 CONUS_FILENAME = "GridSat-CONUS.goes08.1994.09.01.0000.v01.nc"
@@ -130,17 +131,31 @@ def test_patmosx():
     assert time_range.start == datetime(2023, 1, 16)
 
 
-ISCCP_FILENAME = "ISCCP-Basic.HGM.v01r00.GLOBAL.1983.07.99.9999.GPC.10KM.CS00.EA1.00.nc"
+ISCCP_HGM_FILENAME = "ISCCP-Basic.HGM.v01r00.GLOBAL.1983.07.99.9999.GPC.10KM.CS00.EA1.00.nc"
 
-
-def test_isccp():
+def test_isccp_hgm():
     """
     Ensure that ISCCP HGM product:
         - Matches filename
         - Correctly parses timestamps
     """
-    assert isccp_hgm.matches(ISCCP_FILENAME)
+    assert isccp_hgm.matches(ISCCP_HGM_FILENAME)
 
-    time_range = isccp_hgm.get_temporal_coverage(ISCCP_FILENAME)
+    time_range = isccp_hgm.get_temporal_coverage(ISCCP_HGM_FILENAME)
+    assert time_range.start < datetime(1983, 7, 1)
+    assert time_range.end > datetime(1983, 7, 1)
+
+
+ISCCP_HXG_FILENAME = "ISCCP.HXG.v01r00.GLOBAL.1983.07.99.9999.GPC.10KM.CS00.EA1.00.nc"
+
+def test_isccp_hxg():
+    """
+    Ensure that ISCCP HXG product:
+        - Matches filename
+        - Correctly parses timestamps
+    """
+    assert isccp_hxg.matches(ISCCP_HXG_FILENAME)
+
+    time_range = isccp_hxg.get_temporal_coverage(ISCCP_HXG_FILENAME)
     assert time_range.start < datetime(1983, 7, 1)
     assert time_range.end > datetime(1983, 7, 1)
