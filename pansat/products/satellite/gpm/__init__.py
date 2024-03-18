@@ -429,7 +429,7 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
     """
 
     def __init__(self):
-        pattern = r"merg_(\d{10,10})_4km-pixel.nc"
+        pattern = r"merg_(\d{10,10})_4km-pixel.nc4"
         self.filename_regexp = re.compile(pattern)
         Product.__init__(self)
 
