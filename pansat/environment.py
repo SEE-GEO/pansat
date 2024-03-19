@@ -195,6 +195,44 @@ class DataDir(Registry):
         return self.location
 
 
+    def to_table(self) -> rich.table.Table:
+        """
+        Render catalog summary as rich table.
+        """
+        table = rich.table.Table(
+            title=rich.text.Text(
+                f"💾️[bold]{self.name}[/bold] ({self.db_path})",
+                justify="left"
+            )
+        )
+        table = rich.table.Table(
+            title=rich.text.Text(
+                f"💾 ",
+                justify="left"
+            ).append(rich.text.Text(
+                f" {self.name}",
+                style="bold"
+            )).append(
+                f" ({self.db_path})"
+            )
+        )
+
+        table.add_column("Product")
+        table.add_column("# entries")
+        table.add_column("Start time")
+        table.add_column("End time")
+        for index_name, index in self.indices.items():
+            time_range = index.time_range
+            if time_range is not None:
+                start = time_range.start.strftime("%Y-%m-%d %H:%M:%S")
+                end = time_range.end.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                start = ""
+                end = ""
+            table.add_row(index_name, str(len(index)), start, end)
+        return table
+
+
 class OnTheFlyDataDir(DataDir):
     """
     The OnTheFlyDataDir stores data in a temporary directory. File downloaded

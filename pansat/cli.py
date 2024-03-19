@@ -15,10 +15,9 @@ import rich.tree
 import rich.panel
 import rich.padding
 import rich.box
-from rich.logging import RichHandler
-from rich.console import Console
-from rich.logging import RichHandler
 
+
+import pansat.logging
 import pansat.download
 from pansat.config import (
     get_current_config,
@@ -27,17 +26,8 @@ from pansat.config import (
     DataDir
 )
 
-CONSOLE = Console()
-
-FORMAT = "%(message)s"
-logging.basicConfig(
-    level="INFO",
-    format=FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler()]
-)
-
 LOGGER = logging.getLogger(__name__)
+
 
 
 @click.group()
@@ -90,12 +80,17 @@ account.add_command(add_account)
 
 @click.command("index")
 @click.argument("path")
+@click.option("--n_processes", type=int, default=None)
 @click.option(
     "--products",
     default=None,
     help="List of product names to consider."
 )
-def index(path: Path, products: Optional[List[str]] = None):
+def index(
+        path: Path,
+        products: Optional[List[str]] = None,
+        n_processes: Optional[int] = None
+):
     """
     Index files in a given directory and add the to the currently active
     registry.
@@ -105,7 +100,11 @@ def index(path: Path, products: Optional[List[str]] = None):
 
     reg = penv.get_active_registry()
 
-    catalog = Catalog.from_existing_files(path, products=products)
+    catalog = Catalog.from_existing_files(
+        path,
+        products=products,
+        n_processes=n_processes
+    )
 
     for name, index in catalog.indices.items():
         if name in reg.indices:
@@ -116,22 +115,22 @@ def index(path: Path, products: Optional[List[str]] = None):
 
 
 @click.group()
-def registry():
+def catalog():
     """
     Inspect, add and modify registries and data directories.
     """
     pass
 
 @click.command("list")
-def list_registries():
+def list_catalogs():
     """
-    List currently activate registries and data directories.
+    List currently active registries and data directories.
     """
     import pansat.environment as penv
 
     reg = penv.get_active_registry()
     root = rich.tree.Tree(
-        "📖 [bold] Active catalogs: [/bold]"
+        "📂 [bold] Active catalogs: [/bold]"
     )
     reg.print_summary(root)
     rich.print(root)
@@ -173,13 +172,11 @@ def add_registry(
 
 
 
-registry.add_command(list_registries)
-registry.add_command(add_registry)
-
-
+catalog.add_command(list_catalogs)
+catalog.add_command(add_registry)
 
 
 pansat_cli.add_command(index)
 pansat_cli.add_command(config)
 pansat_cli.add_command(account)
-pansat_cli.add_command(registry)
+pansat_cli.add_command(catalog)
