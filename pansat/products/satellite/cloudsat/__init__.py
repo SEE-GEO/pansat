@@ -411,7 +411,7 @@ def _squeeze(handle, slcs) -> np.ndarray:
     """
     Used trailing dimensions in latitude and longitude arrays.
     """
-    return np.array(handle.__getitem__(slcs)).squeeze()
+    return np.array(handle.__getitem__((slice(0, None),))).squeeze()[slcs]
 
 
 def _parse_products():
