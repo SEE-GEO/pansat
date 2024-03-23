@@ -80,16 +80,28 @@ account.add_command(add_account)
 
 @click.command("index")
 @click.argument("path")
-@click.option("--n_processes", type=int, default=None)
 @click.option(
-    "--products",
+    "--n_processes",
+    type=int,
     default=None,
-    help="List of product names to consider."
+    help="The number of parallel processes to use to speed up the indexing."
+)
+@click.option(
+    "--recursive",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "--pattern",
+    default=None,
+    help="An optional glob pattern to limit candidate files."
 )
 def index(
         path: Path,
         products: Optional[List[str]] = None,
-        n_processes: Optional[int] = None
+        n_processes: Optional[int] = None,
+        recursive: bool = False,
+        pattern: Optional[str] = None
 ):
     """
     Index files in a given directory and add the to the currently active
@@ -103,7 +115,9 @@ def index(
     catalog = Catalog.from_existing_files(
         path,
         products=products,
-        n_processes=n_processes
+        n_processes=n_processes,
+        recursive=recursive,
+        pattern=pattern,
     )
 
     for name, index in catalog.indices.items():
