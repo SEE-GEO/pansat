@@ -317,11 +317,18 @@ class Index:
                 )
 
                 for ind, task in enumerate(as_completed(tasks)):
-                    granules_t = task.result()
-                    prog.update(prog_task, advance=1)
-                    if granules_t is None:
-                        continue
-                    granules += granules_t
+                    try:
+                        granules_t = task.result()
+                        prog.update(prog_task, advance=1)
+                        if granules_t is None:
+                            continue
+                        granules += granules_t
+                    except Exception:
+                        LOGGER.error(
+                            "Ecountered an error when trying to index file '%s'",
+                            files[ind]
+                        )
+
 
                 prog.refresh()
 
