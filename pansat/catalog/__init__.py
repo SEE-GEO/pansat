@@ -78,7 +78,7 @@ class Catalog:
         if recursive:
             files = np.array(sorted(list(path.glob(f"**/{pattern}"))))
         else:
-            files = np.array(sorted(list(path.glob(f"*/{pattern}"))))
+            files = np.array(sorted(list(path.glob(pattern))))
 
         indices = {}
 
