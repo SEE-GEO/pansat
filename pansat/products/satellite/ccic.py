@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import re
 from typing import Optional
+import xarray as xr
 
 import pansat
 from pansat import FileRecord, TimeRange
@@ -22,7 +23,7 @@ class CCICProduct(FilenameRegexpMixin, Product):
     def __init__(self, variant):
         self.variant = variant.lower()
         self.filename_regexp = re.compile(
-            rf"ccic_{variant}_(\d{{14}}).(nc|zarr)"
+            rf"ccic_{variant}_(\d{{12}}).(nc|zarr)"
         )
         Product.__init__(self)
 
@@ -92,6 +93,7 @@ class CCICProduct(FilenameRegexpMixin, Product):
         Return:
             An xarray.Dataset containing the loaded data.
         """
+        import ccic
         if isinstance(rec, (str, Path)):
             rec = FileRecord(rec)
 

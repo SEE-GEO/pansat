@@ -10,24 +10,4 @@ from the data provider class, the resulting data provider instance can be used
 to download files of the data product.
 
 """
-from pansat.download.providers.data_provider import DataProvider
-from pansat.download.providers.copernicus import CopernicusProvider
-from pansat.download.providers.noaa import NOAAProvider
-from pansat.download.providers.laads_daac import LAADSDAACProvider
-from pansat.download.providers.goes_aws import GOESAWSProvider
-from pansat.download.providers.himawari_aws import HimawariAWSProvider
-from pansat.download.providers.iowa_state import IowaStateProvider
-from pansat.download.providers.cloudnet import CloudnetProvider
-from pansat.download.providers.cloudsat_dpc import CloudSatDPCProvider
-import pansat.download.providers.iowa_state
-
-
-ALL_PROVIDERS = [
-    CopernicusProvider,
-    NOAAProvider,
-    LAADSDAACProvider,
-    GOESAWSProvider,
-    HimawariAWSProvider,
-    IowaStateProvider,
-    CloudnetProvider,
-]
+from .data_provider import DataProvider

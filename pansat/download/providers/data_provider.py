@@ -118,6 +118,7 @@ def get_providers() -> List["DataProvider"]:
     """
     Return a list of all currently known providers.
     """
+    import pansat.environment as penv
     import pansat.download.providers.ges_disc
     import pansat.download.providers.iowa_state
     import pansat.download.providers.goes_aws
@@ -128,4 +129,4 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.cloudsat_dpc
     import pansat.download.providers.icare
 
-    return ALL_PROVIDERS
+    return ALL_PROVIDERS + [penv.get_active_registry()]

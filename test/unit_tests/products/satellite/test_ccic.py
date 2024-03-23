@@ -12,11 +12,11 @@ from pansat.products.satellite.ccic import (
 
 CCIC_FILES = {
     "satellite.ccic.ccic_cpcir": (
-        "ccic_cpcir_20100101000000.zarr",
+        "ccic_cpcir_201001010000.zarr",
         datetime(2010, 1, 1, 0, 0, 0)
     ),
     "satellite.ccic.ccic_gridsat": (
-        "ccic_gridsat_20100101000000.zarr",
+        "ccic_gridsat_201001010000.zarr",
         datetime(2010, 1, 1, 0, 0, 0)
     ),
 }
