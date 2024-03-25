@@ -30,6 +30,7 @@ from pansat.exceptions import NoAvailableProvider
 from pansat.formats.hdf5 import HDF5File
 from pansat import geometry
 
+
 class GPMProduct(FilenameRegexpMixin, GranuleProduct):
     """
     Base class representing GPM products.
@@ -171,19 +172,6 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
             lons, lats = self.description.load_lonlats(file_handle, slice(0, None, 1))
         poly = geometry.parse_swath(lons, lats, m=10, n=1)
         return geometry.ShapelyGeometry(poly)
-
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {str(self)}."
-            )
-        return available_providers[0]
 
     @property
     def default_destination(self):
@@ -429,7 +417,7 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
     """
 
     def __init__(self):
-        pattern = r"merg_(\d{10,10})_4km-pixel.nc"
+        pattern = r"merg_(\d{10,10})_4km-pixel.nc4"
         self.filename_regexp = re.compile(pattern)
         Product.__init__(self)
 

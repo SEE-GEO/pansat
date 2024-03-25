@@ -19,8 +19,12 @@ import rich.tree
 
 from pathlib import Path
 from pansat.catalog import Catalog, Index
+from pansat.time import TimeRange
 from pansat.file_record import FileRecord
+from pansat.geometry import Geometry
 from pansat.granule import Granule
+from pansat.download.providers.data_provider import DataProvider
+from pansat.products import Product
 
 
 LOGGER = logging.getLogger(__file__)
@@ -36,7 +40,7 @@ def keep_files():
 
 
 
-class Registry(Catalog):
+class Registry(Catalog, DataProvider):
     """
     A registry is a special catalog that keeps track of the data files handled
     by pansat.
@@ -49,10 +53,79 @@ class Registry(Catalog):
         parent: Optional["Registry"] = None,
     ):
         self.path = path
-        super().__init__(db_path=self.path)
+        Catalog.__init__(self, db_path=self.path)
         self.name = name
         self.transparent = transparent
         self.parent = parent
+
+    def provides(self, product: Product) -> bool:
+        """
+        Whether or not the given product is provided by this
+        dataprovider.
+
+        Args:
+            product: A 'pansat.Product' object.
+
+        Return:
+            'True' if the product is available through this dataprovider.
+            'False' otherwise.
+        """
+        provides = product.name in self.indices
+        if self.transparent and self.parent is not None:
+            return self.parent.provides(product) or provides
+        return provides
+
+    def find_files(
+        self, product: Product, time_range: TimeRange, roi: Optional[Geometry] = None
+    ) -> List[FileRecord]:
+        """
+        Find available files within a given time range and optional geographic
+        region.
+
+        Args:
+            product: A 'pansat.Product' object representing the product to
+                download.
+            time_range: A 'pansat.time.TimeRange' object representing the time
+                range within which to look for available files.
+            roi: An optional region of interest (roi) restricting the search
+                to a given geographical area.
+
+        Return:
+            A list of 'pansat.FileRecords' specifying the available
+            files.
+        """
+        recs = []
+        local_paths = {}
+        if self.transparent and self.parent is not None:
+            parent_recs = self.parent.find_files(
+                product,
+                time_range=time_range,
+                roi=roi
+            )
+            for rec in parent_recs:
+                if rec.local_path not in local_paths:
+                    recs.append(rec)
+                    local_paths.add(rec.local_path)
+
+        index = self.indices.get(product.name)
+        if index is None:
+            return []
+        granules = index.find(time_range=time_range, roi=roi)
+
+        for granule in granules:
+            rec = granule.file_record
+            if rec.local_path not in local_paths:
+                recs.append(rec)
+        return recs
+
+    def download(
+        self, file_record: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
+        """
+        Download method for the registry does nothing.
+        """
+        return file_record
+
 
     def add(self, rec: FileRecord) -> None:
         """
@@ -65,6 +138,7 @@ class Registry(Catalog):
         Catalog.add(self, rec)
         if self.transparent and self.parent is not None:
             self.parent.add(rec)
+
 
     @property
     def location(self) -> Path:
@@ -193,6 +267,44 @@ class DataDir(Registry):
             downloaded files.
         """
         return self.location
+
+
+    def to_table(self) -> rich.table.Table:
+        """
+        Render catalog summary as rich table.
+        """
+        table = rich.table.Table(
+            title=rich.text.Text(
+                f"💾️[bold]{self.name}[/bold] ({self.db_path})",
+                justify="left"
+            )
+        )
+        table = rich.table.Table(
+            title=rich.text.Text(
+                f"💾 ",
+                justify="left"
+            ).append(rich.text.Text(
+                f" {self.name}",
+                style="bold"
+            )).append(
+                f" ({self.db_path})"
+            )
+        )
+
+        table.add_column("Product")
+        table.add_column("# entries")
+        table.add_column("Start time")
+        table.add_column("End time")
+        for index_name, index in self.indices.items():
+            time_range = index.time_range
+            if time_range is not None:
+                start = time_range.start.strftime("%Y-%m-%d %H:%M:%S")
+                end = time_range.end.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                start = ""
+                end = ""
+            table.add_row(index_name, str(len(index)), start, end)
+        return table
 
 
 class OnTheFlyDataDir(DataDir):

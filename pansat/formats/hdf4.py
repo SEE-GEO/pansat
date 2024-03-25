@@ -187,9 +187,11 @@ class HDF4File:
         self.vdata = vdata_dict
 
     def __del__(self):
-        if self.file_handle:
+        try:
             self.file_handle.close()
             self.file_handle = None
+        except AttributeError:
+            pass
 
     @property
     def variables(self):

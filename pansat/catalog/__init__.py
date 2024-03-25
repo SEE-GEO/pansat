@@ -18,6 +18,7 @@ import xarray as xr
 import geopandas
 import rich
 import rich.progress
+import rich.text
 
 from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
@@ -39,7 +40,14 @@ class Catalog:
     files of a given pansat product.
     """
     @staticmethod
-    def from_existing_files(path, products: Optional[List[Product]] = None):
+    def from_existing_files(
+            path,
+            products: Optional[List[Product]] = None,
+            n_processes: Optional[int] = None,
+            recursive: bool = True,
+            pattern: Optional[str] = None,
+            relative: bool = False
+    ):
         """
         Create a catalog by scanning existing files.
 
@@ -49,6 +57,9 @@ class Catalog:
             products: List of products to consider. If not provided all
                 currently known products will be consdiered.
                 NOTE: This can be slow.
+            recursive: Whether to search recursively for candidate files or
+                not.
+            relative: Whether or not to use relative paths in the index.
 
         Return:
             A catalog object providing an overview of available pansat
@@ -63,18 +74,33 @@ class Catalog:
             products = list(all_products())
         path = Path(path)
 
-        files = np.array(sorted(list(path.glob("**/*"))))
+        if pattern is None:
+            pattern = "*"
+
+        if recursive:
+            files = sorted(list(path.glob(f"**/{pattern}")))
+        else:
+            files = sorted(list(path.glob(pattern)))
+        if not relative:
+            files = [path.absolute() for path in files]
+        files = np.array(files)
 
         indices = {}
 
         for prod in products:
-            print(prod)
             matching = np.array(list(map(prod.matches, files)))
-            files_p = files[matching]
-            if files_p.size == 0:
+            LOGGER.warning(
+                "Found %s files matching product %s.",
+                matching.sum(),
+                prod.name
+
+            )
+            if len(matching) == 0 or not matching.any():
                 continue
+
+            files_p = files[matching]
             files = files[~matching]
-            indices[prod.name] = Index.index(prod, files_p)
+            indices[prod.name] = Index.index(prod, files_p, n_processes=n_processes)
 
         cat = Catalog(db_path=None, indices=indices)
         return cat
@@ -187,7 +213,17 @@ class Catalog:
         """
         Render catalog summary as rich table.
         """
-        table = rich.table.Table(title=f"🗃️️   [bold]{self.name}[/bold] ({self.db_path})")
+        table = rich.table.Table(
+            title=rich.text.Text(
+                f"🗂️ ",
+                justify="left"
+            ).append(rich.text.Text(
+                f" {self.name}",
+                style="bold"
+            )).append(
+                f" ({self.db_path})"
+            )
+        )
         table.add_column("Product")
         table.add_column("# entries")
         table.add_column("Start time")

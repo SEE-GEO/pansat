@@ -74,7 +74,7 @@ class GesDiscProviderBase:
             session.auth = auth
 
             # Get data
-            redirect = session.get(url)
+            redirect = session.get(url, auth=auth)
             response = session.get(redirect.url, auth=auth, stream=True)
             response.raise_for_status()
 
@@ -101,26 +101,6 @@ class GesDiscProviderBase:
         """The URL containing the data files for the given product."""
         base_url = self.get_base_url(product)
         return base_url + "/{year}/{day}/{filename}"
-
-    def find_files_by_year(self, product, year):
-        """
-        Return list of available files for a given day of a year.
-
-        Args:
-            year(``int``): The year for which to look up the files.
-
-        Return:
-            A list of strings containing the filenames that are available
-            for the given year.
-        """
-        request_string = self._request_string(product).format(
-            year=year, day="", filename=""
-        )
-        auth = accounts.get_identity("GES DISC")
-        session = cache.get_session()
-        response = session.get(url, auth=auth)
-        files = list(set(GesDiscProvider.file_pattern.findall(response.text)))
-        return [f[1:-1] for f in files]
 
     def download(
         self, rec: FileRecord, destination: Optional[Path] = None
@@ -220,8 +200,9 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
             if exc.response.status_code == 404:
                 pass
 
-        files = list(set(self.file_pattern.findall(response.text)))
-        files = [f[1:-1] for f in files]
+        files = set()
+        for match in product.filename_regexp.finditer(response.text):
+            files.add(match.group(0))
         recs = [
             FileRecord.from_remote(product, self, url + f"/{fname}", fname)
             for fname in files
@@ -260,9 +241,9 @@ class GesDiscProviderMonth(GesDiscProviderBase, DiscreteProviderMonth):
             if exc.response.status_code == 404:
                 pass
 
-        files = list(set(self.file_pattern.findall(response.text)))
-
-        files = [f[1:-1] for f in files]
+        files = set()
+        for match in product.filename_regexp.finditer(response.text):
+            files.add(match.group(0))
         recs = [
             FileRecord.from_remote(product, self, url + f"/{fname}", fname)
             for fname in files
@@ -304,9 +285,9 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
             if exc.response.status_code == 404:
                 pass
 
-        files = list(set(self.file_pattern.findall(response.text)))
-
-        files = [f[1:-1] for f in files]
+        files = set()
+        for match in product.filename_regexp.finditer(response.text):
+            files.add(match.group(0))
         recs = [
             FileRecord.from_remote(product, self, url + f"/{fname}", fname)
             for fname in files

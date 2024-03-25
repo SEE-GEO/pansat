@@ -152,3 +152,28 @@ def test_get_index(custom_data_dir_with_index, hdf5_product_data):
     assert len(index) == 4
 
 
+def test_provider_functionality(custom_data_dir_with_index, hdf5_product_data):
+    """
+    Ensure that the registry hierarchy is handlded correctly.
+    """
+    os.chdir(custom_data_dir_with_index)
+    pansat.config._CURRENT_CONFIG = None
+
+    index = penv.get_index(hdf5_product, recurrent=False)
+    assert len(index) == 0
+
+    provider = ExampleProvider(hdf5_product_data, "hdf5")
+    time_range = TimeRange(datetime(2020, 1, 1, 1), datetime(2020, 1, 1, 3))
+    files = hdf5_product.get(time_range=time_range)
+
+    reg = penv.get_active_registry()
+    assert reg.provides(hdf5_product)
+
+    files = reg.find_files(
+        hdf5_product,
+        TimeRange(datetime(2020, 1, 1), datetime(2020, 1, 3))
+    )
+    assert len(files) == 4
+
+    rec = reg.download(files[0])
+    assert str(rec.local_path.parent) == "example"

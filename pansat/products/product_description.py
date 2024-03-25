@@ -531,7 +531,6 @@ class ProductDescription(ConfigParser):
         lats = self.latitude_coordinate.get_data(file_handle, context, slcs)
         return lons, lats
 
-        return lons, lats
 
     def load_time(self, file_handle, context=None, slcs=None):
         """
