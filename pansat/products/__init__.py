@@ -252,6 +252,7 @@ class Product(ABC):
                 if hasattr(provider, "provides"):
                     if provider.provides(self):
                         product_provider = provider
+                        break
             except Exception:
                 pass
         return product_provider
