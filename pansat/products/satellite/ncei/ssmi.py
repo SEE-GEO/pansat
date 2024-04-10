@@ -39,6 +39,7 @@ class SSMIProduct(FilenameRegexpMixin, Product):
             rf"{variant.upper()}_{sensor}_FCDR_V\w*_\w*_D(\d{{8}})_S(\d{{4}})"
             r"_E(\d{4})_\w*.nc"
         )
+        super().__init__()
 
     @property
     def name(self):
@@ -95,8 +96,12 @@ class SSMIProduct(FilenameRegexpMixin, Product):
             )
 
         with xr.open_dataset(rec.local_path) as data:
-            lons = data["lon_lores"].data
-            lats = data["lat_lores"].data
+            if "lat_lores" in data:
+                lons = data["lon_lores"].data
+                lats = data["lat_lores"].data
+            else:
+                lons = data["lon"].data
+                lats = data["lat"].data
         poly = geometry.lonlats_to_polygon(lons, lats, n_points=40)
         return poly
 
