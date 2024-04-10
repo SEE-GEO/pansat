@@ -122,7 +122,7 @@ def resample_data(
     lons = dataset.longitude.data
     lats = dataset.latitude.data
 
-    if lats.ndim == 1:
+    if "latitude" in dataset.dims:
         dataset = dataset.transpose(..., "latitude", "longitude")
         lons, lats = np.meshgrid(lons, lats)
 

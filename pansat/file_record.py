@@ -159,10 +159,9 @@ class FileRecord:
                 " Downloading the corresponding file is therefore not "
                 " possible."
             )
+
         if destination is None:
-
             data_dir = penv.get_active_data_dir()
-
             destination = (
                 data_dir / self.product.default_destination
             )
