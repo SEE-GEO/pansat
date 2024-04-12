@@ -20,6 +20,7 @@ import rich.table
 
 import pansat.logging
 import pansat.download
+from pansat.products import get_product
 from pansat.config import (
     get_current_config,
     display_current_config,
@@ -88,6 +89,11 @@ account.add_command(add_account)
     help="The number of parallel processes to use to speed up the indexing."
 )
 @click.option(
+    "--products",
+    default="",
+    help="List of product names to consider."
+)
+@click.option(
     "--recursive",
     is_flag=True,
     default=False
@@ -110,6 +116,12 @@ def index(
     """
     import pansat.environment as penv
     from pansat.catalog import Catalog
+
+    products = products.split(",")
+    if len(products) == 0:
+        products = None
+    else:
+        products = [get_product(name.strip()) for name in products]
 
     reg = penv.get_active_registry()
 

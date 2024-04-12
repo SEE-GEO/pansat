@@ -23,8 +23,8 @@ class CloudnetProvider(DiscreteProvider):
     @classmethod
     def get_available_products(cls):
         return [
-            "ground_based::Cloudnet::l1_radar",
-            "ground_based::Cloudnet::l1_iwc",
+            "ground_based.cloudnet.l1_radar",
+            "ground_based.cloudnet.l2_iwc",
         ]
 
     def get_files_by_day(self, year, day):

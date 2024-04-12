@@ -13,6 +13,7 @@ from typing import Optional, Tuple
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 from pansat.geometry import Geometry, ShapelyGeometry
+from pansat.products.product_description import get_slice, _geometry_from_coords
 
 
 @dataclass
@@ -301,3 +302,138 @@ def merge_granules(granules):
     merged.append(current)
 
     return merged
+
+
+def get_granules_from_dataset(
+        dataset,
+        time_coordinate = "time",
+        longitude_coordinate = "longitude",
+        latitude_coordinate = "latitude",
+        partitions = (16, 1),
+        resolution = (4, 4)
+):
+    """
+    Extract granule representation from an xarray Dataset.
+
+    Args:
+        dataset: The xarray.Dataset from which to extract the granule
+            reprsentation.
+        file_handle: A file handle object providing access to a product
+            data file.
+        context: A Python context holding potential callback functions
+            required for the loading of data.
+
+    Return:
+        A list of tuples ``(t_rng, geom, prm_ind_name, prm_ind_rng)``
+        containing the time range, geometry and primary index name and
+        range of each granule in the file.
+
+        If the granuling takes place over two dimension each tuple
+        additionally contains the name and range of the secondary
+        index.
+    """
+    if time_coordinate not in dataset:
+        raise ValueError(
+            f"The time coordinate '{time_coordinate}' is not present "
+            "in the dataset."
+        )
+    if latitude_coordinate not in dataset:
+        raise ValueError(
+            f"The latitude coordinate '{latitude_coordinate}' is not present "
+            "in the dataset."
+        )
+    if longitude_coordinate not in dataset:
+        raise ValueError(
+            f"The longitude coordinate '{longitude_coordinate}' is not present "
+            "in the dataset."
+        )
+
+
+    lons = dataset[longitude_coordinate].data
+    lats = dataset[latitude_coordinate].data
+    time = dataset[time_coordinate].data
+    if time.ndim > lons.ndim:
+        sizes = time.shape
+    else:
+        sizes = lons.shape
+
+    dim_names = dataset[longitude_coordinate].dims[:2]
+
+    granule_data = []
+
+    outer_start = 0
+    while outer_start < sizes[0] - 1:
+        outer_end = min(
+            outer_start + max(sizes[0] // partitions[0], 2),
+            sizes[0],
+        )
+
+        outer_slc = get_slice(
+            outer_start, outer_end, sizes[0], resolution[0]
+        )
+
+        if outer_start == outer_end:
+            break
+        outer_start = outer_end
+
+        if len(sizes) == 1:
+            inner_stop = 1
+        else:
+            inner_stop = sizes[1]
+        inner_start = 0
+
+        while inner_start < inner_stop:
+            if len(sizes) == 1:
+                slcs = {
+                    dim_names[0]: outer_slc,
+                }
+                inner_start = inner_stop
+            else:
+                if len(partitions) == 1:
+                    inner_end = sizes[1]
+                else:
+                    inner_end = inner_start + max(
+                        sizes[1] // partitions[1], 2
+                    )
+                inner_slc = get_slice(
+                    inner_start,
+                    inner_end,
+                    inner_stop,
+                    resolution[1],
+                )
+                slcs = {
+                    dim_names[0]: outer_slc,
+                    dim_names[1]: inner_slc,
+                }
+                if inner_start == inner_end:
+                    break
+                inner_start = inner_end
+
+            start_time = time.min()
+            end_time = time.max()
+            time_range = TimeRange(start_time, end_time)
+
+            geom = _geometry_from_coords(lons, lats)
+
+            if len(dim_names) == 1:
+                granule_data.append(
+                    (
+                        time_range,
+                        geom,
+                        dim_names[0],
+                        (outer_slc.start, outer_slc.stop),
+                    )
+                )
+            else:
+                granule_data.append(
+                    (
+                        time_range,
+                        geom,
+                        dim_names[0],
+                        (outer_slc.start, outer_slc.stop),
+                        dim_names[1],
+                        (inner_slc.start, inner_slc.stop),
+                    )
+                )
+
+    return granule_data

@@ -12,7 +12,7 @@ from pansat.products.satellite.cloudsat import l2c_ice
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
-@pytest.mark.skip("Server cannot be reached from arbitrary IPs.")
+#@pytest.mark.skip("Server cannot be reached from arbitrary IPs.")
 @pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
 @pytest.mark.usefixtures("test_identities")
 def test_cloudsat_dpc_provider():

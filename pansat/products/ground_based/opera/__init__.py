@@ -128,6 +128,9 @@ class OperaProduct(FilenameRegexpMixin, Product):
         """
         from pansat.formats.hdf5 import HDF5File
 
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(Path(rec))
+
         with TemporaryDirectory() as tmp:
             tmp = Path(tmp)
             TarFile(rec.local_path).extractall(tmp)
