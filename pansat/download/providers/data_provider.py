@@ -127,5 +127,6 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.meteo_france
     import pansat.download.providers.cloudsat_dpc
     import pansat.download.providers.icare
+    import pansat.environment as penv
 
-    return ALL_PROVIDERS
+    return ALL_PROVIDERS + [penv.get_active_registry()]

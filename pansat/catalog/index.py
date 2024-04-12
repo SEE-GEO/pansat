@@ -317,11 +317,18 @@ class Index:
                 )
 
                 for ind, task in enumerate(as_completed(tasks)):
-                    granules_t = task.result()
-                    prog.update(prog_task, advance=1)
-                    if granules_t is None:
-                        continue
-                    granules += granules_t
+                    try:
+                        granules_t = task.result()
+                        prog.update(prog_task, advance=1)
+                        if granules_t is None:
+                            continue
+                        granules += granules_t
+                    except Exception:
+                        LOGGER.error(
+                            "Ecountered an error when trying to index file '%s'",
+                            files[ind]
+                        )
+
 
                 prog.refresh()
 
@@ -348,10 +355,16 @@ class Index:
 
     def __add__(self, other):
         """Merge two indices."""
+        print(self.product == other.product)
+        print(self.product.name)
+        print(other.product.name)
+
         if not self.product == other.product:
             raise ValueError(
                 "Combining two Index objects requires them to refer to the"
-                " same product."
+                " same product. However, the provided indices refer to the "
+                f" products '{self.product}' and '{other.product}', "
+                " respectively."
             )
         product = self.product
 
@@ -499,35 +512,11 @@ def merge_matches(match_1, match_2):
         match_2: Tuple containing the second match.
 
     Return:
-        A list that either contains the merged match or the two matches if they are not adjacent.
+        A list that either contains the merged match or the
+        two matches if they are not adjacent.
     """
     if match_1[0].is_adjacent(match_2[0]):
-        matches_r_1 = match_1[1]
-        matches_r_2 = match_2[1]
-
-        adj_1 = []
-        adj_2 = []
-        merged_r = []
-
-        for g_1 in matches_r_1:
-            for g_2 in matches_r_2:
-                if g_1.is_adjacent(g_2):
-                    adj_1.append(g_1)
-                    adj_2.append(g_2)
-                    merged_r.append(g_1.merge(g_2))
-
-        merged_r = set(merged_r)
-        [matches_r_1.remove(granule) for granule in adj_1]
-        [matches_r_2.remove(granule) for granule in adj_2]
-
-        results = []
-        if len(matches_r_1) > 0:
-            results.append((match_1[0], matches_r_1))
-        if len(merged_r) > 0:
-            results.append((match_1[0].merge(match_2[0]), merged_r))
-        if len(matches_r_2) > 0:
-            results.append((match_2[0], matches_r_2))
-        return results
+        return [(match_1[0].merge(match_2[0]), match_1[1].union(match_2[1]))]
 
     return [match_1, match_2]
 
@@ -609,12 +598,16 @@ def _find_matches_rec(
             return matches_1
 
         if merge:
+            print(len(matches_1), len(matches_2), len(merge_matches(matches_1[-1], matches_2[0])))
             return (
                 matches_1[:-1]
                 + merge_matches(matches_1[-1], matches_2[0])
                 + matches_2[1:]
             )
         return matches_1 + matches_2
+
+    if len(index_data_l) == 0:
+        return []
 
     start_time = index_data_l.start_time.iloc[0] - time_diff
     end_time = index_data_l.end_time.iloc[0] + time_diff

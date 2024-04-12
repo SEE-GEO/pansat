@@ -43,7 +43,10 @@ class Catalog:
     def from_existing_files(
             path,
             products: Optional[List[Product]] = None,
-            n_processes: Optional[int] = None
+            n_processes: Optional[int] = None,
+            recursive: bool = True,
+            pattern: Optional[str] = None,
+            relative: bool = False
     ):
         """
         Create a catalog by scanning existing files.
@@ -54,6 +57,9 @@ class Catalog:
             products: List of products to consider. If not provided all
                 currently known products will be consdiered.
                 NOTE: This can be slow.
+            recursive: Whether to search recursively for candidate files or
+                not.
+            relative: Whether or not to use relative paths in the index.
 
         Return:
             A catalog object providing an overview of available pansat
@@ -68,7 +74,16 @@ class Catalog:
             products = list(all_products())
         path = Path(path)
 
-        files = np.array(sorted(list(path.glob("**/*"))))
+        if pattern is None:
+            pattern = "*"
+
+        if recursive:
+            files = sorted(list(path.glob(f"**/{pattern}")))
+        else:
+            files = sorted(list(path.glob(pattern)))
+        if not relative:
+            files = [path.absolute() for path in files]
+        files = np.array(files)
 
         indices = {}
 

@@ -15,6 +15,7 @@ import rich.tree
 import rich.panel
 import rich.padding
 import rich.box
+import rich.table
 
 
 import pansat.logging
@@ -80,16 +81,28 @@ account.add_command(add_account)
 
 @click.command("index")
 @click.argument("path")
-@click.option("--n_processes", type=int, default=None)
 @click.option(
-    "--products",
+    "--n_processes",
+    type=int,
     default=None,
-    help="List of product names to consider."
+    help="The number of parallel processes to use to speed up the indexing."
+)
+@click.option(
+    "--recursive",
+    is_flag=True,
+    default=False
+)
+@click.option(
+    "--pattern",
+    default=None,
+    help="An optional glob pattern to limit candidate files."
 )
 def index(
         path: Path,
         products: Optional[List[str]] = None,
-        n_processes: Optional[int] = None
+        n_processes: Optional[int] = None,
+        recursive: bool = False,
+        pattern: Optional[str] = None
 ):
     """
     Index files in a given directory and add the to the currently active
@@ -103,7 +116,9 @@ def index(
     catalog = Catalog.from_existing_files(
         path,
         products=products,
-        n_processes=n_processes
+        n_processes=n_processes,
+        recursive=recursive,
+        pattern=pattern,
     )
 
     for name, index in catalog.indices.items():
@@ -134,6 +149,42 @@ def list_catalogs():
     )
     reg.print_summary(root)
     rich.print(root)
+
+@click.command("show")
+@click.argument("product", type=str)
+def show_index(product):
+    """
+    Show entries in index for a given product.
+    """
+    import pansat.environment as penv
+    from pansat.products import get_product
+
+    try:
+        product = get_product(product)
+    except ValueError:
+        LOGGER.error(
+            "Cloud not find a product with the name '%s'.",
+            product.name
+        )
+        return 1
+
+    index = penv.get_index(product)
+    data = index.data.load()
+
+    table = rich.table.Table(title=f"Index for '{product.name}'", box=None)
+    table.add_column("Filename", no_wrap=True)
+    table.add_column("Local path", no_wrap=True)
+    table.add_column("Start time", no_wrap=True)
+    table.add_column("End time", no_wrap=True)
+
+    for index, series in data.iterrows():
+        table.add_row(
+            series.filename,
+            series.local_path,
+            series.start_time.strftime("%Y-%m-%dT%H:%M:%S"),
+            series.end_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        )
+    rich.print(table)
 
 @click.command("add")
 @click.argument("kind")
@@ -173,6 +224,7 @@ def add_registry(
 
 
 catalog.add_command(list_catalogs)
+catalog.add_command(show_index)
 catalog.add_command(add_registry)
 
 

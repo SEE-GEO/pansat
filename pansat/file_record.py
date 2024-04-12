@@ -8,7 +8,7 @@ file.
 from copy import copy
 from datetime import timedelta
 import logging
-from typing import Optional, List
+from typing import Optional, List, Union
 from tempfile import TemporaryDirectory
 
 from dataclasses import dataclass
@@ -117,6 +117,31 @@ class FileRecord:
         other_ranges = [other.temporal_coverage for other in others]
         closest = time_range.find_closest_ind(other_ranges)
         return [others[ind] for ind in closest]
+
+    def find_exact_match(
+            self,
+            others: List["FileRecord"]
+    ) -> Union["FileRecord", None]:
+        """
+        Find file record that exactly matches the time period of the file record.
+
+        Args:
+            others: A list of file records among which to find the one that matches
+                the time period of the record.
+
+        Return:
+            The first file record the exatly matches the time period of 'self' or
+            'None' if no such file record is persent in 'others'.
+        """
+        time_range = self.temporal_coverage
+        other_ranges = [other.temporal_coverage for other in others]
+        time_range = self.temporal_coverage
+        matches = [
+            other for other in others if other.temporal_coverage == time_range
+        ]
+        if len(matches) == 0:
+            return None
+        return matches[0]
 
 
     def time_difference(self, other: "FileRecord") -> timedelta:

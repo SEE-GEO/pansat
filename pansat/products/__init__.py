@@ -22,10 +22,6 @@ from pansat import geometry
 LOGGER = logging.getLogger(__name__)
 
 
-class Geometry:
-    """A dummy class."""
-
-    pass
 
 
 def get_product(product_name):
@@ -71,6 +67,7 @@ def all_products() -> List["Product"]:
     from pansat.products.satellite import modis
     from pansat.products.satellite import ncei
     from pansat.products.satellite import persiann
+    from pansat.products.satellite import ccic
 
     return list(Product.PRODUCTS.values())
 
@@ -143,7 +140,7 @@ class Product(ABC):
         """
 
     @abstractmethod
-    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
+    def get_spatial_coverage(self, rec: FileRecord) -> "Geometry":
         """
         Determine the spatial coverage of a data file.
 
@@ -172,7 +169,7 @@ class Product(ABC):
     def download(
             self,
             time_range: TimeRange,
-            roi: Optional[Geometry] = None,
+            roi: Optional["Geometry"] = None,
             destination=None
     ) -> List[FileRecord]:
         """
@@ -201,7 +198,7 @@ class Product(ABC):
     def get(
             self,
             time_range: TimeRange,
-            roi: Optional[Geometry] = None,
+            roi: Optional["Geometry"] = None,
             destination: Optional[Path] = None,
             provider: Optional['Provider'] = None
     ) -> List[FileRecord]:
@@ -255,6 +252,7 @@ class Product(ABC):
                 if hasattr(provider, "provides"):
                     if provider.provides(self):
                         product_provider = provider
+                        break
             except Exception:
                 pass
         return product_provider
@@ -263,7 +261,7 @@ class Product(ABC):
     def find_files(
             self,
             time_range: TimeRange,
-            roi: Optional[Geometry] = None,
+            roi: Optional["Geometry"] = None,
             provider: Optional["Provider"] = None
     ) -> List[FileRecord]:
         """
@@ -380,7 +378,7 @@ class NetcdfProduct(ABC):
             "does not point to an existing file."
         )
 
-    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
+    def get_spatial_coverage(self, rec: FileRecord) -> "Geometry":
         """
         Determine the spatial coverage of a data file.
 
