@@ -355,10 +355,6 @@ class Index:
 
     def __add__(self, other):
         """Merge two indices."""
-        print(self.product == other.product)
-        print(self.product.name)
-        print(other.product.name)
-
         if not self.product == other.product:
             raise ValueError(
                 "Combining two Index objects requires them to refer to the"
@@ -627,7 +623,10 @@ def _find_matches_rec(
     if merge:
         granules_r = merge_granules(granules_r)
 
-    granule_l = _dataframe_to_granules(prod_l, index_data_l)[0]
+    try:
+        granule_l = _dataframe_to_granules(prod_l, index_data_l)[0]
+    except:
+        granule_l = index_data_l
 
     if done_queue is not None:
         done_queue.put(1)
@@ -661,12 +660,23 @@ def find_matches(
     if time_diff is None:
         time_diff = np.timedelta64("5", "m")
 
+    if isinstance(index_l, geopandas.GeoDataFrame):
+        index_data_l = index_l
+    else:
+        index_data_l = index_l.data.load()
+
+    if isinstance(index_r, geopandas.GeoDataFrame):
+        index_data_r = index_r
+    else:
+        index_data_r = index_r.data.load()
+
+
     if n_processes is None:
         return _find_matches_rec(
             index_l.product,
-            index_l.data.load(),
+            index_data_l,
             index_r.product,
-            index_r.data.load(),
+            index_data_r,
             time_diff=time_diff,
             merge=merge,
         )
@@ -689,13 +699,13 @@ def find_matches(
         if i < rem:
             ind_end += 1
 
-        index_data_l = index_l.data.iloc[ind_start:ind_end]
+        index_data_l = index_data_l.iloc[ind_start:ind_end]
         start_time = index_data_l.start_time.iloc[0] - time_diff
         end_time = index_data_l.end_time.iloc[-1] + time_diff
-        inds_r = (index_r.data.end_time > start_time) * (
-            index_r.data.start_time < end_time
+        inds_r = (index_data_r.data.end_time > start_time) * (
+            index_data_r.start_time < end_time
         )
-        index_data_r = index_r.data.loc[inds_r]
+        index_data_r = index_data_r.data.loc[inds_r]
 
         tasks.append(
             pool.submit(
