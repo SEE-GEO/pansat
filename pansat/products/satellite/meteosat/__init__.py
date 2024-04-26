@@ -166,8 +166,8 @@ class MSGSeviriRapidScanL1BProduct(MSGSeviriL1BProduct):
                 )
 
     def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
-        if not isinstance(rec, FileRecord):
-            rec = FileRecord(local_path(rec))
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
         filename = rec.filename
 
         match = self.filename_regexp.match(filename)
