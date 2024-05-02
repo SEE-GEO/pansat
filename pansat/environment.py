@@ -164,9 +164,10 @@ class Registry(Catalog, DataProvider):
             if not found.exists():
                 LOGGER.warning(
                     "Found entry for file '%s' in registry '%s' but the "
-                    "local path points to a non-existing file.",
+                    "local path (%s) points to a non-existing file.",
                     rec.filename,
-                    self.name
+                    self.name,
+                    found,
                 )
                 if self.parent is not None:
                     return self.parent.get_local_path(rec)
