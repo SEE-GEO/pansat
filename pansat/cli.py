@@ -90,7 +90,7 @@ account.add_command(add_account)
 )
 @click.option(
     "--products",
-    default="",
+    default=None,
     help="List of product names to consider."
 )
 @click.option(
@@ -117,11 +117,12 @@ def index(
     import pansat.environment as penv
     from pansat.catalog import Catalog
 
-    products = products.split(",")
-    if len(products) == 0:
-        products = None
-    else:
-        products = [get_product(name.strip()) for name in products]
+    if products is not None:
+        products = products.split(",")
+        if len(products) == 0:
+            products = None
+        else:
+            products = [get_product(name.strip()) for name in products]
 
     reg = penv.get_active_registry()
 
