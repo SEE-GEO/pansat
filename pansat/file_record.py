@@ -96,6 +96,16 @@ class FileRecord:
         """
         return self.product.get_temporal_coverage(self)
 
+    @property
+    def central_time(self) -> TimeRange:
+        """
+        Returns a time range corresponding to the central time of the time range
+        covered by the file identified by this file record.
+        """
+        time_range = self.temporal_coverage
+        t_c = time_range.start + 0.5 * (time_range.end - time_range.start)
+        return TimeRange(t_c, t_c)
+
 
     def find_closest_in_time(
             self,
