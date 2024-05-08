@@ -80,8 +80,13 @@ class NMQProduct(FilenameRegexpMixin, Product):
         match = self.filename_regexp.match(rec.filename)
         yearmonthday = match.group(2)
         hourminutesecond = match.group(3)
-        end = datetime.strptime("".join((yearmonthday, hourminutesecond)), "%Y%m%d%H%M%S")
-        start = end - self.temporal_resolution
+        time = datetime.strptime("".join((yearmonthday, hourminutesecond)), "%Y%m%d%H%M%S")
+        if self.temporal_resolution > np.timedelta64(30, "m"):
+            start = time -  self.temporal_resolution
+            end = time
+        else:
+            start = time - 0.5 * self.temporal_resolution
+            end = time - 0.5 * self.temporal_resolution
         return TimeRange(start, end)
 
     def get_spatial_coverage(self, rec: FileRecord):
@@ -128,22 +133,23 @@ class NMQProduct(FilenameRegexpMixin, Product):
         lons = lon_ll + np.arange(n_cols) * dl
         lats = (lat_ll + np.arange(n_rows) * dl)[::-1]
 
-        get_date = self.get_temporal_coverage(rec)
+        time_range = self.get_temporal_coverage(rec)
+        time = time_range.start + 0.5 * (time_range.end - time_range.start)
 
-        data = np.zeros((1, n_rows, n_cols))
-        data[i, :, :] = np.loadtxt(f, skiprows=6, dtype=self.dtype)
+        data = np.zeros((n_rows, n_cols))
+        data[:, :] = np.loadtxt(local_path, skiprows=6, dtype=self.dtype)
 
-        dims = ("time", "latitude", "longitude")
+        dims = ("latitude", "longitude")
         dataset = xr.Dataset({
             "latitude": (("latitude",), lats),
             "longitude": (("longitude",), lons),
-            "time": (("time",), [time_range.start]),
-            self.name: (dims, precip_rate),
+            "time": time,
+            self._name: (("latitude", "longitude"), data),
         })
         return dataset
 
 
 precip_rate_gpm = NMQProduct("precip_rate", "gpm", np.float32, timedelta(minutes=2))
-mask_gpm = NMQProduct("mask", "gpm", np.int32, timedelta(minutes=2))
+mask_gpm = NMQProduct("mask", "gpm", np.float32, timedelta(minutes=2))
 rqi_gpm = NMQProduct("rqi", "gpm", np.float32, timedelta(minutes=2))
 gcf_gpm = NMQProduct("1hcf", "gpm", np.float32, timedelta(hours=1))
