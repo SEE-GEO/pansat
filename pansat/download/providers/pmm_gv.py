@@ -32,14 +32,27 @@ PRODUCTS = {
 
 class PMMGVProvider(DiscreteProviderMonth):
 
-    def __init__(self):
-        pass
 
     def provides(self, prod: "Product") -> bool:
         """
         Whether or not the provider provides the given product.
         """
         return prod.name in PRODUCTS
+
+    def download_url(self, url: str, destination: Path) -> None:
+        """
+        Download file from PMM GV server.
+
+        Args:
+             url: String containing the URL of the file to download.
+            destination: Path object pointint to the file in which to store the downloaded ata.
+        """
+        with requests.Session() as session:
+            response = session.get(url)
+            # Write to disk
+            with open(destination, "wb") as f:
+                for chunk in response:
+                    f.write(chunk)
 
 
     def find_files_by_month(self, product, time, roi=None):

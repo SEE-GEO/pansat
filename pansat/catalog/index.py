@@ -385,7 +385,7 @@ class Index:
         """
         if self.data is None:
             return StopIteration
-        granules = _dataframe_to_granules(self.product, self.data)
+        granules = _dataframe_to_granules(self.product, self.data.load())
         for granule in granules:
             yield granule
 
@@ -594,7 +594,6 @@ def _find_matches_rec(
             return matches_1
 
         if merge:
-            print(len(matches_1), len(matches_2), len(merge_matches(matches_1[-1], matches_2[0])))
             return (
                 matches_1[:-1]
                 + merge_matches(matches_1[-1], matches_2[0])
@@ -670,6 +669,7 @@ def find_matches(
     else:
         index_data_r = index_r.data.load()
 
+    index_data_l = index_data_l.sort_values("start_time")
 
     if n_processes is None:
         return _find_matches_rec(
