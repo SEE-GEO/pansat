@@ -122,8 +122,8 @@ class PansatConfig:
         """
         if path is None:
             path = PANSAT_CONFIG_DIR / "config.toml"
-            if not path.exists():
-                path.mkdir(exist_ok=True)
+            if not path.parent.exists():
+                path.parent.mkdir(exist_ok=True)
 
         doc = tomlkit.document()
         doc.add(tomlkit.comment("pansat configuration file"))

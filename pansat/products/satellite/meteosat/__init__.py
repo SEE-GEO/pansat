@@ -51,6 +51,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
 
         """
         self._name = "l1b_msg_seviri"
+        Product.__init__(self)
 
         if location is not None:
             if location.lower() == "io":
@@ -154,6 +155,9 @@ class MSGSeviriRapidScanL1BProduct(MSGSeviriL1BProduct):
         """
         super().__init__(location=location)
         self._name = "l1b_rs_msg_seviri"
+        self.filename_regexp = re.compile(
+            "MSG-R\d-SEVI-MSG\d*-0100-NA-(\d{14})\.\d*Z-NA(.nat)?"
+        )
 
         if location is not None:
             if location.lower() == "io":

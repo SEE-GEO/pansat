@@ -20,6 +20,7 @@ import rich.table
 
 import pansat.logging
 import pansat.download
+import pansat.download.accounts
 from pansat.products import get_product
 from pansat.config import (
     get_current_config,
@@ -55,20 +56,29 @@ def account():
 
 @click.command(name="list")
 def list_accounts():
+    from rich.table import Table
+    from rich.console import Console
+
     identities = pansat.download.accounts.get_identities()
-    output = """
+    table = Table(title="pansat accounts")
+    csv = "Provider name, user name, password\n\n"
 
-Known pansat accounts:
--------------------------------
-provider :: username / password
+    table.add_column("Provider name", justify="left", style="cyan")
+    table.add_column("user name", style="magenta", justify="left")
+    table.add_column("password", justify="left", style="green")
 
-"""
     for provider in identities.keys():
         if provider == "pansat":
             continue
         user_name, password = pansat.download.accounts.get_identity(provider)
-        output += f"{provider} :: {user_name} / {password}\n"
-    click.echo(output)
+        table.add_row(provider, user_name, password)
+        csv += f"{provider}, {user_name}, {password}\n"
+
+    console = Console()
+    if console.is_terminal:
+        console.print(table)
+    else:
+        console.file.write(csv)
 
 
 @click.command(name="add")
@@ -90,7 +100,7 @@ account.add_command(add_account)
 )
 @click.option(
     "--products",
-    default="",
+    default=None,
     help="List of product names to consider."
 )
 @click.option(
@@ -117,11 +127,12 @@ def index(
     import pansat.environment as penv
     from pansat.catalog import Catalog
 
-    products = products.split(",")
-    if len(products) == 0:
-        products = None
-    else:
-        products = [get_product(name.strip()) for name in products]
+    if products is not None:
+        products = products.split(",")
+        if len(products) == 0:
+            products = None
+        else:
+            products = [get_product(name.strip()) for name in products]
 
     reg = penv.get_active_registry()
 
