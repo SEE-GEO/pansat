@@ -96,7 +96,8 @@ class MRMSProduct(FilenameRegexpMixin, Product):
             rec = FileRecord(Path(rec))
 
         start_time = self.filename_to_date(rec.filename)
-        if self.temporal_resolution > np.datetime64(30, "m"):
+        ttype = self.temporal_resolution.dtype
+        if self.temporal_resolution > np.datetime64(30, "m").astype(ttype):
             start_time = to_datetime64(start_time) - self.temporal_resolution
         else:
             start_time = to_datetime64(start_time) - 0.5 * self.temporal_resolution
