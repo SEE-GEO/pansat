@@ -97,7 +97,7 @@ class MRMSProduct(FilenameRegexpMixin, Product):
 
         start_time = self.filename_to_date(rec.filename)
         ttype = self.temporal_resolution.dtype
-        if self.temporal_resolution > np.datetime64(30, "m").astype(ttype):
+        if self.temporal_resolution > np.timedelta64(30, "m"):
             start_time = to_datetime64(start_time) - self.temporal_resolution
         else:
             start_time = to_datetime64(start_time) - 0.5 * self.temporal_resolution
@@ -165,7 +165,7 @@ class MRMSProduct(FilenameRegexpMixin, Product):
             dataset = xr.load_dataset(path, engine="cfgrib")
 
         lons = dataset.longitude.data
-        lons[lons > 180] = lons - 360
+        lons[lons > 180] -= 360.0
 
         dataset = dataset.rename(
             {
