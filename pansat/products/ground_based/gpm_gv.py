@@ -146,7 +146,7 @@ class NMQProduct(FilenameRegexpMixin, Product):
             "time": time,
             self._name: (("latitude", "longitude"), data),
         })
-        return dataset
+        return dataset.sortby("latitude")
 
 
 precip_rate_gpm = NMQProduct("precip_rate", "gpm", np.float32, timedelta(minutes=2))
