@@ -210,8 +210,8 @@ class FileRecord:
         except:
             LOGGER.exception(
                 "Encountered an error when trying to insert file record for file %s into"
-                " the regristry.",
-                new_rec.local_path
+                " the registry.",
+                new_rec.local_path,
             )
         return self
 
