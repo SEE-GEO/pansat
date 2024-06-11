@@ -396,7 +396,8 @@ class GPROFProduct(GPMProduct):
         )
 
 
-l2a_gprof_gpm_gmi = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
+l2a_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
+l2a_gprof_gpm_gmi_v07b = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07B")
 l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "MHS", "07A")
 l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "MHS", "07A")
 l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "METOPA", "MHS", "07A")
