@@ -83,10 +83,9 @@ class NMQProduct(FilenameRegexpMixin, Product):
         time = datetime.strptime("".join((yearmonthday, hourminutesecond)), "%Y%m%d%H%M%S")
         if self.temporal_resolution > np.timedelta64(30, "m"):
             start = time -  self.temporal_resolution
-            end = time
         else:
             start = time - 0.5 * self.temporal_resolution
-            end = time - 0.5 * self.temporal_resolution
+        end = start + self.temporal_resolution
         return TimeRange(start, end)
 
     def get_spatial_coverage(self, rec: FileRecord):
