@@ -415,7 +415,7 @@ class Index:
             return f"<Index of '{self.product.name}' containing " f"no data entries>"
         return (
             f"<Index of '{self.product.name}' containing "
-            f"{self.data.start_time.size} entries>"
+            f"{len(self.data)} entries>"
         )
 
     def get_local_path(self, file_record: FileRecord) -> Optional[None]:
