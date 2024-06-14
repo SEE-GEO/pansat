@@ -128,6 +128,7 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.cloudsat_dpc
     import pansat.download.providers.icare
     import pansat.download.providers.pmm_gv
+    import pansat.download.providers.ecmwf
     import pansat.environment as penv
 
     return ALL_PROVIDERS + [penv.get_active_registry()]
