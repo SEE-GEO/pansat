@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 import re
 import tempfile
-from typing import Optional
+from typing import List, Optional
 import xml.etree.ElementTree as ET
 
 import requests
@@ -157,7 +157,10 @@ class GesDiscProviderBase:
 
 
 class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
-    def provides(self, product):
+    def provides(self, product) -> bool:
+        """
+        Determine whether provide provides the given product.
+        """
         name = product.name
         if not name.startswith("satellite.gpm"):
             return False
@@ -298,3 +301,204 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
 ges_disc_provider_day = GesDiscProviderDay()
 ges_disc_provider_month = GesDiscProviderMonth()
 ges_disc_provider_year = GesDiscProviderYear()
+
+
+class MerraProvider(GesDiscProviderBase, DiscreteProviderMonth):
+    """
+    Provider for MERRA2 data from NASA GesDisc servers.
+    """
+
+    MERRA_PRODUCTS = {
+        "reanalysis.merra.m2i3npasm": [
+            "https://goldsmr5.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2I3NPASM.5.12.4/"
+        ],
+        "reanalysis.merra.m2i3nvaer": [
+            "https://goldsmr5.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2I3NVAER.5.12.4/"
+        ],
+        "reanalysis.merra.m2i3nvasm": [
+            "https://goldsmr5.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2I3NVASM.5.12.4/"
+        ],
+        "reanalysis.merra.m2i1nxasm": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2I1NXASM.5.12.4/"
+        ],
+        "reanalysis.merra.m2t1nxlnd": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2T1NXLND.5.12.4/"
+        ],
+        "reanalysis.merra.m2t1nxflx": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2T1NXFLX.5.12.4/"
+        ],
+        "reanalysis.merra.m2t1nxrad": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2T1NXRAD.5.12.4/"
+        ],
+        "reanalysis.merra.m2t1nxrad": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2/M2T1NXRAD.5.12.4/"
+        ],
+    }
+
+    def provides(self, product) -> bool:
+        """
+        Determine whether provide provides the given product.
+        """
+        name = product.name
+        if name.startswith("reanalysis.merra"):
+            return name in self.MERRA_PRODUCTS
+        return False
+
+    def get_base_url(self, product):
+        """
+        URL pointing to the root of the directory tree containing the
+        data files of the given product.
+
+        Args:
+            product: The product for which to retrieve the URL.
+
+        Return:
+            The URL as a string.
+        """
+        base_url, path = self.MERRA_PRODUCTS[product.name]
+        return "/".join([base_url, path])
+
+    def find_files_by_month(self, product, time, roi=None):
+        """
+        Find files available data files for a given month.
+
+        Args:
+            product: A 'pansat.Product' object identifying the product
+               for which to retrieve available data files.
+            time: A time object specifying the month for which to retrieve
+               available products.
+            roi: An optional geometry object to limit the files to
+               only those that cover a certain geographical region.
+
+        Return:
+            A list of file records identifying the files from the requested
+            day.
+        """
+        time = to_datetime(time)
+        rel_url = time.strftime("/%Y/%m")
+        url = self.get_base_url(product) + rel_url
+        session = cache.get_session()
+        response = session.get(url)
+
+        # 404 error likely means that no products are available for
+        # this day.
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
+
+        files = set()
+        for match in product.filename_regexp.finditer(response.text):
+            files.add(match.group(0))
+
+        subset_str = ""
+        variables = product.variables
+        if variables is not None:
+            url = url.replace("/data/", "/opendap/")
+            subset_str = ".nc4?" + ",".join(variables + ["time", "lat", "lon"])
+
+        recs = [
+            FileRecord.from_remote(product, self, url + f"/{fname}{subset_str}", fname)
+            for fname in files
+        ]
+        return recs
+
+    def download_url(self, url, path):
+        """
+        Download file from MERRA GES DISC server.
+        """
+        auth = accounts.get_identity("GES DISC")
+        ## If only requests.get(url, auth=auth) is used, the requests library
+        ## will search in ~/.netrc credentials for the machine
+        ## urs.earthdata.nasa.gov, but `auth` is not used as the authorization
+        ## is after a redirection
+        ## The method below handles the authorization after a redirection
+        with requests.Session() as session:
+            redirect = session.get(url, auth=auth)
+            response = session.get(redirect.url, auth=auth, stream=True)
+            response.raise_for_status()
+
+            # Write to disk
+            with open(path, "wb") as f:
+                for chunk in response:
+                    f.write(chunk)
+
+ges_disc_provider_merra = MerraProvider()
+
+
+class MerraConstantProvider(MerraProvider):
+    """
+    Provider for MERRA2 data from NASA GesDisc servers.
+    """
+
+    MERRA_PRODUCTS = {
+        "reanalysis.merra.m2conxasm": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2_MONTHLY/M2C0NXASM.5.12.4/"
+        ],
+        "reanalysis.merra.m2conxctm": [
+            "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
+            "MERRA2_MONTHLY/M2C0NXCTM.5.12.4/"
+        ],
+    }
+
+    def find_files(
+            self,
+            product: "pansat.Product",
+            time_range: "pansat.TimeRange",
+            roi: "pansat.Geometry" = None
+    ) -> List[FileRecord]:
+        """
+        Find files available data files at a given day.
+
+        Args:
+            product: A 'pansat.Product' object identifying the product
+               for which to retrieve available data files.
+            time_range: A time object specifying the day for which to retrieve
+               available products.
+            roi: An optional geometry object to limit the files to
+               only those that cover a certain geographical region.
+
+        Return:
+            A list of file records identifying the files from the requested
+            day.
+        """
+        url = self.get_base_url(product) + "1980"
+        session = cache.get_session()
+        response = session.get(url)
+
+        # 404 error likely means that no products are available for
+        # this day.
+        try:
+            response.raise_for_status()
+        except HTTPError as exc:
+            if exc.response.status_code == 404:
+                pass
+
+        files = set()
+        for match in product.filename_regexp.finditer(response.text):
+            files.add(match.group(0))
+
+        subset_str = ""
+        variables = product.variables
+        if variables is not None:
+            url = url.replace("/data/", "/opendap/")
+            subset_str = ".nc4?" + ",".join(variables + ["time", "lat", "lon"])
+
+        recs = [
+            FileRecord.from_remote(product, self, url + f"/{fname}{subset_str}", fname)
+            for fname in files
+        ]
+        return recs
+
+
+ges_disc_provider_merra_constant = MerraConstantProvider()

@@ -1,14 +1,18 @@
 """
 Test for NASA GES DISC provider.
 """
+from copy import copy
 from datetime import datetime
 import os
 import pytest
+
+from conftest import NEEDS_PANSAT_PASSWORD
 
 from pansat.download.providers.ges_disc import (
     ges_disc_provider_day,
     ges_disc_provider_month,
     ges_disc_provider_year,
+    ges_disc_provider_merra
 )
 from pansat.products.satellite.gpm import (
     l1c_r_gpm_gmi,
@@ -16,13 +20,16 @@ from pansat.products.satellite.gpm import (
     l3b_imerg_monthly,
     merged_ir,
 )
+from pansat.products.reanalysis.merra import (
+    m2i3nwasm
+)
 from pansat.time import TimeRange
 
 
 HAS_PANSAT_PASSWORD = "PANSAT_PASSWORD" in os.environ
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@NEEDS_PANSAT_PASSWORD
 @pytest.mark.usefixtures("test_identities")
 def test_ges_disc_provider_day():
     """
@@ -39,7 +46,7 @@ def test_ges_disc_provider_day():
     assert len(files) == 1
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@NEEDS_PANSAT_PASSWORD
 @pytest.mark.usefixtures("test_identities")
 def test_ges_disc_provider_month():
     """
@@ -62,7 +69,7 @@ def test_ges_disc_provider_month():
     assert len(files) == 2
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@NEEDS_PANSAT_PASSWORD
 @pytest.mark.usefixtures("test_identities")
 def test_ges_disc_provider_year():
     """
@@ -85,7 +92,7 @@ def test_ges_disc_provider_year():
     assert len(files) == 2
 
 
-@pytest.mark.skipif(not HAS_PANSAT_PASSWORD, reason="Pansat password not set.")
+@NEEDS_PANSAT_PASSWORD
 @pytest.mark.usefixtures("test_identities")
 def test_ges_disc_provider_merged_ir():
     """
@@ -106,3 +113,22 @@ def test_ges_disc_provider_merged_ir():
     time_range = TimeRange(start_time, end_time)
     files = ges_disc_provider_day.find_files(merged_ir, time_range)
     assert len(files) == 2
+
+
+@pytest.mark.slow
+def test_ges_disc_provider_merra(tmp_path):
+    """
+    Test finding and downloading of MERRA data from the GES DISC server.
+    """
+    m2i3nwasm_v = copy(m2i3nwasm)
+    m2i3nwasm_v.variables = ["T"]
+
+    time_range = TimeRange("1980-01-01T12:00:00")
+    recs = m2i3nwasm_v.find_files(time_range, provider=ges_disc_provider_merra)
+    assert len(recs) == 1
+
+    files = sorted(list(tmp_path.glob("*.nc4")))
+    assert len(files) == 0
+    recs[0].get(destination=tmp_path)
+    files = sorted(list(tmp_path.glob("*.nc4")))
+    assert len(files) == 1
