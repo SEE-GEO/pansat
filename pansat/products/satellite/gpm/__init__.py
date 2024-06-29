@@ -20,7 +20,6 @@ import xarray as xr
 
 import pansat
 from pansat import products
-import pansat.download.providers as providers
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
 from pansat.products import Granule
