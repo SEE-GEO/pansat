@@ -13,6 +13,7 @@ from typing import Optional
 
 import requests
 from pansat.download.providers.discrete_provider import (
+    DataProvider,
     DiscreteProviderYear,
     DiscreteProviderMonth,
 )
@@ -87,6 +88,10 @@ class NOAANCEIProviderBase:
             filename: Name of the file to download.
             destination: The destination to which to write the
                 results.
+
+        Return:
+            A new file record containing the location of the downloaded
+            file in its 'local_path' attribute.
         """
         url = file_record.remote_path
         response = requests.get(url)
@@ -250,3 +255,84 @@ class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
 noaa_ncei_provider_all = NOAANCEIProviderAll()
 noaa_ncei_provider_year = NOAANCEIProviderYear()
 noaa_ncei_provider_month = NOAANCEIProviderMonth()
+
+
+class NOAAGlobeProvider(DataProvider):
+    """
+    Provider for NOAA GLOBE files available from
+    https://www.ngdc.noaa.gov/mgg/topo/gltiles.html
+    """
+    def __init__(self):
+        super().__init__()
+
+    def provides(self, product: "pansat.Product") -> bool:
+        """
+        Whether or not this provider can provide data from the given
+        product.
+        """
+        return product.name == ("dem.globe")
+
+    def download(
+        self, file_record: FileRecord, destination: Optional[Path] = None
+    ) -> FileRecord:
+        """
+
+        """
+
+        url = file_record.remote_path
+        response = requests.get(url)
+        response.raise_for_status()
+
+        if destination.is_dir():
+            destination = destination / file_record.filename
+
+        with open(destination, "wb") as output:
+            for chunk in response:
+                output.write(chunk)
+
+        new_record = copy(file_record)
+        new_record.local_path = destination
+        return new_record
+
+    def find_files(self, product, time_range, roi):
+        """
+        Return all available NOAA GLOBE files potentiall subsetted to requested
+        ROI.
+
+        Args:
+            product: Ignored but should be the dem.globe product.
+            time_range: Ignored because DEM data coverage is not limited
+                in time.
+            roi: An optional geometry object specifying a region of interest
+                to which to limit the extracted files.
+
+        Return:
+            A list of file records pointing to the matching NOAA GLOBE
+            files.
+        """
+        url = "https://www.ngdc.noaa.gov/mgg/topo/DATATILES/elev/"
+
+        all_records = []
+        for ind in range(16):
+            fname = f"{chr(ord('a') + ind)}10g.gz"
+            all_records.append(
+                FileRecord.from_remote(
+                    filename=fname,
+                    product=product,
+                    remote_path=url + fname,
+                    provider=self
+                )
+            )
+
+        if roi is not None:
+            matching = []
+            for rec in all_records:
+                if rec.spatial_coverage.covers(roi):
+                    matching.append(rec)
+        else:
+            matching = all_records
+
+        return matching
+
+
+noaa_globe_provider = NOAAGlobeProvider()

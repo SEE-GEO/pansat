@@ -14,6 +14,8 @@ from pansat.products.satellite.ncei import (
     isccp_hgm,
     isccp_hxg
 )
+from pansat.products.dem.globe import globe
+from pansat.geometry import LonLatRect
 
 
 def test_find_provider():
@@ -74,3 +76,26 @@ def test_noaa_ncei_download(tmp_path):
         files = product.find_files(TimeRange(date, date))
         rec = files[0].get()
         assert rec.local_path.exists()
+
+
+def test_noaa_globe_provider():
+    """
+    Test that provider for NOAA GLOBE DEM data is available.
+    """
+    recs = globe.find_files(TimeRange("2020-01-01"))
+    assert len(recs) == 16
+
+    roi = LonLatRect(10, 10, 20, 20)
+    recs = globe.find_files(TimeRange("2020-01-01"), roi=roi)
+    assert len(recs) == 1
+
+
+@pytest.mark.slow
+def test_noaa_globe_provider_download(tmp_path):
+    """
+    Test that provider for NOAA GLOBE DEM data is available.
+    """
+    roi = LonLatRect(10, 10, 20, 20)
+    recs = globe.find_files(TimeRange("2020-01-01"), roi=roi)
+    recs[0].get(destination=tmp_path)
+    assert (tmp_path / "noaa" / "globe").exists()

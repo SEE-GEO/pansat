@@ -18,6 +18,7 @@ import numpy as np
 
 
 from pansat.time import TimeRange
+from pansat.geometry import Geometry
 
 
 LOGGER = logging.getLogger(__name__)
@@ -95,6 +96,13 @@ class FileRecord:
         The temporal coverage of the file identified by this file record.
         """
         return self.product.get_temporal_coverage(self)
+
+    @property
+    def spatial_coverage(self) -> Geometry:
+        """
+        The spatial coverage of the file identified by this file record.
+        """
+        return self.product.get_spatial_coverage(self)
 
     @property
     def central_time(self) -> TimeRange:
