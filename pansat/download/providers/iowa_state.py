@@ -30,6 +30,7 @@ PRODUCTS = {
     "ground_based.mrms.precip_1h": ["mrms", "ncep", "RadarOnly_QPE_01H"],
     "ground_based.mrms.precip_1h_gc": ["mrms", "ncep", "GaugeCorr_QPE_01H"],
     "ground_based.mrms.precip_1h_ms": ["mrms", "ncep", "MultiSensor_QPE_01H_Pass2"],
+    "ground_based.mrms.precip_24h_ms": ["mrms", "ncep", "MultiSensor_QPE_24H_Pass2"],
 }
 
 

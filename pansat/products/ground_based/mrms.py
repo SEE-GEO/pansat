@@ -39,6 +39,7 @@ PRODUCT_NAMES = {
     "precip_1h": "RadarOnly_QPE_01H",
     "precip_1h_gc": "GaugeCorr_QPE_01H",
     "precip_1h_ms": "MultiSensor_QPE_01H_Pass2",
+    "precip_24h_ms": "MultiSensor_QPE_24H_Pass2",
 }
 
 
@@ -183,6 +184,10 @@ precip_flag = MRMSProduct("precip_flag", "precip_flag", np.timedelta64(120, "s")
 precip_1h = MRMSProduct("precip_1h", "precip_1h", np.timedelta64(120, "s"))
 precip_1h_gc = MRMSProduct("precip_1h_gc", "precip_1h_gc", np.timedelta64(60 * 60, "s"))
 precip_1h_ms = MRMSProduct("precip_1h_ms", "precip_1h_ms", np.timedelta64(60 * 60, "s"))
+precip_24h_ms = MRMSProduct(
+    "precip_24h_ms",
+    "precip_24h_ms", np.timedelta64(24 * 60 * 60, "s")
+)
 
 ######################################################################
 # Utility functions
