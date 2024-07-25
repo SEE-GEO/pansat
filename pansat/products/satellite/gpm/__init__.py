@@ -476,9 +476,10 @@ def _imerg_parse_time(seconds_since_1970, slices=None):
     Helper function to convert time from IMERG HDF5 files to
     numpy datetime.
     """
-    return np.datetime64("1970-01-01T00:00:00") + seconds_since_1970[:].astype(
-        "timedelta64[s]"
-    )
+    return (
+        np.datetime64("1970-01-01T00:00:00") +
+        seconds_since_1970[:].astype("timedelta64[s]")
+    ).astype("datetime64[ns]")
 
 
 def _gpm_l1c_parse_time(scan_time_group, slices=None):
