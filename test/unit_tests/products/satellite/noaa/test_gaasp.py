@@ -56,6 +56,10 @@ def test_open():
     assert np.nanmax(data["tbs_s3"].data) < 400
     assert np.nanmin(data["tbs_s3"].data) > 0
 
+    assert "sensor_longitude" in data
+    assert "sensor_latitude" in data
+    assert "sensor_altitude" in data
+
 
 @NEEDS_GAASP_DATA
 def test_indexing():

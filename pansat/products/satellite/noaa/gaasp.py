@@ -292,6 +292,7 @@ def load_scan_time_amsr2(vrbl, slices=None) -> np.ndarray:
     Args:
         vrbl: Pointer to the HDF5 variable containing the scan time in
             seconds.
+        slices: A optional slice object to subset the data to load.
 
     Return:
         A datetime64 array containing the absolute scan time.
@@ -300,6 +301,66 @@ def load_scan_time_amsr2(vrbl, slices=None) -> np.ndarray:
         slices = slice(0, None)
     d_t = vrbl.__getitem__(slices).astype("timedelta64[s]")
     return np.datetime64("1993-01-01T00:00:00") + d_t
+
+
+def load_sensor_lon(vrbl, slices=None) -> np.ndarray:
+    """
+    Load longitude coordinate of sensor from naviation data.
+
+    Args:
+        vrbl: Pointer to the HDF5 variable containing the sensor navigation
+            data.
+        slices: A optional slice object to subset the data to load.
+
+    Return:
+        A numpy.ndarray containig the longitude coordinates of the
+        sensor at each scan position.
+    """
+    ndata = vrbl[slices]
+    alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
+    sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
+    sensor_lon = np.rad2deg(np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat)))))
+    return sensor_lon
+
+
+def load_sensor_lat(vrbl, slices=None) -> np.ndarray:
+    """
+    Load latitude coordinate of sensor from naviation data.
+
+    Args:
+        vrbl: Pointer to the HDF5 variable containing the sensor navigation
+            data.
+        slices: A optional slice object to subset the data to load.
+
+    Return:
+        A numpy.ndarray containig the latitude coordinates of the
+        sensor at each scan position.
+    """
+    ndata = vrbl[slices]
+    alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
+    sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
+    sensor_lon = np.rad2deg(np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat)))))
+    return sensor_lon
+
+
+def load_sensor_alt(vrbl, slices=None) -> np.ndarray:
+    """
+    Load altitude of sensor from naviation data.
+
+
+    Args:
+        vrbl: Pointer to the HDF5 variable containing the sensor navigation
+            data.
+        slices: A optional slice object to subset the data to load.
+
+    Return:
+        A numpy.ndarray containig the latitude coordinates of the
+        sensor at each scan position.
+    """
+    ndata = vrbl[slices]
+    alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
+    sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
+    return alt
 
 
 l1b_gaasp_gcomw1_amsr2 = GAASPProduct()
