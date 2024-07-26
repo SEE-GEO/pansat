@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from pansat.catalog import Index
@@ -39,13 +40,21 @@ def test_get_temporal_coverage():
 @NEEDS_GAASP_DATA
 def test_open():
     """
-    Test opening of AMSR2 files.
+    Test opening of AMSR2 files and ensure that all loaded brightness temperatures
+    are physical.
     """
     files = sorted(list(Path(NOAA_GAASP_DATA).glob("*.h5")))
     data = l1b_gcomw1_amsr2.open(files[0])
     assert "tbs_s1" in data
     assert "tbs_s2" in data
     assert "tbs_s3" in data
+
+    assert np.nanmax(data["tbs_s1"].data) < 400
+    assert np.nanmin(data["tbs_s1"].data) > 0
+    assert np.nanmax(data["tbs_s2"].data) < 400
+    assert np.nanmin(data["tbs_s2"].data) > 0
+    assert np.nanmax(data["tbs_s3"].data) < 400
+    assert np.nanmin(data["tbs_s3"].data) > 0
 
 
 @NEEDS_GAASP_DATA

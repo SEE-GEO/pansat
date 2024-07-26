@@ -201,7 +201,9 @@ def load_channels(
     for chan in channels:
         if slices is None:
             slices = slice(0, None)
-        tbs.append(file_handle[chan].__getitem__(slices))
+        scaling = file_handle[chan].attrs["SCALE FACTOR"][0]
+        tbs.append(scaling * file_handle[chan].__getitem__(slices))
+
     tbs = np.stack(tbs, -1)
     return tbs
 
