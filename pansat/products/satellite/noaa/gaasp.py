@@ -29,10 +29,10 @@ class GAASPProduct(FilenameRegexpMixin, GranuleProduct):
     """
 
     def __init__(self):
-        self._name = "l1b_gw1_amsr2"
+        self._name = "l1b_gcomw1_amsr2"
         module_path = Path(__file__).parent
         self.product_description = ProductDescription(
-            module_path / "l1b_gaasp_gw1_amsr2.ini"
+            module_path / "l1b_gaasp_gcomw1_amsr2.ini"
         )
         self.filename_regexp = re.compile(
             rf"GAASP-L1B_v\dr\d_GW1_s(\d*)_e(\d*)_c(\d*).h5"
@@ -202,6 +202,8 @@ def load_channels(
         if slices is None:
             slices = slice(0, None)
         scaling = file_handle[chan].attrs["SCALE FACTOR"][0]
+        if isinstance(slices, tuple):
+            slices = slices[:2]
         tbs.append(scaling * file_handle[chan].__getitem__(slices))
 
     tbs = np.stack(tbs, -1)
@@ -292,6 +294,7 @@ def load_scan_time_amsr2(vrbl, slices=None) -> np.ndarray:
     Args:
         vrbl: Pointer to the HDF5 variable containing the scan time in
             seconds.
+        slices: A optional slice object to subset the data to load.
 
     Return:
         A datetime64 array containing the absolute scan time.
@@ -300,6 +303,66 @@ def load_scan_time_amsr2(vrbl, slices=None) -> np.ndarray:
         slices = slice(0, None)
     d_t = vrbl.__getitem__(slices).astype("timedelta64[s]")
     return np.datetime64("1993-01-01T00:00:00") + d_t
+
+
+def load_spacecraft_lon(vrbl, slices=None) -> np.ndarray:
+    """
+    Load longitude coordinate of sensor from naviation data.
+
+    Args:
+        vrbl: Pointer to the HDF5 variable containing the sensor navigation
+            data.
+        slices: A optional slice object to subset the data to load.
+
+    Return:
+        A numpy.ndarray containig the longitude coordinates of the
+        sensor at each scan position.
+    """
+    ndata = vrbl[slices]
+    alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
+    sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
+    sensor_lon = np.rad2deg(np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat)))))
+    return sensor_lon
+
+
+def load_spacecraft_lat(vrbl, slices=None) -> np.ndarray:
+    """
+    Load latitude coordinate of sensor from naviation data.
+
+    Args:
+        vrbl: Pointer to the HDF5 variable containing the sensor navigation
+            data.
+        slices: A optional slice object to subset the data to load.
+
+    Return:
+        A numpy.ndarray containig the latitude coordinates of the
+        sensor at each scan position.
+    """
+    ndata = vrbl[slices]
+    alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
+    sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
+    sensor_lon = np.rad2deg(np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat)))))
+    return sensor_lon
+
+
+def load_spacecraft_alt(vrbl, slices=None) -> np.ndarray:
+    """
+    Load altitude of sensor from naviation data.
+
+
+    Args:
+        vrbl: Pointer to the HDF5 variable containing the sensor navigation
+            data.
+        slices: A optional slice object to subset the data to load.
+
+    Return:
+        A numpy.ndarray containig the latitude coordinates of the
+        sensor at each scan position.
+    """
+    ndata = vrbl[slices]
+    alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
+    sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
+    return alt
 
 
 l1b_gaasp_gcomw1_amsr2 = GAASPProduct()
