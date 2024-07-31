@@ -144,12 +144,14 @@ def index(
         pattern=pattern,
     )
 
+    updated = []
     for name, index in catalog.indices.items():
         if name in reg.indices:
             reg.indices[name] = reg.indices[name] + index
         else:
             reg.indices[name] = index
-    reg.save()
+        updated.append(name)
+    reg.save(keys=updated)
 
 
 @click.group()

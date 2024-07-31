@@ -130,7 +130,7 @@ class Catalog:
         if indices is None and self.db_path is not None:
             self.indices = Index.load_indices(self.db_path)
 
-    def save(self) -> None:
+    def save(self, keys: Optional[List[str]] = None) -> None:
         """
         Persist catalog if associated with a directory.
         """
@@ -140,8 +140,11 @@ class Catalog:
         if not self.db_path.exists():
             self.db_path.mkdir()
 
-        for index in self.indices.values():
-            index.save(self.db_path, append=True)
+        if keys is None:
+            keys = list(self.indices.keys())
+
+        for key in keys:
+            self.indices[key].save(self.db_path, append=True)
 
     def __repr__(self):
         products = ", ".join(self.indices.keys())

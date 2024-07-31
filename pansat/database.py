@@ -221,7 +221,6 @@ class IndexData:
             values[ind]["key"] = f"{fname}_{pstart:06}_{sstart:06}"
         if len(data) > 0:
             lock = FileLock(self.db_path.with_suffix(".lock"))
-            print("LOCK :: ", self.db_path.with_suffix(".lock"))
             with lock:
                 with self.engine.connect() as conn:
                     result = conn.execute(
