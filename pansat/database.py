@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 from tempfile import TemporaryDirectory
 
+from filelock import FileLock
 import numpy as np
 import pandas as pd
 import geopandas
@@ -43,7 +44,7 @@ def get_engine(path: Path) -> Engine:
     """
     engine = create_engine(
         f"sqlite:///{path}",
-        connect_args={"timeout": 60}
+        connect_args={"timeout": 6000.0}
     )
     return engine
 
@@ -160,8 +161,7 @@ class IndexData:
             self._tmp = TemporaryDirectory()
             self.db_path = Path(self._tmp.name) / (self.product.name + ".db")
 
-        self.engine = create_engine(f"sqlite:///{self.db_path}")
-
+        self.engine = get_engine(self.db_path)
         self._create_table()
 
     @property
@@ -191,11 +191,13 @@ class IndexData:
 
 
     def __len__(self):
-        with self.engine.connect() as conn:
-            rows = conn.execute(
-                sqlalchemy.text(f"SELECT count(*) FROM '{self.product.name}'")
-            )
-            return rows.scalar()
+        lock = FileLock(self.db_path.with_suffix(".lock"))
+        with lock:
+            with self.engine.connect() as conn:
+                rows = conn.execute(
+                    sqlalchemy.text(f"SELECT count(*) FROM '{self.product.name}'")
+                )
+                return rows.scalar()
 
     def insert(self, data: Union[Granule, geopandas.GeoDataFrame]):
         """
@@ -218,12 +220,15 @@ class IndexData:
         )):
             values[ind]["key"] = f"{fname}_{pstart:06}_{sstart:06}"
         if len(data) > 0:
-            with self.engine.connect() as conn:
-                result = conn.execute(
-                    insert(self.table).prefix_with("OR IGNORE", dialect="sqlite"),
-                    values
-                )
-                conn.commit()
+            lock = FileLock(self.db_path.with_suffix(".lock"))
+            print("LOCK :: ", self.db_path.with_suffix(".lock"))
+            with lock:
+                with self.engine.connect() as conn:
+                    result = conn.execute(
+                        insert(self.table).prefix_with("OR IGNORE", dialect="sqlite"),
+                        values
+                    )
+                    conn.commit()
 
     def load(self, time_range: Optional[TimeRange] = None) -> geopandas.GeoDataFrame:
         """
@@ -243,7 +248,10 @@ class IndexData:
                 )
                     )
             )
-        data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
+
+        lock = FileLock(self.db_path.with_suffix(".lock"))
+        with lock:
+            data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
         data = data.drop(columns=["key"])
         data["geometry"] = data["geometry"].apply(shapely.wkb.loads)
         data = geopandas.GeoDataFrame(
@@ -286,8 +294,10 @@ class IndexData:
         table = self.table
         stmt = select(table).where(table.c.filename == fname)
 
-        with self.engine.connect() as conn:
-            res = conn.execute(stmt).first()
+        lock = FileLock(self.db_path.with_suffix(".lock"))
+        with lock:
+            with self.engine.connect() as conn:
+                res = conn.execute(stmt).first()
 
         if res is None:
             return res
