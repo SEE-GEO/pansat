@@ -227,11 +227,11 @@ def load_tbs_low_res_amsr2(
     """
     low_res_chans = [
         "6.9GHz,H", "6.9GHz,V",
+        "7.3GHz,H", "7.3GHz,V",
         "10.7GHz,H", "10.7GHz,V",
         "18.7GHz,H", "18.7GHz,V",
         "23.8GHz,H", "23.8GHz,V",
         "36.5GHz,H", "36.5GHz,V",
-        "7.3GHz,H", "7.3GHz,V",
     ]
     low_res_chans = [
         f"Brightness Temperature ({freq})" for freq in low_res_chans
