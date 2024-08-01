@@ -19,6 +19,7 @@ import xarray as xr
 import geopandas
 import pandas as pd
 import rich.progress
+import matplotlib.pyplot as plt
 
 from pansat.time import TimeRange, to_datetime64
 from pansat.file_record import FileRecord
@@ -353,7 +354,7 @@ class Index:
         else:
             self.data = data
 
-    def __add__(self, other):
+    def __add__(self, other: "Index") -> "Index":
         """Merge two indices."""
         if not self.product == other.product:
             raise ValueError(
@@ -370,6 +371,27 @@ class Index:
         if other.data is not None:
             data.insert(other.data.load())
         return Index(product, data)
+
+    def __iadd__(self, other: "Index") -> "Index":
+        """
+        Insert index data from other index into this index.
+        """
+        if not self.product == other.product:
+            raise ValueError(
+                "Combining two Index objects requires them to refer to the"
+                " same product. However, the provided indices refer to the "
+                f" products '{self.product}' and '{other.product}', "
+                " respectively."
+            )
+        product = self.product
+        if self.data is not None:
+            if other.data is not None:
+                self.data.insert(other.data.load())
+        else:
+            if other.data is not None:
+                self.data = other.data
+
+        return self
 
     @property
     def time_range(self):
@@ -432,6 +454,56 @@ class Index:
         if self.data is None:
             return None
         return self.data.get_local_path(file_record)
+
+    def plot_availability(self, time_step="D") -> plt.Figure:
+        """
+        Plot diagram showing the data availability.
+        """
+        fig = plt.figure()
+        data_unique = self.data.load().drop_duplicates(subset="filename")
+        central_times = data_unique["start_time"] + 0.5 * (data_unique["end_time"] - data_unique["start_time"])
+        start_time = central_times.min()
+        end_time = central_times.max()
+        d_t = np.timedelta64(1, time_step)
+        bins = np.arange(start_time, end_time + 0.5 * d_t, d_t)
+        cts = np.histogram(central_times, bins=bins)[0]
+        dates = bins[:-1] + 0.5 * (bins[1:] - bins[:-1])
+
+        ax = fig.add_subplot(1, 1, 1)
+        ax.plot(dates, cts)
+        ax.set_ylabel(f"# Files [1 / {time_step}]")
+        ax.set_title(f"File availability for {self.product.name}")
+        ax.set_xlim(start_time, end_time)
+
+        for label in ax.xaxis.get_ticklabels():
+            label.set_rotation(90)
+
+        return fig
+
+
+    def plot_availability_txt(self, time_step="D") -> plt.Figure:
+        """
+        Plot diagram showing the data availability.
+        """
+        import plotext as plt
+        data_unique = self.data.load().drop_duplicates(subset="filename")
+        central_times = data_unique["start_time"] + 0.5 * (data_unique["end_time"] - data_unique["start_time"])
+        start_time = central_times.min()
+        end_time = central_times.max()
+        d_t = np.timedelta64(1, time_step)
+        bins = np.arange(start_time, end_time + 0.5 * d_t, d_t)
+        cts = np.histogram(central_times, bins=bins)[0]
+        dates = bins[:-1] + 0.5 * (bins[1:] - bins[:-1])
+        dates = xr.DataArray(data=dates)
+        x = (
+            10**4 * dates.dt.year.data +
+            10**2 * dates.dt.month.data +
+            10**0 * dates.dt.day.data
+        )
+        plt.plot(x, cts)
+        plt.ylabel(f"# Files [1 / {time_step}]")
+        plt.title(f"File availability for {self.product.name}")
+        plt.show()
 
 
     def find(

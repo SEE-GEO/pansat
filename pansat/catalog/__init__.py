@@ -10,7 +10,7 @@ import logging
 from filelock import FileLock
 from multiprocessing import Manager, TimeoutError
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional, Union
 import queue
 
 import numpy as np
@@ -41,7 +41,7 @@ class Catalog:
     """
     @staticmethod
     def from_existing_files(
-            path,
+            path: Union[Path, List[Path]],
             products: Optional[List[Product]] = None,
             n_processes: Optional[int] = None,
             recursive: bool = True,
@@ -72,15 +72,24 @@ class Catalog:
                 " considered. This may be slow."
             )
             products = list(all_products())
-        path = Path(path)
 
         if pattern is None:
             pattern = "*"
 
-        if recursive:
-            files = sorted(list(path.glob(f"**/{pattern}")))
+        if isinstance(path, str):
+            path = Path(path)
+        if not isinstance(path, list):
+            paths = [path]
         else:
-            files = sorted(list(path.glob(pattern)))
+            paths = path
+
+        files = []
+        for path in paths:
+            if recursive:
+                files = sorted(list(path.glob(f"**/{pattern}")))
+            else:
+                files = sorted(list(path.glob(pattern)))
+
         if not relative:
             files = [path.absolute() for path in files]
         files = np.array(files)
@@ -160,10 +169,12 @@ class Catalog:
         """
         index = Index.index(rec.product, [rec])
         pname = rec.product.name
-        if self.indices is None or pname not in self.indices:
+        if self.indices is None:
             self.indices = {pname: index}
+        elif pname not in self.indices:
+            self.indices[pname] = index
         else:
-            self.indices[pname] = self.indices[pname] + index
+            self.indices[pname] += index
 
         if self.db_path is not None:
             index.save(self.db_path, append=True)
