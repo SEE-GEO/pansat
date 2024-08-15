@@ -5,6 +5,7 @@ pansat.products.satellite.noaa.gaasp
 Provides a pansat product for the AMSR2 L1B files produced by
 the GCOM-W1 AMSR2 Algorithm Software Package.
 """
+
 from datetime import datetime
 from pathlib import Path
 import re
@@ -54,7 +55,7 @@ class GAASPProduct(FilenameRegexpMixin, GranuleProduct):
         Extract timestamp from filename.
 
         Args:
-            filename(``str``): Filename of a GPM product.
+            filename(``str``): Filename of a NOAA GRAASP file.
 
         Returns:
             ``datetime`` object representing the timestamp of the
@@ -103,17 +104,18 @@ class GAASPProduct(FilenameRegexpMixin, GranuleProduct):
             )
 
         with HDF5File(rec.local_path, "r") as file_handle:
-            lons, lats = self.product_description.load_lonlats(file_handle, slice(0, None, 1))
+            lons, lats = self.product_description.load_lonlats(
+                file_handle, slice(0, None, 1)
+            )
         poly = geometry.parse_swath(lons, lats, m=10, n=1)
         return geometry.ShapelyGeometry(poly)
 
     @property
     def default_destination(self):
         """
-        The default destination for GPM product is
-        ``GPM/<product_name>``>
+        Not used since data is not publicly available.
         """
-        return Path("gpm") / self.level / self.platform / self.sensor
+        return Path("noaa")
 
     def __str__(self):
         return self.name
@@ -123,8 +125,7 @@ class GAASPProduct(FilenameRegexpMixin, GranuleProduct):
         Open file as xarray dataset.
 
         Args:
-            rec: A FileRecord whose local_path attribute points to a local
-                GPM file to open.
+            rec: A FileRecord whose local_path attribute points to a local NOAA GRAASP file to open.
             slcs: An optional dictionary of slices to use to subset the
                 data to load.
 
@@ -181,9 +182,7 @@ class GAASPProduct(FilenameRegexpMixin, GranuleProduct):
 
 
 def load_channels(
-        file_handle: h5py.File,
-        channels: List[str],
-        slices: Optional[Tuple[slice]] = None
+    file_handle: h5py.File, channels: List[str], slices: Optional[Tuple[slice]] = None
 ) -> np.ndarray:
     """
     Load variables from HDF5 file handle and stack along last dimension.
@@ -211,8 +210,7 @@ def load_channels(
 
 
 def load_tbs_low_res_amsr2(
-        file_handle: h5py.File,
-        slices: Optional[Tuple[slice]] = None
+    file_handle: h5py.File, slices: Optional[Tuple[slice]] = None
 ):
     """
     Load Tbs from AMSR2 low-resolution channels.
@@ -226,23 +224,24 @@ def load_tbs_low_res_amsr2(
         A numpy.ndarray containing the loaded data.
     """
     low_res_chans = [
-        "6.9GHz,H", "6.9GHz,V",
-        "7.3GHz,H", "7.3GHz,V",
-        "10.7GHz,H", "10.7GHz,V",
-        "18.7GHz,H", "18.7GHz,V",
-        "23.8GHz,H", "23.8GHz,V",
-        "36.5GHz,H", "36.5GHz,V",
+        "6.9GHz,H",
+        "6.9GHz,V",
+        "7.3GHz,H",
+        "7.3GHz,V",
+        "10.7GHz,H",
+        "10.7GHz,V",
+        "18.7GHz,H",
+        "18.7GHz,V",
+        "23.8GHz,H",
+        "23.8GHz,V",
+        "36.5GHz,H",
+        "36.5GHz,V",
     ]
-    low_res_chans = [
-        f"Brightness Temperature ({freq})" for freq in low_res_chans
-    ]
+    low_res_chans = [f"Brightness Temperature ({freq})" for freq in low_res_chans]
     return load_channels(file_handle, low_res_chans, slices=slices)
 
 
-def load_tbs_89a_amsr2(
-        file_handle: h5py.File,
-        slices: Optional[Tuple[slice]] = None
-):
+def load_tbs_89a_amsr2(file_handle: h5py.File, slices: Optional[Tuple[slice]] = None):
     """
     Load Tbs from AMSR2 89GHz-A channels.
 
@@ -255,18 +254,14 @@ def load_tbs_89a_amsr2(
         A numpy.ndarray containing the loaded data.
     """
     chans = [
-        "89.0GHz-A,H", "89.0GHz-A,V",
+        "89.0GHz-A,H",
+        "89.0GHz-A,V",
     ]
-    chans = [
-        f"Brightness Temperature ({freq})" for freq in chans
-    ]
+    chans = [f"Brightness Temperature ({freq})" for freq in chans]
     return load_channels(file_handle, chans, slices=slices)
 
 
-def load_tbs_89b_amsr2(
-        file_handle: h5py.File,
-        slices: Optional[Tuple[slice]] = None
-):
+def load_tbs_89b_amsr2(file_handle: h5py.File, slices: Optional[Tuple[slice]] = None):
     """
     Load Tbs from AMSR2 89GHz-B channels.
 
@@ -279,11 +274,10 @@ def load_tbs_89b_amsr2(
         A numpy.ndarray containing the loaded data.
     """
     chans = [
-        "89.0GHz-B,H", "89.0GHz-B,V",
+        "89.0GHz-B,H",
+        "89.0GHz-B,V",
     ]
-    chans = [
-        f"Brightness Temperature ({freq})" for freq in chans
-    ]
+    chans = [f"Brightness Temperature ({freq})" for freq in chans]
     return load_channels(file_handle, chans, slices=slices)
 
 
@@ -321,7 +315,9 @@ def load_spacecraft_lon(vrbl, slices=None) -> np.ndarray:
     ndata = vrbl[slices]
     alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
     sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
-    sensor_lon = np.rad2deg(np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat)))))
+    sensor_lon = np.rad2deg(
+        np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat))))
+    )
     return sensor_lon
 
 
@@ -341,7 +337,9 @@ def load_spacecraft_lat(vrbl, slices=None) -> np.ndarray:
     ndata = vrbl[slices]
     alt = np.sqrt(ndata[:, 0] ** 2 + ndata[:, 1] ** 2 + ndata[:, 2] ** 2)
     sensor_lat = np.rad2deg(np.arcsin(ndata[:, 2] / alt))
-    sensor_lon = np.rad2deg(np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat)))))
+    sensor_lon = np.rad2deg(
+        np.arccos(ndata[:, 0] / (alt * np.cos(np.deg2rad(sensor_lat))))
+    )
     return sensor_lon
 
 
