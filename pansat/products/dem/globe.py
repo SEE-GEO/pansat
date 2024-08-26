@@ -6,9 +6,9 @@ This module provides a product class for the NOAA GLOB DEM dataset.
 """
 import re
 from datetime import datetime, timedelta
+import gzip
 from typing import Tuple, Optional
 from pathlib import Path
-
 
 import numpy as np
 import xarray as xr
@@ -79,7 +79,7 @@ class GLOBE(FilenameRegexpMixin, Product):
         """
         Implements interface to extract temporal coverage of file.
         """
-        return TimeRange(datetime(0, 1, 1), datetime.now())
+        return TimeRange(datetime(1970, 1, 1), datetime.now())
 
 
     def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
@@ -120,7 +120,7 @@ class GLOBE(FilenameRegexpMixin, Product):
 
         extent = get_lonlat_extent(rec.filename)
 
-        if filename.ext == "tgz":
+        if rec.filename[-3:] == "tgz":
             datasets = []
             with TemporaryDirectory() as tmp:
                 tarfile.Tarfile(rec.local_path).extractall(path=tmp.name)
@@ -136,15 +136,17 @@ class GLOBE(FilenameRegexpMixin, Product):
                     lats = 0.5 * (lats[1:] + lats[:-1])[::-1]
                     dataset = xr.Dataset({
                         "longitude": (("longitude",), lons),
-                        "latitude": (("lats",), lats),
+                        "latitude": (("latitude",), lats),
                         "elevation": (("latitude", "longitude"), data)
                     })
                     datasets.append(dataset)
             dataset = xr.merge(datasets)
         else:
-            data = np.fromfile(gzip.open(), dtype="int16")
-            lon_min, lat_min, lon_max, lat_max = get_lonlat_extent(path.name)
-            lon_min, lat_min, lon_max, lat_max = get_lonlat_extent(path.name)
+            data = np.frombuffer(
+                gzip.open(rec.local_path).read(),
+                dtype="int16"
+            ).reshape(-1, 10800)
+            lon_min, lat_min, lon_max, lat_max = get_lonlat_extent(rec.filename)
             n_rows, n_cols = data.shape
             lons = np.linspace(lon_min, lon_max, n_cols + 1)
             lons = 0.5 * (lons[1:] + lons[:-1])
@@ -152,7 +154,7 @@ class GLOBE(FilenameRegexpMixin, Product):
             lats = 0.5 * (lats[1:] + lats[:-1])[::-1]
             dataset = xr.Dataset({
                 "longitude": (("longitude",), lons),
-                "latitude": (("lats",), lats),
+                "latitude": (("latitude",), lats),
                 "elevation": (("latitude", "longitude"), data)
             })
         return dataset

@@ -69,6 +69,7 @@ def all_products() -> List["Product"]:
     from pansat.products.satellite import persiann
     from pansat.products.satellite import ccic
     from pansat.products.reanalysis import merra
+    from pansat.products.satellite.noaa import gaasp
 
     return list(Product.PRODUCTS.values())
 

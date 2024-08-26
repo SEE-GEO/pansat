@@ -144,12 +144,14 @@ def index(
         pattern=pattern,
     )
 
+    updated = []
     for name, index in catalog.indices.items():
         if name in reg.indices:
             reg.indices[name] = reg.indices[name] + index
         else:
             reg.indices[name] = index
-    reg.save()
+        updated.append(name)
+    reg.save(keys=updated)
 
 
 @click.group()
@@ -173,6 +175,30 @@ def list_catalogs():
     reg.print_summary(root)
     rich.print(root)
 
+
+@click.command("plot_availability")
+@click.argument("product_name", type=str)
+@click.argument("time_step", type=str)
+def plot_availability(product_name: str, time_step: str = "D"):
+    """
+    Display number of available product files for a given product.
+    """
+    import pansat.environment as penv
+    from pansat.products import get_product
+
+    try:
+        product = get_product(product_name)
+    except ValueError:
+        LOGGER.error(
+            "Cloud not find a product with the name '%s'.",
+            product_name
+        )
+        return 1
+
+    index = penv.get_index(product)
+    index.plot_availability_txt(time_step=time_step)
+
+
 @click.command("show")
 @click.argument("product", type=str)
 def show_index(product):
@@ -187,7 +213,7 @@ def show_index(product):
     except ValueError:
         LOGGER.error(
             "Cloud not find a product with the name '%s'.",
-            product.name
+            product
         )
         return 1
 
@@ -248,6 +274,7 @@ def add_registry(
 
 catalog.add_command(list_catalogs)
 catalog.add_command(show_index)
+catalog.add_command(plot_availability)
 catalog.add_command(add_registry)
 
 
