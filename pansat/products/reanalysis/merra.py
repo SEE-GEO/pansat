@@ -31,7 +31,7 @@ class MERRA2(FilenameRegexpMixin, Product):
         super().__init__()
 
         self.filename_regexp = re.compile(
-            rf"MERRA2_\d\d\d\.{collection[2]}\w+{collection[3]}_\w+_{collection[-3:]}_\w+\.(\d{{8}})\.nc4"
+            rf"MERRA2_\d\d\d\.{collection[2]}\w+_\w+_{collection[-3:]}_\w+\.(\d{{8}})\.nc4"
         )
 
     @property

@@ -76,7 +76,7 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         self.filename_regexp = re.compile(
             rf"{level}{variant}\.{platform}\.{sensor}"
             rf"\.{algorithm}([\w-]*).(\d{{8}})-"
-            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc|nc4)"
+            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc4|nc)"
         )
         GranuleProduct.__init__(self)
 

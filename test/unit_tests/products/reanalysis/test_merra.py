@@ -19,6 +19,13 @@ def test_filename_regexp():
     filename = "MERRA2_100.inst3_3d_asm_Nv.19800101.nc4"
     assert m2i3nwasm.matches(filename)
 
+def test_filename_regexp_const():
+    """
+    Test that filename regexp matches actual MERRA2 filename for constant files.
+    """
+    filename = "MERRA2_101.const_2d_asm_Nx.00000000.nc4"
+    assert m2conxasm.matches(filename)
+
 
 def test_get_temporal_coverage():
     """
