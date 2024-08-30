@@ -108,7 +108,7 @@ def resample_data(
     dataset, target_grid, radius_of_influence=5e3, new_dims=("latitude", "longitude")
 ) -> xr.Dataset:
     """
-    Resample xarray.Dataset data to global grid.
+    Resample xarray.Dataset data to a given target grid.
 
     Args:
         dataset: xr.Dataset containing data to resample to global grid.
@@ -123,8 +123,12 @@ def resample_data(
     lats = dataset.latitude.data
 
     if "latitude" in dataset.dims:
-        dataset = dataset.transpose(..., "latitude", "longitude")
+        dataset = dataset.transpose("latitude", "longitude", ...)
         lons, lats = np.meshgrid(lons, lats)
+    else:
+        spatial_dims = dataset.latitude.dims
+        dataset = dataset.transpose(*spatial_dims, ...)
+
 
     if isinstance(target_grid, tuple):
         lons_t, lats_t = target_grid
@@ -153,6 +157,7 @@ def resample_data(
     resampled["latitude"] = (("latitude",), lats_t[:, 0])
     resampled["longitude"] = (("longitude",), lons_t[0, :])
 
+
     for var in dataset:
         if var in ["latitude", "longitude"]:
             continue
@@ -163,10 +168,10 @@ def resample_data(
         dtype = data.dtype
         if np.issubdtype(dtype, np.datetime64):
             fill_value = np.datetime64("NaT")
-        elif np.issubdtype(dtype, np.integer):
-            fill_value = -9999
         elif dtype == np.int8:
             fill_value = -1
+        elif np.issubdtype(dtype, np.integer):
+            fill_value = -9999
         else:
             fill_value = np.nan
 
