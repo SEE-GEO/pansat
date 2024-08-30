@@ -76,7 +76,7 @@ class GPMProduct(FilenameRegexpMixin, GranuleProduct):
         self.filename_regexp = re.compile(
             rf"{level}{variant}\.{platform}\.{sensor}"
             rf"\.{algorithm}([\w-]*).(\d{{8}})-"
-            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc|nc4)"
+            rf"S(\d{{6}})-E(\d{{6}})\.(\w*)\.(V{version}\.)?(HDF5|h5|nc4|nc)"
         )
         GranuleProduct.__init__(self)
 
@@ -472,14 +472,14 @@ class GPMMergedIR(FilenameRegexpMixin, Product):
 merged_ir = GPMMergedIR()
 
 
-def _imerg_parse_time(seconds_since_1970, slices=None):
+def _imerg_parse_time(seconds_since_1980, slices=None):
     """
     Helper function to convert time from IMERG HDF5 files to
     numpy datetime.
     """
     return (
-        np.datetime64("1970-01-01T00:00:00") +
-        seconds_since_1970[:].astype("timedelta64[s]")
+        np.datetime64("1980-01-06T00:00:00") +
+        seconds_since_1980[:].astype("timedelta64[s]")
     ).astype("datetime64[ns]")
 
 
