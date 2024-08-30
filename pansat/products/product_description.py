@@ -363,14 +363,23 @@ class ProductDescription(ConfigParser):
             elif section_type == "coordinate":
                 self.coordinates[section_name] = Variable(section_name, section)
             elif section_type == "latitude_coordinate":
-                self.coordinates[section_name] = Variable(section_name, section)
+                coord = Variable(section_name, section)
+                self.coordinates[section_name] = coord
+                if len(coord.dimensions) == 1 and coord.name == coord.dimensions[0]:
+                    self.dimensions[section_name] = Dimension(section_name, section)
                 self.latitude_coordinate = self.coordinates[section_name]
             elif section_type == "longitude_coordinate":
-                self.coordinates[section_name] = Variable(section_name, section)
-                self.longitude_coordinate = self.coordinates[section_name]
+                coord = Variable(section_name, section)
+                self.coordinates[section_name] = coord
+                if len(coord.dimensions) == 1 and coord.name == coord.dimensions[0]:
+                    self.dimensions[section_name] = Dimension(section_name, section)
+                self.longitude_coordinate = coord
             elif section_type == "time_coordinate":
-                self.coordinates[section_name] = Variable(section_name, section)
-                self.time_coordinate = self.coordinates[section_name]
+                coord = Variable(section_name, section)
+                self.coordinates[section_name] = coord
+                if len(coord.dimensions) == 1 and coord.name == coord.dimensions[0]:
+                    self.dimensions[section_name] = Dimension(section_name, section)
+                self.time_coordinate = coord
             elif section_type == "variable":
                 self.variables[section_name] = Variable(section_name, section)
             elif section_type == "attribute":
