@@ -15,9 +15,10 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+import pansat
 from pansat.file_record import FileRecord
 from pansat.time import TimeRange
-from pansat.products import FilenameRegexpMixin
+from pansat.products import Product, FilenameRegexpMixin
 from pansat import geometry
 
 
@@ -32,26 +33,33 @@ def get_station_data() -> xr.Dataset:
     file_path = Path(__file__).parent / "files" / "wegener_stations.txt"
     if _STATION_DATA is None:
         data_frame = pd.read_csv(file_path, parse_dates=["Valid from"])
-        data_set = xr.Dataset.from_dataframe(data_frame)
-        _STATION_DATA = data_set.rename(
-            {
-                "index": "station",
-                "Number": "number",
-                "Valid from": "valid_from",
-                "Latitude [°]": "latitude",
-                "Longitude [°]": "longitude",
-                "Altitude [m]": "altitude",
-                "Slope [°]": "slope",
-                "Orientation [°]": "orientation",
-                "Locationclass": "location_class",
-                "Surrounding area": "surrounding_area",
-            }
+        dataset = xr.Dataset.from_dataframe(data_frame)
+        dataset = dataset.rename({
+            "index": "station",
+            "Number": "number",
+            "Valid from": "valid_from",
+            "Latitude [°]": "latitude",
+            "Longitude [°]": "longitude",
+            "Altitude [m]": "altitude",
+            "Slope [°]": "slope",
+            "Orientation [°]": "orientation",
+            "Locationclass": "location_class",
+            "Surrounding area": "surrounding_area",
+        })
+
+        lons = dataset.longitude.data
+        lats = dataset.latitude.data
+        valid = (
+            (-180 <= lons) * (lons <= 180) *
+            (-90 <= lats) * (lats <= 90)
         )
+        dataset = dataset[{"station": valid}]
+        _STATION_DATA = dataset
 
     return _STATION_DATA
 
 
-class WegenerNetStationFile(FilenameRegexpMixin):
+class WegenerNetStationFile(FilenameRegexpMixin, Product):
     """
     Class representing data from WegenerNet stations.
     """
@@ -59,6 +67,7 @@ class WegenerNetStationFile(FilenameRegexpMixin):
     def __init__(self, stations: Optional[List[int]] = None):
         self._name = "station_data"
         self.stations = stations
+        super().__init__()
 
         self.filename_regexp = re.compile(
             rf"WN_L2_V._HD_St\d+_([\w\d\-]*)_([\w\d\-]*)_UTC.csv"
@@ -131,7 +140,7 @@ class WegenerNetStationFile(FilenameRegexpMixin):
     def __str__(self):
         return self.name
 
-    def open(self, rec: FileRecord, slcs: Optional[dict[str, slice]] = None):
+    def open(self, rec: FileRecord, slcs: Optional[dict[str, slice]] = None) -> xr.Dataset:
         """
         Open file as xarray dataset.
 
@@ -151,15 +160,22 @@ class WegenerNetStationFile(FilenameRegexpMixin):
         data_frame = pd.read_csv(
             file_path, parse_dates=["Time [YYYY-MM-DD HH:MM:SS UTC]"]
         )
-        data_set = xr.Dataset.from_dataframe(data_frame)
-
-        data_set = data_set.rename(
+        dataset = xr.Dataset.from_dataframe(data_frame)
+        dataset = dataset.rename(
             {
                 "Station": "station",
                 "Time [YYYY-MM-DD HH:MM:SS UTC]": "time",
                 "Precipitation [mm]": "surface_precip",
             }
         )[["station", "time", "surface_precip"]]
+        dataset = dataset.swap_dims({"index": "time"}).drop_vars("index")
+        dataset["station"] = dataset["station"][0]
+        dataset = dataset.set_coords("time")
+
+        station_data = get_station_data()[{"station": dataset.station}]
+        dataset["latitude"] = station_data.latitude.data
+        dataset["longitude"] = station_data.longitude.data
+        return dataset
 
 
 station_data = WegenerNetStationFile()
