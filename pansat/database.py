@@ -129,14 +129,14 @@ class IndexData:
     """
     @classmethod
     def from_geodataframe(cls, product: Product, data: geopandas.GeoDataFrame):
-        index_data = cls(product)
-        index_data.insert(data)
+        index_data = cls(product, data=data)
         return index_data
 
     def __init__(
             self,
             product: Product,
-            path: Optional[Path] = None
+            path: Optional[Path] = None,
+            data: Optional[pd.DataFrame] = None
     ):
         """
         Args:
@@ -147,6 +147,8 @@ class IndexData:
                 database.
         """
         self.product = product
+
+        self._data = data
 
         if path is not None:
             path = Path(path)
@@ -178,6 +180,24 @@ class IndexData:
         )
 
 
+    def __add__(self, other):
+        data_self = self.load()
+        data_other = other.load()
+        key_names = ["filename", "primary_index_start", "secondary_index_start"]
+        data = pd.concat([data_self, data_other]).drop_duplicates(key_names)
+        data = data.sort_values(by="start_time").reset_index(drop=True)
+        return IndexData(self.product, data=data)
+
+
+    def __iadd__(self, other):
+        data_self = self.load()
+        data_other = other.load()
+        data = pd.concat([data_self, data_other]).drop_duplicates()
+        data = data.sort_values(by="start_time").reset_index(drop=True)
+        self._data = data
+        return self
+
+
     def _create_table(self):
         """
         Creates the table that will hold the file records.
@@ -191,13 +211,8 @@ class IndexData:
 
 
     def __len__(self):
-        lock = FileLock(self.db_path.with_suffix(".lock"))
-        with lock:
-            with self.engine.connect() as conn:
-                rows = conn.execute(
-                    sqlalchemy.text(f"SELECT count(*) FROM '{self.product.name}'")
-                )
-                return rows.scalar()
+        data = self.load()
+        return len(data)
 
     def insert(self, data: Union[Granule, geopandas.GeoDataFrame]):
         """
@@ -205,21 +220,44 @@ class IndexData:
         """
         from pansat.catalog.index import _granules_to_dataframe
         if isinstance(data, Granule):
-            data = _granules_to_dataframe([data])
-        geom = data["geometry"].apply(shapely.wkb.dumps)
-        data = pd.DataFrame(
-            data.drop(columns="geometry"),
-        )
-        data["geometry"] = geom
+            data_new = _granules_to_dataframe([data])
+        else:
+            data_new = data
 
-        values = data.to_dict(orient="records")
-        for ind, (fname, pstart, sstart)  in enumerate(zip(
-                data["filename"],
-                data["primary_index_start"],
-                data["secondary_index_start"]
-        )):
-            values[ind]["key"] = f"{fname}_{pstart:06}_{sstart:06}"
+        if len(data_new) == 0:
+            return None
+
+        data = self.load()
+
+        key_names = ["filename", "primary_index_start", "secondary_index_start"]
+
         if len(data) > 0:
+            data_new_keys = data_new[key_names].apply(tuple, 1)
+            data_keys = data[key_names].apply(tuple, 1)
+            mask = ~data_new_keys.isin(data_keys)
+            diff = data_new[mask]
+        else:
+            diff = data_new
+
+        data_updated = pd.concat([data, diff]).drop_duplicates(key_names)
+        data_updated = data_updated.sort_values(by="start_time").reset_index(drop=True)
+        self._data = data_updated
+
+        geom = diff["geometry"].apply(shapely.wkb.dumps)
+        diff = pd.DataFrame(
+            diff.drop(columns="geometry"),
+        )
+        diff["geometry"] = geom
+
+        if len(diff) > 0:
+            values = diff.to_dict(orient="records")
+            for ind, (fname, pstart, sstart)  in enumerate(zip(
+                    diff["filename"],
+                    diff["primary_index_start"],
+                    diff["secondary_index_start"]
+            )):
+                values[ind]["key"] = f"{fname}_{pstart:06}_{sstart:06}"
+
             lock = FileLock(self.db_path.with_suffix(".lock"))
             with lock:
                 with self.engine.connect() as conn:
@@ -228,6 +266,9 @@ class IndexData:
                         values
                     )
                     conn.commit()
+
+
+
 
     def load(self, time_range: Optional[TimeRange] = None) -> geopandas.GeoDataFrame:
         """
@@ -238,28 +279,28 @@ class IndexData:
         Return:
             A geopandas.Dataframe containing the granule data.
         """
-        expr = select(self.table)
-        if time_range is not None:
-            expr = expr.where(
-                not_(or_(
-                    (self.table.c.start_time > time_range.end),
-                    (self.table.c.end_time < time_range.start)
-                )
-                    )
+        if self._data is None:
+            expr = select(self.table)
+
+            lock = FileLock(self.db_path.with_suffix(".lock"))
+            with lock:
+                data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
+            data = data.drop(columns=["key"])
+            data["geometry"] = data["geometry"].apply(shapely.wkb.loads)
+            data = geopandas.GeoDataFrame(
+                data,
+                geometry="geometry",
             )
+            self._data = data
 
-        lock = FileLock(self.db_path.with_suffix(".lock"))
-        with lock:
-            data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
-        data = data.drop(columns=["key"])
-        data["geometry"] = data["geometry"].apply(shapely.wkb.loads)
-        data = geopandas.GeoDataFrame(
-            data,
-            geometry="geometry",
-        )
-        return data
+        if time_range is not None:
+            outside = self._data["end_time"] < time_range.start
+            outside += self._data["start_time"] > time_range.end
+            return self._data[~outside]
 
-    def persist(self, path: Path):
+        return self._data
+
+    def persist(self, path: Path) -> None:
         """
         Stores index data to disk.
 
@@ -270,12 +311,35 @@ class IndexData:
             raise RuntimeError(
                 "Path provided to persist index data must point to an existing directory."
             )
-        data = self.load()
 
-        self.db_path = (path / (self.product.name + ".db"))
-        self.engine = create_engine(f"sqlite:///{self.db_path}")
-        self._create_table()
-        self.insert(data)
+        if self._data is None:
+            return
+
+        data = self._data
+        if len(data) == 0:
+            return None
+
+        self._data = None
+        data_disk = self.load()
+
+        if len(data_disk) > 0:
+
+            key_names = ["filename", "primary_index_start", "secondary_index_start"]
+            keys_data = set(data[key_names].apply(tuple))
+            keys_data_disk = set(data_disk[key_names].apply(tuple))
+            keys_new = keys_data - keys_data_disk
+
+            mask = data[key_names].apply(lambda name: tuple(name) in keys_new)
+            diff = data[mask]
+        else:
+            diff = data
+
+        lock = FileLock(self.db_path.with_suffix(".lock"))
+        with lock:
+            self.db_path = (path / (self.product.name + ".db"))
+            self.engine = create_engine(f"sqlite:///{self.db_path}")
+            self._create_table()
+            self.insert(diff)
 
     def get_local_path(self, file_record: "FileRecord") -> Union[Path, None]:
         """

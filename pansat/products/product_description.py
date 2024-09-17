@@ -506,6 +506,22 @@ class ProductDescription(ConfigParser):
         variables, dimensions, attributes = self._get_data(
             file_handle, context, slcs=slcs
         )
+
+        for var in variables:
+            dims, arr, attrs = variables[var]
+            if np.issubdtype(arr.dtype, np.datetime64):
+                variables[var] = dims, arr.to("datetime64[ns]"), attrs
+
+        for var in dimensions:
+            arr = dimensions[var]
+            if isinstance(arr, tuple):
+                dims, arr, attrs = arr
+                if np.issubdtype(arr.dtype, np.datetime64):
+                    dimensions[var] = dims, arr.astype("datetime64[ns]"), attrs
+            else:
+                if np.issubdtype(arr.dtype, np.datetime64):
+                    dimensions[var] = arr.astype("datetime64[ns]")
+
         dataset = xarray.Dataset(
             data_vars=variables, coords=dimensions, attrs=attributes
         )

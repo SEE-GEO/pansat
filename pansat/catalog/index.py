@@ -235,7 +235,7 @@ class Index:
         if product.name not in dbs:
             return cls(product, None)
 
-        return cls(product, IndexData(product, path))
+        return cls(product, IndexData(product, db_path))
 
     @classmethod
     def load_indices(
@@ -365,11 +365,15 @@ class Index:
             )
         product = self.product
 
-        data = IndexData(product)
+        data = None
         if self.data is not None:
-            data.insert(self.data.load())
-        if other.data is not None:
-            data.insert(other.data.load())
+            if other.data is not None:
+                data = self.data + other.data
+            else:
+                data = self.data
+        else:
+            data = other.data
+
         return Index(product, data)
 
     def __iadd__(self, other: "Index") -> "Index":
@@ -386,7 +390,7 @@ class Index:
         product = self.product
         if self.data is not None:
             if other.data is not None:
-                self.data.insert(other.data.load())
+                self.data += other.data
         else:
             if other.data is not None:
                 self.data = other.data
@@ -755,7 +759,7 @@ def find_matches(
 
     pool = ProcessPoolExecutor(max_workers=n_processes)
 
-    n_granules_l = index_l.data.shape[0]
+    n_granules_l = index_data_l.shape[0]
     granules_per_proc = n_granules_l // n_processes
     rem = n_granules_l % n_processes
 
@@ -771,21 +775,23 @@ def find_matches(
         if i < rem:
             ind_end += 1
 
-        index_data_l = index_data_l.iloc[ind_start:ind_end]
-        start_time = index_data_l.start_time.iloc[0] - time_diff
-        end_time = index_data_l.end_time.iloc[-1] + time_diff
-        inds_r = (index_data_r.data.end_time > start_time) * (
+        index_data_l_p = index_data_l.iloc[ind_start:ind_end]
+        start_time = index_data_l_p.start_time.iloc[0] - time_diff
+        end_time = index_data_l_p.end_time.iloc[-1] + time_diff
+        inds_r = (index_data_r.end_time > start_time) * (
             index_data_r.start_time < end_time
         )
-        index_data_r = index_data_r.data.loc[inds_r]
+        index_data_r_p = index_data_r.loc[inds_r]
+        if len(index_data_r_p) == 0:
+            continue
 
         tasks.append(
             pool.submit(
                 _find_matches_rec,
                 index_l.product,
-                index_data_l,
+                index_data_l_p,
                 index_r.product,
-                index_data_r,
+                index_data_r_p,
                 time_diff=time_diff,
                 merge=merge,
                 done_queue=done_queue,
