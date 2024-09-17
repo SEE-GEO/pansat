@@ -8,115 +8,220 @@ supported ERA5 products.
 """
 import re
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import List, Tuple, Union
 
 import xarray
 
+import pansat
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat import FileRecord, TimeRange
+from pansat.geometry import Geometry, LonLatRect
+from pansat.products import Product, FilenameRegexpMixin
 from pansat.exceptions import NoAvailableProvider
 
 
-class ERA5Product(Product):
+class ERA5Product(FilenameRegexpMixin, Product):
     """
     The ERA5 class defines a generic interface for ERA5 products.
 
     Attributes:
-        levels(``str``): "surface", "pressure" or "land". <surface> contains surface data
+        subset(``str``): "surface", "pressure" or "land". <surface> contains surface data
                           and column-integrated values, pressure levels contains data throughout
                           the atmosphere column and <land> contains data from surface to soil depth
         name(``str``): The full name of the product according to Copernicus webpage
         variables(``list``): List of variable names provided by this
             product.
-        domain(``list``): list of strings to select region  [lat1, lat2, lon1, lon2]
-                          if None: global data will be downloaded
+        domain(``Geometry``): A geometry defining a spatial domain to which to limit the dataset.
     """
+    def __init__(
+            self,
+            subset: str,
+            time_step: str,
+            variables: List[str],
+            domain: Union[Geometry, Tuple[float]] = None
+    ):
+        """
+        Args:
+            subset: Specifies the sub-dataset of ERA5: 'surface', 'pressure', or 'land'
+            time_step: The temporal resolution of the data: "hourly" or "monthly".
+            variables:
 
-    def __init__(self, levels, variables, domain=None):
+
+        """
         self.variables = variables
 
-        if not domain:
-            self.domain = "global"
+        if domain is None:
+            lon_min, lat_min, lon_max, lat_max = -180, -90, 180, 90
         else:
-            if domain[0] < -90 or domain[0] > 90 or domain[1] > 90 or domain[1] < -90:
-                raise Exception("Latitude values have to be between -90 and 90.")
-
-            if (
-                domain[2] < -180
-                or domain[2] > 180
-                or domain[3] > 180
-                or domain[3] < -180
-            ):
-                raise Exception("Longitude values have to be between -180 and 180.")
-
-            self.domain = domain
-
-        if levels == "surface":
-            self.levels = "single-levels"
-        elif levels == "pressure":
-            self.levels = "pressure-levels"
-        elif levels == "land":
-            self.levels = levels
+            if isinstance(domain, Geometry):
+                bbox = geometry.bounding_box_corners()
+            else:
+                bbox = domain
+            lon_min, lat_min, lon_max, lat_max = bbox
+        self.domain = LonLatRect(lon_min, lat_min, lon_max, lat_max)
+        if (lon_min > -180) or (lat_min > -90) or (lon_max < 180) or (lat_max < 90):
+            domain_str = f"{int(lon_min)},{int(lat_min)},{int(lon_max)},{int(lat_max)}"
         else:
-            raise Exception("Supported data products are: surface, pressure and land.")
+            domain_str = ""
+        self.domain_str = domain_str
 
-        if self.tsteps == "monthly-means":
-            self.name = self.name = "reanalysis-era5-" + self.levels + "-" + self.tsteps
-        elif self.tsteps == "hourly":
-            self.name = "reanalysis-era5-" + self.levels
-
+        self.subset = subset
+        if self.subset == "surface":
+            subset_str = "single-levels"
+        elif self.subset == "pressure_levels":
+            subset_str = "pressure_levels"
+        elif self.subset == "land":
+            subset_str = "land"
         else:
-            raise Exception("tsteps has to be monthly or hourly.")
+            raise Exception("Supported ERA5 subsets are 'surface', 'pressure' and 'land'.")
 
-        self.filename_regexp = re.compile(
-            self.name + r"_[\d]*.*_" + self.variables[0] + r".*.nc"
-        )
+        self.time_step = time_step
+        if self.time_step == "monthly":
+            time_step_str = "_monthly-means"
+        elif self.time_step == "hourly":
+            time_step_str = ""
 
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
+        self.dataset_name = f"reanalysis-era5-{subset_str}{time_step_str}"
 
-        Args:
-            filename(``str``): The filename
+        variable_str = ",".join(variables)
+        self.variable_str = variable_str
 
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
+        if self.time_step == "monthly":
+            time_step_str = "_monthly"
+        elif self.time_step == "hourly":
+            time_step_str = "_hourly"
+        self.time_step_str = time_step_str
 
-    def filename_to_date(self, filename):
-        """
-        Extract timestamp from filename.
-
-        Args:
-            filename(``str``): Filename of a ERA5 product.
-
-        Returns:
-            ``datetime`` object representing the timestamp of the
-            filename.
-        """
-        filename = os.path.basename(filename)
-        filename = filename.split("_")[1]
-        if "monthly" in self.name:
-            pattern = "%Y%m"
-        else:
-            pattern = "%Y%m%d%H"
-        return datetime.strptime(filename, pattern)
-
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find provider for the" f" product {self.name}."
+        if domain_str == "":
+            self.filename_regexp = re.compile(
+                rf"era5_{self.subset}{time_step_str}_(\d*)_(\d*)_\[{variable_str}\].nc"
             )
-        return available_providers[0]
+            self._name = f"era5_{self.subset}{time_step_str}_[{variable_str}]"
+        else:
+            self.filename_regexp = re.compile(
+                rf"era5_{self.subset}{time_step_str}_(\d*)_(\d*)_\[{variable_str}\]_\[{domain_str}\].nc"
+            )
+            self._name = f"era5_{self.subset}{time_step_str}_[{variable_str}]_[{domain_str}]"
+
+        super().__init__()
+
+
+    @property
+    def name(self) -> str:
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+        return ".".join([prefix, self._name])
+
+    @property
+    def bounding_box_string(self) -> str:
+        """
+        String representation of the domain covered by the product.
+        """
+        bbox = self.domain
+        lon_min = bbox.lon_min
+        lat_min = bbox.lat_min
+        lon_max = bbox.lon_max
+        lat_max = bbox.lat_max
+
+        if (lon_min > -180) or (lat_min > -90) or (lon_max < 180) or (lat_max < 90):
+            domain_str = f"{lat_max:.2f}/{lon_min:.2f}/{lat_min:.2f}/{lon_max:.2f}"
+        else:
+            domain_str = ""
+        return domain_str
+
+    def get_time_steps(self, rec: FileRecord) -> List[str]:
+        """
+        Get list of time steps contained within a given ERA5 file.
+        """
+        if self.time_step == "monthly":
+            return ["00:00"]
+        time_range = self.get_temporal_coverage(rec)
+        time_steps = []
+        time = time_range.start
+        while time < time_range.end:
+            time_steps.append(f"{time.hour:02}:00")
+            time = time + timedelta(hours=1)
+        return time_steps
+
+    def get_filename(self, time_range: TimeRange):
+        """
+        Get filename for a given ERA5 record.
+        """
+        if self.time_step == "hourly":
+            start_time = time_range.start.strftime("%Y%m%d%H")
+            end_time = time_range.end.strftime("%Y%m%d%H")
+        else:
+            start_time = time_range.start.strftime("%Y%m")
+            end_time = time_range.end.strftime("%Y%m")
+
+        variable_str = "_".join(self.variables)
+        if self.time_step == "monthly":
+            time_step_str = "_monthly"
+        elif self.time_step == "hourly":
+            time_step_str = "_hourly"
+
+        filename = (
+            f"era5_{self.subset}{self.time_step_str}_{start_time}_{end_time}"
+            f"_{self.variable_str}{self.domain_str}.nc"
+        )
+        return filename
+
+
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        Determine temporal coverage of ERA5 file.
+        """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+        match = self.filename_regexp.match(rec.filename)
+
+        if match is None:
+            raise ValueError(
+                f"Provided file record with filename {rec.filename} doesn't match "
+                "the ERA5 filename pattern."
+            )
+
+        start_date = match.group(1)
+        end_date = match.group(2)
+
+        if self.time_step == "hourly":
+            start = datetime.strptime(start_date, "%Y%m%d%H")
+            end = datetime.strptime(end_date, "%Y%m%d%H")
+            return TimeRange(start, end)
+
+        start = datetime.strptime(start_date, "%Y%m")
+        end = datetime.strptime(end_date, "%Y%m")
+        return TimeRange(start, end)
+
+
+    def get_spatial_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        Determine spatial coverage of ERA5 file.
+        """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+        match = self.filename_regexp.match(rec.filename)
+
+        if match is None:
+            raise ValueError(
+                f"Provided file record with filename {rec.filename} doesn't match "
+                "the ERA5 filename pattern."
+            )
+
+        parts = rec.filename.split("_")
+        try:
+            parts = parts[-1][1:-4].split(",")
+            lon_min = float(parts[0])
+            lat_min = float(parts[1])
+            lon_max = float(parts[2])
+            lat_max = float(parts[3])
+        except ValueError:
+            lon_min, lat_min, lon_max, lat_max = -180, -90, 180, 90
+
+        return LonLatRect(lon_min, lat_min, lon_max, lat_max)
 
     @property
     def default_destination(self):
@@ -124,45 +229,15 @@ class ERA5Product(Product):
         The default destination for ERA5 product is
         ``ERA5/<product_name>``>
         """
-        return Path("ERA5") / Path(self.name)
+        return Path("era5")
 
     def __str__(self):
-        """The full product name."""
+        """The name of the product that identifies it within pansat."""
         return self.name
-
-    def download(self, start, end, destination=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start date
-                of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date of the
-                of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to store
-                the output data.
-
-        Returns:
-            downloaded(``list``): name list of all downloaded files for data product
-
-        """
-
-        provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
-        provider = provider(self)
-
-        downloaded = provider.download(start, end, destination)
-
-        return downloaded
 
     @classmethod
     def open(cls, filename):
-        """Opens a given file of NCEP product class as xarray.
+        """Opens a given ERA5 product as xarray.
 
         Args:
             filename(``str``): name of the file to be opened
@@ -184,8 +259,7 @@ class ERA5Monthly(ERA5Product):
     """
 
     def __init__(self, levels, variables, domain=None):
-        self.tsteps = "monthly-means"
-        super().__init__(levels, variables, domain)
+        super().__init__(levels, time_step="monthly", variables=variables, domain=domain)
 
 
 class ERA5Hourly(ERA5Product):
@@ -196,5 +270,38 @@ class ERA5Hourly(ERA5Product):
     """
 
     def __init__(self, levels, variables, domain=None):
-        self.tsteps = "hourly"
-        super().__init__(levels, variables, domain)
+        super().__init__(levels, time_step="hourly", variables=variables, domain=domain)
+
+
+
+def get_product(product_name: str) -> Product:
+    """
+    Return ERA5 product object given its string representation.
+
+    Args:
+        product_name: The product name as a string.
+
+    Return:
+        The corresponding ERA5 product object.
+    """
+    parts = product_name.split("_")[1:]
+
+    subset = parts[0]
+    if parts[1] == "hourly":
+        product_class = ERA5Hourly
+    else:
+        product_class = ERA5Monthly
+
+    var_start = product_name.find("[")
+    var_end = product_name.find("]")
+    variables = product_name[var_start + 1:var_end].split(",")
+
+    dom_start = product_name.find("[", var_end)
+    dom_end = product_name.find("]", dom_start)
+    if dom_start > 0:
+        coords = product_name[dom_start + 1:dom_end].split(",")
+        domain = tuple(map(float, coords))
+    else:
+        domain = None
+
+    return product_class(subset, variables=variables, domain=domain)

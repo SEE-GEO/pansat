@@ -24,6 +24,8 @@ def to_datetime(time):
     if isinstance(time, datetime):
         return time
     try:
+        if isinstance(time, np.ndarray) and np.issubdtype(time.dtype, np.datetime64):
+            time = time.astype("datetime64[s]")
         return pd.to_datetime(time).to_pydatetime()
     except ValueError:
         raise ValueError(

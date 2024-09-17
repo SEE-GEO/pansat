@@ -47,6 +47,8 @@ def get_product(product_name):
         try:
             module = ".".join(["pansat", "products"] + parts[:-1])
             module = importlib.import_module(module)
+            if hasattr(module, "get_product"):
+                return module.get_product(product_name)
             product = getattr(module, parts[-1])
             return product
         except (ImportError, AttributeError):
