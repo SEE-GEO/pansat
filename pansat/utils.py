@@ -154,8 +154,13 @@ def resample_data(
 
 
     resampled = {}
-    resampled["latitude"] = (("latitude",), lats_t[:, 0])
-    resampled["longitude"] = (("longitude",), lons_t[0, :])
+
+    if np.isclose(lats_t[:, 0], lats_t[:, 1]).all():
+        resampled["latitude"] = (new_dims[0], lats_t[:, 0])
+        resampled["longitude"] = (new_dims[1], lons_t[0, :])
+    else:
+        resampled["latitude"] = (new_dims, lats_t)
+        resampled["longitude"] = (new_dims, lons_t)
 
 
     for var in dataset:
@@ -175,9 +180,16 @@ def resample_data(
         else:
             fill_value = np.nan
 
+        target_shape = target.shape
+        #if data.ndim > lons.ndim:
+        #    target_shape = target_shape + data.shape[lons.ndim:]
+
+        shape_orig = data.shape[1:]
+        data_flat = data.reshape(data.shape[0], -1)
         data_r = kd_tree.get_sample_from_neighbour_info(
-            "nn", target.shape, data, ind_in, ind_out, inds, fill_value=fill_value
+            "nn", target_shape, data_flat, ind_in, ind_out, inds, fill_value=fill_value
         )
+        data_r = data_r.reshape((-1,) + shape_orig)
 
         data_full = np.zeros(shape + data.shape[lons.ndim :], dtype=dtype)
         if np.issubdtype(dtype, np.floating):
