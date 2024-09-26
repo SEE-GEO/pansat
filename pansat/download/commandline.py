@@ -202,6 +202,9 @@ def download():
         elif "NCEPReanalysis" in dir(module):
             ncep_product = getattr(module, "NCEPReanalysis")
             productfunc = ncep_product(str(args.variable[0]), str(args.grid[0]))
+           
+        elif str(args.pm) + "_" + str(args.product) in dir(module):  # for modis data
+            productfunc = getattr(module, str(args.pm) + "_" + str(args.product))   
         elif "IGRASoundings" in dir(module):
             igra_product = getattr(module, "IGRASoundings")
             if args.location:
@@ -214,6 +217,12 @@ def download():
                 parser.error("can't download IGRA data with given arguments")
         else:
             parser.error("product " + str(args.product) + " not implemented")
+
+    elif str(args.pm) == "goes_16" or str(args.pm) == "goes_17":
+        module = importlib.import_module(
+            "pansat.products." + str(args.type) + "." + str(args.pm)[:-3]
+        )
+        productfunc = getattr(module, str(args.pm) + "_l" + str(args.product))
 
     else:
         parser.error(
