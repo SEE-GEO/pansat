@@ -118,6 +118,9 @@ class Granule:
             f"secondary_index_range='{self.secondary_index_range}')"
         )
 
+    def __lt__(self, other: "Granule") -> bool:
+        return self.time_range.start < other.time_range.start
+
     def is_adjacent(self, other):
         """
         Determine whether two granules are adjacent or overlapping.
