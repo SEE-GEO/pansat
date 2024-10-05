@@ -510,7 +510,7 @@ class ProductDescription(ConfigParser):
         for var in variables:
             dims, arr, attrs = variables[var]
             if np.issubdtype(arr.dtype, np.datetime64):
-                variables[var] = dims, arr.to("datetime64[ns]"), attrs
+                variables[var] = dims, arr.astype("datetime64[ns]"), attrs
 
         for var in dimensions:
             arr = dimensions[var]
