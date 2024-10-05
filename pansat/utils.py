@@ -122,7 +122,7 @@ def resample_data(
     lons = dataset.longitude.data
     lats = dataset.latitude.data
 
-    if "latitude" in dataset.dims:
+    if ("latitude" in dataset.dims) and ("longitude" in dataset.dims):
         dataset = dataset.transpose("latitude", "longitude", ...)
         lons, lats = np.meshgrid(lons, lats)
     else:
@@ -167,6 +167,11 @@ def resample_data(
         if var in ["latitude", "longitude"]:
             continue
         data = dataset[var].data
+
+        if data.ndim == 0:
+            resampled[var] = data
+            continue
+
         if data.ndim == 1 and lons.ndim > 1:
             data = np.broadcast_to(data[:, None], lons.shape)
 
@@ -184,8 +189,8 @@ def resample_data(
         #if data.ndim > lons.ndim:
         #    target_shape = target_shape + data.shape[lons.ndim:]
 
-        shape_orig = data.shape[1:]
-        data_flat = data.reshape(data.shape[0], -1)
+        shape_orig = data.shape[lons.ndim:]
+        data_flat = data.reshape(lons.shape +  (-1,))
         data_r = kd_tree.get_sample_from_neighbour_info(
             "nn", target_shape, data_flat, ind_in, ind_out, inds, fill_value=fill_value
         )
