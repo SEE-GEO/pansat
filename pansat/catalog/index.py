@@ -616,7 +616,6 @@ def _find_matches_rec(
         from the first index to a list of overlapping granules from
         the second index.
     """
-
     if index_data_r.shape[0] == 0:
         if done_queue is not None:
             done_queue.put(index_data_l.shape[0])
@@ -746,6 +745,7 @@ def find_matches(
         index_data_r = index_r.data.load()
 
     index_data_l = index_data_l.sort_values("start_time")
+    index_data_r = index_data_r.sort_values("start_time")
 
     if n_processes is None:
         return _find_matches_rec(
