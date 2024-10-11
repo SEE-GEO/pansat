@@ -286,7 +286,15 @@ class IndexData:
             with lock:
                 data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
             data = data.drop(columns=["key"])
-            data["geometry"] = data["geometry"].apply(shapely.wkb.loads)
+
+            def parse_geo(wkb):
+                try:
+                    geo = shapely.wkb.loads(wkb)
+                    return geo
+                except Exception:
+                    return None
+
+            data["geometry"] = data["geometry"].apply(parse_geo)
             data = geopandas.GeoDataFrame(
                 data,
                 geometry="geometry",
@@ -358,6 +366,7 @@ class IndexData:
         stmt = select(table).where(table.c.filename == fname)
 
         lock = FileLock(self.db_path.with_suffix(".lock"))
+        self._create_table()
         with lock:
             with self.engine.connect() as conn:
                 res = conn.execute(stmt).first()
