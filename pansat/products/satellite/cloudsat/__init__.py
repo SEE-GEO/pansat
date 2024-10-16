@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import os
 import re
-from typing import List
+from typing import Dict, List, Optional
 
 import numpy as np
 import xarray as xr
@@ -79,7 +79,7 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
 
         return ".".join([prefix, name])
 
-    def open(self, rec: FileRecord) -> xr.Dataset:
+    def open(self, rec: FileRecord, slcs: Optional[Dict[str, slice]] = None) -> xr.Dataset:
         """
         Open file as xarray dataset.
 
@@ -91,10 +91,13 @@ class CloudSatProduct(FilenameRegexpMixin, GranuleProduct):
             An xarray.Dataset containing the data loaded from the given file.
         """
         from pansat.formats.hdf4 import HDF4File
-        if isinstance(rec, str):
+        if isinstance(rec, (str, Path)):
             rec = FileRecord(rec)
         file_handle = HDF4File(rec.local_path)
-        return self.description.to_xarray_dataset(file_handle, globals())
+        dataset = self.description.to_xarray_dataset(file_handle, globals())
+        if slcs is None:
+            return dataset
+        return dataset[slcs]
 
     def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
         """

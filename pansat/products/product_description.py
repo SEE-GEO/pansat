@@ -451,7 +451,7 @@ class ProductDescription(ConfigParser):
                     data = np.squeeze(data)
                 for index, dimension in enumerate(variable.dimensions):
                     coordinates[dimension] = np.arange(data.shape[index])
-                    attrs = variable.get_attributes(file_handle)
+                attrs = variable.get_attributes(file_handle)
                 variables[name] = (variable.dimensions, data, attrs)
             except KeyError:
                 LOGGER.exception(
