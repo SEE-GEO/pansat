@@ -95,7 +95,7 @@ class Registry(Catalog, DataProvider):
             files.
         """
         recs = []
-        local_paths = {}
+        local_paths = set()
         if self.transparent and self.parent is not None:
             parent_recs = self.parent.find_files(
                 product,
