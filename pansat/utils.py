@@ -164,6 +164,7 @@ def resample_data(
         * (lats <= lat_max_t)
     )
     n_valid_source = valid_pixels_source.sum()
+    n_valid_target = valid_pixels_target.sum()
 
     swath = SwathDefinition(lons=lons[valid_pixels_source], lats=lats[valid_pixels_source])
     target = SwathDefinition(lons=lons_t[valid_pixels_target], lats=lats_t[valid_pixels_target])
@@ -172,7 +173,7 @@ def resample_data(
         info = kd_tree.get_neighbour_info(
             target, swath, radius_of_influence=radius_of_influence, neighbours=1
         )
-        ind_out, ind_in, inds, _ = info
+        ind_in, ind_out, inds, _ = info
     else:
         info = kd_tree.get_neighbour_info(
             swath, target, radius_of_influence=radius_of_influence, neighbours=1
@@ -181,7 +182,6 @@ def resample_data(
 
 
     resampled = {}
-
     if lats_t.ndim > 1 and np.isclose(lats_t[:, 0], lats_t[:, 1]).all():
         resampled["latitude"] = (new_dims[0], lats_t[:, 0])
         resampled["longitude"] = (new_dims[1], lons_t[0, :])
@@ -225,12 +225,10 @@ def resample_data(
             data_flat = data
 
         if unique:
-            data_r = np.zeros((valid_pixels_target.sum(),) + shape_orig, dtype=data.dtype)
+            data_r = np.zeros((n_valid_target,) + shape_orig, dtype=data.dtype)
+            mask = inds < n_valid_target
             data_r[:] = fill_value
-            if data.ndim > 1:
-                data_r[inds] = np.where(ind_in[..., None], data_flat, fill_value)
-            else:
-                data_r[inds] = np.where(ind_in, data_flat, fill_value)
+            data_r[inds[mask]] = data_flat[mask]
         else:
             data_r = kd_tree.get_sample_from_neighbour_info(
                 "nn", target_shape, data_flat, ind_in, ind_out, inds, fill_value=fill_value

@@ -41,25 +41,25 @@ def test_resampling_1d_to_2d():
     Test resampling of 1D data to 2D data.
     """
     source = xr.Dataset({
-        "longitude": (("samples",), np.array([-0.1, 0.1, 10.0])),
-        "latitude": (("samples",), np.array([-0.1, 0.1, 10.0])),
-        "precip_source": (("samples",), np.ones(3)),
-        "precip_profile": (("samples", "levels"), np.ones((3, 11)))
+        "longitude": (("samples",), np.array([-10.0, -0.1, 0.1, 10.0])),
+        "latitude": (("samples",), np.array([-10.0, -0.1, 0.1, 10.0])),
+        "precip_source": (("samples",), np.ones(4)),
+        "precip_profile": (("samples", "levels"), np.ones((4, 11)))
     })
     target = xr.Dataset({
-        "longitude": (("longitude",), np.array([-0.5, 0.5])),
-        "latitude": (("latitude",), np.array([-0.5, 0.5])),
+        "longitude": (("longitude",), np.array([-3.0, -0.5, 0.5])),
+        "latitude": (("latitude",), np.array([-3.0, -0.5, 0.5])),
     })
 
     source_swath = SwathDefinition(lons=source.longitude.data, lats=source.latitude.data)
     lons, lats = np.meshgrid(target.longitude.data, target.latitude.data)
     target_swath = SwathDefinition(lons=lons, lats=lats)
 
-    source_r = resample_data(source, target_swath, radius_of_influence=200e3)
-    assert np.all(np.isclose(source_r.precip_source.data, 1.0))
+    source_r = resample_data(source, target_swath, radius_of_influence=100e3)
+    assert np.all(np.isclose(source_r.precip_source.data[1, 1], 1.0))
     assert source_r.precip_profile.ndim == 3
 
-    source_r = resample_data(source, target_swath, radius_of_influence=200e3, unique=True)
+    source_r = resample_data(source, target_swath, radius_of_influence=100e3, unique=True)
     assert np.isfinite(source_r.precip_source.data).sum() == 2
     assert source_r.precip_profile.ndim == 3
 
