@@ -8,6 +8,7 @@ database
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 from tempfile import TemporaryDirectory
+import zlib
 
 from filelock import FileLock
 import numpy as np
@@ -243,7 +244,9 @@ class IndexData:
         data_updated = data_updated.sort_values(by="start_time").reset_index(drop=True)
         self._data = data_updated
 
-        geom = diff["geometry"].apply(shapely.wkb.dumps)
+        geom = diff["geometry"].apply(
+            lambda x: zlib.compress(shapely.wkb.dumps(x))
+        )
         diff = pd.DataFrame(
             diff.drop(columns="geometry"),
         )
@@ -291,8 +294,12 @@ class IndexData:
                 try:
                     geo = shapely.wkb.loads(wkb)
                     return geo
-                except Exception:
-                    return None
+                except Exception as exc:
+                    try:
+                        geo = shapely.wkb.loads(zlib.decompress(wkb))
+                        return geo
+                    except Exception as exc:
+                        return None
 
             data["geometry"] = data["geometry"].apply(parse_geo)
             data = geopandas.GeoDataFrame(
@@ -328,7 +335,12 @@ class IndexData:
             return None
 
         self._data = None
-        data_disk = self.load()
+
+
+        if self.db_path == path:
+            data_disk = self.load()
+        else:
+            data_disk = []
 
         if len(data_disk) > 0:
 
@@ -337,17 +349,20 @@ class IndexData:
             keys_data_disk = set(data_disk[key_names].apply(tuple))
             keys_new = keys_data - keys_data_disk
 
-            mask = data[key_names].apply(lambda name: tuple(name) in keys_new)
+            mask = data[key_names].apply(
+                lambda name: tuple(name) in keys_new,
+                axis=1
+            )
             diff = data[mask]
         else:
             diff = data
 
+        self.db_path = (path / (self.product.name + ".db"))
+        self.engine = create_engine(f"sqlite:///{self.db_path}")
         lock = FileLock(self.db_path.with_suffix(".lock"))
         with lock:
-            self.db_path = (path / (self.product.name + ".db"))
-            self.engine = create_engine(f"sqlite:///{self.db_path}")
             self._create_table()
-            self.insert(diff)
+        self.insert(diff)
 
     def get_local_path(self, file_record: "FileRecord") -> Union[Path, None]:
         """
@@ -361,6 +376,20 @@ class IndexData:
             A path object pointing to the local path or None if the file
             record isn't present in the database.
         """
+        if self._data is not None:
+            inds = self._data.filename == file_record.filename
+            paths = np.unique(self._data.local_path.loc[inds])
+
+            if len(paths) == 0:
+                return None
+
+            if len(paths) > 1:
+                return ValueError(
+                    "Found more than one path for the given filename. Something "
+                    "seems wrong with this index."
+                )
+            return Path(paths[0])
+
         fname = file_record.filename
         table = self.table
         stmt = select(table).where(table.c.filename == fname)

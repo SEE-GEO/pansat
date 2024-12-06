@@ -46,7 +46,7 @@ def test_index_data(hdf5_product_data, tmp_path):
 
 
     loaded = index_data.load()
-    assert (loaded == index.data.load()).all().all()
+    assert (loaded == index.data.load().reset_index(drop=True)).all().all()
 
     # On-disk database.
     index_data.persist(tmp_path)
