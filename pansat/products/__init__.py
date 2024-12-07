@@ -62,6 +62,7 @@ def all_products() -> List["Product"]:
     """
     from pansat.products.ground_based import mrms
     from pansat.products.ground_based import opera
+    from pansat.products.ground_based import amedas
     from pansat.products.satellite import cloudsat
     from pansat.products.satellite import goes
     from pansat.products.satellite import gpm
