@@ -247,6 +247,7 @@ class FileRecord:
             return new_rec
 
         try:
+            LOGGER.debug("Looking up file %s", self)
             local_path = penv.lookup_file(self)
         except Exception:
             LOGGER.exception(
@@ -257,6 +258,7 @@ class FileRecord:
             local_path = None
 
         if local_path is None:
+            LOGGER.info("Downloading file %s to %s", self, destination)
             return self.download(destination)
 
         new_rec = copy(self)
