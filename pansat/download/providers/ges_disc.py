@@ -8,6 +8,7 @@ Information Services Center (`GES DISC <https://disc.gsfc.nasa.gov/>`_).
 Reference
 ---------
 """
+
 from copy import copy
 import datetime
 import json
@@ -44,19 +45,6 @@ class GesDiscProviderBase:
     Dataprovider class for for products available from the
     the gesdisc.eosdis.nasa.gov servers.
     """
-
-    file_pattern = re.compile(r'"[^"]*\.(?:HDF5|h5|nc4?)"')
-
-    @classmethod
-    def get_available_products(cls):
-        """
-        Return the names of products available from this data provider.
-
-        Return:
-            A list of strings containing the names of the products that can
-            be downloaded from this data provider.
-        """
-        return GPM_PRODUCTS.keys()
 
     def download_url(self, url, path):
         """
@@ -311,35 +299,35 @@ class MerraProvider(GesDiscProviderBase, DiscreteProviderMonth):
     MERRA_PRODUCTS = {
         "reanalysis.merra.m2i3npasm": [
             "https://goldsmr5.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2I3NPASM.5.12.4/"
+            "MERRA2/M2I3NPASM.5.12.4/",
         ],
         "reanalysis.merra.m2i3nvaer": [
             "https://goldsmr5.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2I3NVAER.5.12.4/"
+            "MERRA2/M2I3NVAER.5.12.4/",
         ],
         "reanalysis.merra.m2i3nvasm": [
             "https://goldsmr5.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2I3NVASM.5.12.4/"
+            "MERRA2/M2I3NVASM.5.12.4/",
         ],
         "reanalysis.merra.m2i1nxasm": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2I1NXASM.5.12.4/"
+            "MERRA2/M2I1NXASM.5.12.4/",
         ],
         "reanalysis.merra.m2t1nxlnd": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2T1NXLND.5.12.4/"
+            "MERRA2/M2T1NXLND.5.12.4/",
         ],
         "reanalysis.merra.m2t1nxflx": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2T1NXFLX.5.12.4/"
+            "MERRA2/M2T1NXFLX.5.12.4/",
         ],
         "reanalysis.merra.m2t1nxrad": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2T1NXRAD.5.12.4/"
+            "MERRA2/M2T1NXRAD.5.12.4/",
         ],
         "reanalysis.merra.m2t1nxrad": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2/M2T1NXRAD.5.12.4/"
+            "MERRA2/M2T1NXRAD.5.12.4/",
         ],
     }
 
@@ -432,6 +420,7 @@ class MerraProvider(GesDiscProviderBase, DiscreteProviderMonth):
                 for chunk in response:
                     f.write(chunk)
 
+
 ges_disc_provider_merra = MerraProvider()
 
 
@@ -443,19 +432,19 @@ class MerraConstantProvider(MerraProvider):
     MERRA_PRODUCTS = {
         "reanalysis.merra.m2conxasm": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2_MONTHLY/M2C0NXASM.5.12.4/"
+            "MERRA2_MONTHLY/M2C0NXASM.5.12.4/",
         ],
         "reanalysis.merra.m2conxctm": [
             "https://goldsmr4.gesdisc.eosdis.nasa.gov/data",
-            "MERRA2_MONTHLY/M2C0NXCTM.5.12.4/"
+            "MERRA2_MONTHLY/M2C0NXCTM.5.12.4/",
         ],
     }
 
     def find_files(
-            self,
-            product: "pansat.Product",
-            time_range: "pansat.TimeRange",
-            roi: "pansat.Geometry" = None
+        self,
+        product: "pansat.Product",
+        time_range: "pansat.TimeRange",
+        roi: "pansat.Geometry" = None,
     ) -> List[FileRecord]:
         """
         Find files available data files at a given day.
