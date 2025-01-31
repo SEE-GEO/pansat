@@ -376,6 +376,7 @@ class IndexData:
             A path object pointing to the local path or None if the file
             record isn't present in the database.
         """
+        self.load()
         if self._data is not None:
             inds = self._data.filename == file_record.filename
             paths = np.unique(self._data.local_path.loc[inds])
