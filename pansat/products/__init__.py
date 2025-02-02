@@ -22,8 +22,6 @@ from pansat import geometry
 LOGGER = logging.getLogger(__name__)
 
 
-
-
 def get_product(product_name):
     """
     Retrieve a product by its name.
@@ -63,6 +61,7 @@ def all_products() -> List["Product"]:
     from pansat.products.ground_based import mrms
     from pansat.products.ground_based import opera
     from pansat.products.ground_based import amedas
+    from pansat.products.ground_based import kma
     from pansat.products.satellite import cloudsat
     from pansat.products.satellite import goes
     from pansat.products.satellite import gpm
@@ -85,6 +84,7 @@ class Product(ABC):
     This class defines the essential functionality that a product must
     implement to be used inside the pansat framework.
     """
+
     PRODUCTS = {}
 
     def __init__(self):
@@ -172,11 +172,9 @@ class Product(ABC):
             An 'xarray.Dataset' that contains the data of the provided file.
         """
         pass
+
     def download(
-            self,
-            time_range: TimeRange,
-            roi: Optional["Geometry"] = None,
-            destination=None
+        self, time_range: TimeRange, roi: Optional["Geometry"] = None, destination=None
     ) -> List[FileRecord]:
         """
         Find and download available files within a given time range and
@@ -202,11 +200,11 @@ class Product(ABC):
         return downloaded
 
     def get(
-            self,
-            time_range: TimeRange,
-            roi: Optional["Geometry"] = None,
-            destination: Optional[Path] = None,
-            provider: Optional['Provider'] = None
+        self,
+        time_range: TimeRange,
+        roi: Optional["Geometry"] = None,
+        destination: Optional[Path] = None,
+        provider: Optional["Provider"] = None,
     ) -> List[FileRecord]:
         """
         Find available files within a given time range and optional
@@ -234,9 +232,8 @@ class Product(ABC):
         return local
 
     def find_provider(
-            self,
-            provider: Optional['Provider'] = None
-    ) -> Optional['Provider']:
+        self, provider: Optional["Provider"] = None
+    ) -> Optional["Provider"]:
         """
         Find provider for this product.
 
@@ -263,12 +260,11 @@ class Product(ABC):
                 pass
         return product_provider
 
-
     def find_files(
-            self,
-            time_range: TimeRange,
-            roi: Optional["Geometry"] = None,
-            provider: Optional["Provider"] = None
+        self,
+        time_range: TimeRange,
+        roi: Optional["Geometry"] = None,
+        provider: Optional["Provider"] = None,
     ) -> List[FileRecord]:
         """
         Find available files within a given time range and optional geographic
@@ -307,6 +303,7 @@ class FilenameRegexpMixin:
     based on a class attribute 'filename_regexp' containing a regular expression
     to match to filename.
     """
+
     def matches(self, rec: Union[FileRecord, Path, str]) -> bool:
         """
         Determines whether a given filename matches the pattern used for
@@ -455,6 +452,7 @@ class GranuleProduct(Product):
         Return:
             An xarray.Dataset containing the loaded data.
         """
+
 
 def list_products(module):
     """
