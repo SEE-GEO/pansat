@@ -22,8 +22,8 @@ def test_get_temporal_coverage():
     """
     filename = "/data/korea/202210/07/AWS_Interp_Resol1km_aug1_QC0_202210072230.nc"
     time_range = precip_rate.get_temporal_coverage(filename)
-    assert time_range.covers(np.datetime64("2022-10-07T22:35:00"))
-    assert not time_range.covers(np.datetime64("2022-10-07T22:45:00"))
+    assert time_range.covers(np.datetime64("2022-10-07T13:35:00"))
+    assert not time_range.covers(np.datetime64("2022-10-07T13:45:00"))
 
 
 def test_get_spatial_coverage():
