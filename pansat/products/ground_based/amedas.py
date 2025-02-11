@@ -18,7 +18,7 @@ from pansat.geometry import LonLatRect
 from pansat.products import Product, FilenameRegexpMixin
 
 
-AMeDAS_DOMAIN = LonLatRect(118, 20, 150, 48)
+AMEDAS_DOMAIN = LonLatRect(118, 20, 150, 48)
 
 
 def grib_to_xarray(file_path: Path):
