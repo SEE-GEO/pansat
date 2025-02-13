@@ -404,6 +404,7 @@ l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "METOPA", "MHS", "07A")
 l2a_gprof_metopb_mhs = GPROFProduct("GPROF2021v1", "METOPB", "MHS", "07A")
 l2a_gprof_metopc_mhs = GPROFProduct("GPROF2021v1", "METOPC", "MHS", "07A")
 l2a_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A")
+l2a_clim_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A", variant="CLIM")
 l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 l2a_gprof_gcomw1_amsr2 = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07A")
 
