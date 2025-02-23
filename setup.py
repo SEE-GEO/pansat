@@ -25,6 +25,7 @@ setuptools.setup(
         "requests",
         "requests-cache",
         "xarray",
+        "tomlkit",
         "pyproj",
         "appdirs",
         "boto3",

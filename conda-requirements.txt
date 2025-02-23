@@ -25,3 +25,5 @@ h5py
 cfgrib
 tomlkit
 filelock
+satpy
+geopandas
