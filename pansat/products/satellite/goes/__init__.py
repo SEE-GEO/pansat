@@ -8,8 +8,12 @@ products from the GOES series of geostationary satellites.
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Union, List
+from tempfile import TemporaryDirectory
+from typing import Union, List, Optional
 
+from PIL import Image
+from pyresample.geometry import AreaDefinition
+import satpy
 import xarray as xr
 
 import pansat
@@ -191,6 +195,36 @@ class GOESProduct(FilenameRegexpMixin, Product):
                 f"The file {rec.filename} does not seem to be available locally."
             )
         return xr.open_dataset(path)
+
+
+    def render_satpy(self, recs: Union[FileRecord, List[FileRecord]], dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
+        """
+        Render a given satpy dataset or composite to an image file.
+
+        Args:
+            rec: A FileRecord pointing to a local GOES file.
+            dataset: The name of the dataset or composite.
+
+        Return:
+            A PIL.Image containing the rendered image.
+
+        """
+        if not isinstance(recs, list):
+            recs = recs
+        recs = [FileRecord(rec) if isinstance(rec, (str, Path)) else rec for rec in recs]
+
+        with TemporaryDirectory() as tmp:
+            files = [str(rec.local_path) for rec in recs]
+            scene = satpy.Scene(files, reader="abi_l1b")
+            scene.load([dataset], generate=False)
+
+            if area is not None:
+                scene = scene.resample(area)
+
+            img_path = Path(tmp) / "dataset.png"
+            scene.save_dataset(dataset, str(img_path))
+            img = Image.open(img_path)
+            return img
 
 
 class GOES16L1BRadiances(GOESProduct):

@@ -8,18 +8,28 @@ products from the Himawari series of geostationary satellites.
 import re
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Union, List, Optional
 
-import xarray
+import numpy as np
+from PIL import Image
+from pyresample.geometry import AreaDefinition
+import satpy
+import xarray as xr
 
+import pansat
+from pansat.time import TimeRange
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.file_record import FileRecord
+from pansat.products import Product, FilenameRegexpMixin
+from pansat.geometry import Geometry, LonLatRect
 from pansat.exceptions import NoAvailableProvider
 
 
-class HimawariProduct(Product):
+class HimawariProduct(FilenameRegexpMixin, Product):
     """
     Base class for products from any of the currently operational
-    Himawari satellites (GOES 16 and 17).
+    Himawari satellites.
 
     Attributes:
         series_index(``int``): Index identifying the Himawari satellite
@@ -41,22 +51,6 @@ class HimawariProduct(Product):
             rf"HS_H{self.series_index:02}_(\d{{8}})_(\d{{4}})_{channels}_FLDK_R\d\d_S\d{{4}}.DAT.bz2"
         )
 
-    @property
-    def variables(self):
-        return []
-
-    def matches(self, filename):
-        """
-        Determines whether a given filename matches the pattern used for
-        the product.
-
-        Args:
-            filename(``str``): The filename
-
-        Return:
-            True if the filename matches the product, False otherwise.
-        """
-        return self.filename_regexp.match(filename)
 
     def filename_to_date(self, filename):
         """
@@ -75,19 +69,6 @@ class HimawariProduct(Product):
         date = datetime.strptime(date_string, "%Y%m%d%H%M")
         return date
 
-    def _get_provider(self):
-        """Find a provider that provides the product."""
-        available_providers = [
-            p
-            for p in providers.ALL_PROVIDERS
-            if str(self) in p.get_available_products()
-        ]
-        if not available_providers:
-            raise NoAvailableProvider(
-                f"Could not find a provider for the" f" product {self.name}."
-            )
-        return available_providers[0]
-
     @property
     def default_destination(self):
         """
@@ -96,44 +77,28 @@ class HimawariProduct(Product):
         """
         return Path(f"Himawari-{self.series_index:02}")
 
-    def __str__(self):
-        """The full product name."""
-        return f"AHI-L1b-FLDK"
-
-    def download(self, start_time, end_time, destination=None, provider=None):
-        """
-        Download data product for given time range.
-
-        Args:
-            start_time(``datetime``): ``datetime`` object defining the start
-                 date of the time range.
-            end_time(``datetime``): ``datetime`` object defining the end date
-                 of the of the time range.
-            destination(``str`` or ``pathlib.Path``): The destination where to
-                 store the output data.
-        """
-
-        if not provider:
-            provider = self._get_provider()
-
-        if not destination:
-            destination = self.default_destination
-        else:
-            destination = Path(destination)
-        destination.mkdir(parents=True, exist_ok=True)
+    @property
+    def name(self):
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
 
         if isinstance(self.channel, list):
-            files = []
-            for c in self.channel:
-                prod = HimawariProduct(
-                    self.series_index, c
-                )
-                p = provider(prod)
-                files += p.download(start_time, end_time, destination)
-            return files
+            if len(self.channel) == 16:
+                channel_str = "all"
+            elif set(self.channel) == {1, 2, 3}:
+                channel_str = "rgb"
+            else:
+                channel_str = "c" + "".join([f"{chan:02}" for chan in self.channel])
+        else:
+            channel_str = f"c{self.channel:02}"
 
-        provider = provider(self)
-        return provider.download(start_time, end_time, destination)
+
+        name = (
+            f"{prefix}.himawari.l1b_himawari{self.series_index}_all"
+        )
+        return name
+
 
     def open(self, filename):
         """
@@ -145,7 +110,78 @@ class HimawariProduct(Product):
         return xarray.open_dataset(filename)
 
 
+    def get_temporal_coverage(self, rec: FileRecord):
+        """
+        Determine the temporal coverage of a HIMAWARI file.
+
+        Args:
+            rec: A 'FileRecord' object pointing to the file from which to
+                deduce the temporal coverage.
+
+        Return:
+            A 'TimeRange' object representing the time range covered by the
+            data file.
+        """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
+        match = self.filename_regexp.match(rec.filename)
+        start_time = datetime.strptime(match.group(1) + match.group(2), "%Y%m%d%H%M")
+        end_time = start_time + np.timedelta64(10, "m")
+        return TimeRange(start_time, end_time)
+
+    def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
+        """
+        Determine the spatial coverage of a data file.
+
+        Args:
+            rec: A file record representing the file of which to determine
+                the spatial extent.
+
+        Return:
+            A 'Geometry' object representing the spatial that the given
+            datafile covers.
+        """
+        return LonLatRect(-180, -90, 180, 90)
+
+
+    def render_satpy(self, recs: Union[FileRecord, List[FileRecord]], dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
+        """
+        Render a given satpy dataset or composite to an image file.
+
+        Args:
+            rec: A FileRecord pointing to a local HIMAWARI file.
+            dataset: The name of the dataset or composite.
+
+        Return:
+            A PIL.Image containing the rendered image.
+
+        """
+        if not isinstance(recs, list):
+            recs = recs
+        recs = [FileRecord(rec) if isinstance(rec, (str, Path)) else rec for rec in recs]
+
+        with TemporaryDirectory() as tmp:
+            files = [str(rec.local_path) for rec in recs]
+            scene = satpy.Scene(files, reader="ahi_hsd")
+            scene.load([dataset], generate=False)
+
+            scene = scene.resample(scene.coarsest_area())
+
+            if area is not None:
+                scene = scene.resample(area)
+
+            img_path = Path(tmp) / "dataset.png"
+            scene.save_dataset(dataset, str(img_path))
+            img = Image.open(img_path)
+            return img
+
+
 l1b_himawari8_all = HimawariProduct(
     8,
+    list(range(1, 17))
+)
+l1b_himawari9_all = HimawariProduct(
+    9,
     list(range(1, 17))
 )
