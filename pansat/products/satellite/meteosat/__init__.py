@@ -11,9 +11,12 @@ import re
 from zipfile import ZipFile
 from datetime import datetime, timedelta
 from tempfile import TemporaryDirectory
+from typing import Optional
 
-import xarray as xr
+from PIL import Image
+from pyresample.geometry import AreaDefinition
 import satpy
+import xarray as xr
 
 import pansat
 from pansat import FileRecord, Geometry, TimeRange
@@ -113,7 +116,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
             with ZipFile(rec.local_path, 'r') as zip_ref:
                 zip_ref.extractall(tmp)
             files = list(Path(tmp).glob("*.nat"))
-            scene = satpy.Scene(files)
+            scene = satpy.Scene(files, reader="seviri_l1b_native")
             datasets = scene.available_dataset_names()
             scene.load(datasets)
 
@@ -122,17 +125,50 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
             n_y = None
             n_x = None
 
-            lons, lats = scene.coarsest_area().get_lonlats()
+            dim_ind = 0
+            for area, datasets in scene.iter_by_area():
+                lons, lats = area.get_lonlats()
 
-            for name in datasets:
-                if name.startswith("HR"):
-                    data[name] = (("y_hr", "x_hr",), scene[name].compute().data)
-                else:
-                    data[name] = (("y", "x",), scene[name].compute().data)
-            data["longitude"] = (("y", "x"), lons)
-            data["latitude"] = (("y", "x"), lats)
+                for name in datasets:
+                    name = name.get("name")
+                    data[name] = ((f"y_{dim_ind}", f"x_{dim_ind}",), scene[name].compute().data)
+
+                data[f"longitude_{dim_ind}"] = ((f"y_{dim_ind}", f"x_{dim_ind}"), lons)
+                data[f"latitude_{dim_ind}"] = ((f"y_{dim_ind}", f"x_{dim_ind}"), lats)
+                dim_ind += 1
 
             return xr.Dataset(data)
+
+
+    def render_satpy(self, rec: FileRecord, dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
+        """
+        Render a given satpy dataset or composite to an image file.
+
+        Args:
+            rec: A FileRecord pointing to a local SEVIRI file.
+            dataset: The name of the dataset or composite.
+
+        Return:
+            A PIL.Image containing the rendered image.
+
+        """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
+        with TemporaryDirectory() as tmp:
+            with ZipFile(rec.local_path, 'r') as zip_ref:
+                zip_ref.extractall(tmp)
+            files = list(Path(tmp).glob("*.nat"))
+            scene = satpy.Scene(files, reader="seviri_l1b_native")
+            scene.load([dataset])
+
+            if area is not None:
+                scene = scene.resample(area)
+
+            img_path = Path(tmp) / "dataset.png"
+            scene.save_dataset(dataset, str(img_path))
+            img = Image.open(img_path)
+            return img
 
 
 l1b_msg_seviri = MSGSeviriL1BProduct()

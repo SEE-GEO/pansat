@@ -9,42 +9,44 @@ AWS cloud storage.
 Reference
 ---------
 """
+from copy import copy
 from datetime import datetime
 from pathlib import Path
+from typing import Union, Optional
 
-import requests
 import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
+import numpy as np
+import requests
 
-from pansat.download.providers.discrete_provider import DiscreteProvider
+from pansat import FileRecord
+from pansat.time import to_datetime
+from pansat.download.providers.data_provider import DataProvider
 
 HIMAWARI_AWS_PRODUCTS = [
     "AHI-L1b-FLDK",
 ]
 
-_BUCKET_CACHE = {}
 
-
-class HimawariAWSProvider(DiscreteProvider):
+class HimawariAWSProvider(DataProvider):
     """
     Dataprovider class for product available from NOAA Himarwari 8 bucket on Amazon
     AWS.
     """
+    bucket_name = "noaa-himawari{series_index}"
 
-    bucket_name = "noaa-himawari8"
-
-    def __init__(self, product):
+    def __init__(self):
         """
         Create new NOAA Himawari provider.
 
         Args:
             product: The product to download.
         """
-        super().__init__(product)
-        self.product_name = str(product)
-        self.bucket_name = HimawariAWSProvider.bucket_name
+        super().__init__()
         self.client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
+        self.cache = {}
+
 
     @classmethod
     def get_available_products(cls):
@@ -57,50 +59,72 @@ class HimawariAWSProvider(DiscreteProvider):
         """
         return HIMAWARI_AWS_PRODUCTS
 
-    def _get_keys(self, prefix):
-        global _BUCKET_CACHE
-        cache_id = (prefix,)
+    def provides(self, product):
+        return product.name.startswith("satellite.himawari")
 
-        bucket = self.bucket_name
+    def _get_keys(self, product: "pansat.Product", date: Union[datetime, np.datetime64]):
+
+        self.cache = {}
+        date = to_datetime(date)
+        year = date.year
+        month = date.month
+        day = date.day
+        hour = date.hour
+        minute = date.minute
+        minute = 10 * (minute // 10)
+
+        prefix = f"AHI-L1b-FLDK/{year:04}/{month:02}/{day:02}/{hour:02}{minute:02}"
+
+        bucket = self.bucket_name.format(series_index=product.series_index)
         kwargs = {"Bucket": bucket, "Prefix": prefix}
 
-        files = []
-        if cache_id not in _BUCKET_CACHE:
+        urls = []
+        if prefix not in self.cache:
             while True:
                 response = self.client.list_objects_v2(**kwargs)
-                if "Contents" not in response:
-                    break
-                files += [Path(obj["Key"]).name for obj in response["Contents"]]
+                if "Contents" in response:
+                    for cont in response["Contents"]:
+                        urls.append(cont["Key"])
+
                 try:
                     kwargs["ContinuationToken"] = response["NextContinuationToken"]
                 except KeyError:
                     break
-            _BUCKET_CACHE[cache_id] = files
-        return _BUCKET_CACHE[cache_id]
+            self.cache[prefix] = urls
 
-    def _get_request_url(self, year, month, day, hour, minute, filename):
-        url = f"https://noaa-himawari8.s3.amazonaws.com/"
-        url += f"{self.product_name}/{year:02}/{month:02}/{day:02}/{hour:02}{minute:02}/{filename}"
-        return url
+        recs = []
+        for url in self.cache[prefix]:
+            rec = FileRecord.from_remote(
+                product, self, url, url.split("/")[-1]
+            )
+            recs.append(rec)
+        return recs
 
-    def get_files_by_day(self, year, day):
+
+    def find_files(self, product, time_range, roi=None):
         """
         Return list of available files for a given day of a year.
 
         Args:
-            year(``int``): The year for which to look up the files.
-            day(``int``): The Julian day for which to look up the files.
+            product: The product for which to find data files.
+            time_range: The time range for which to find data files.
+            roi: Not used
 
         Return:
             A list of strings containing the filename that are available
             for the given day.
         """
-        date = datetime.strptime(str(year) + f"{day:03}", "%Y%j")
-        prefix = f"{self.product_name}/{year}/{date.month:02}/{date.day:02}"
-        files = [f for f in self._get_keys(prefix) if self.product.matches(f)]
+        time = time_range.start
+        files = []
+        while time <= time_range.end + np.timedelta64(5, "m"):
+            files += [rec for rec in self._get_keys(product, time) if product.matches(rec)]
+            time += np.timedelta64(10, "m")
         return files
 
-    def download_file(self, filename, destination):
+
+    def download(
+        self, rec: FileRecord, destination: Optional[Path] = None
+    ):
         """
         Download file from data provider.
 
@@ -109,14 +133,26 @@ class HimawariAWSProvider(DiscreteProvider):
             destination(``str`` or ``pathlib.Path``): path to directory where
                 the downloaded files should be stored.
         """
-        t = self.product.filename_to_date(filename)
-        year = t.year
-        month = t.month
-        day = t.day
-        hour = t.hour
-        minute = t.minute
-        request_string = self._get_request_url(year, month, day, hour, minute, filename)
-        r = requests.get(request_string)
-        with open(destination, "wb") as f:
-            for chunk in r:
-                f.write(chunk)
+        if destination is None:
+            destination = rec.product.default_destination
+            destination.mkdir(exist_ok=True, parents=True)
+        else:
+            destination = Path(destination)
+
+        bucket = self.bucket_name.format(series_index=rec.product.series_index)
+        obj = rec.remote_path
+
+        if destination.is_dir():
+            destination = destination / rec.filename
+
+        with open(destination, "wb") as output_file:
+            self.client.download_fileobj(bucket, obj, output_file)
+
+        new_rec = copy(rec)
+        new_rec.local_path = destination
+
+        return new_rec
+
+
+
+himawari_aws_provider = HimawariAWSProvider()
