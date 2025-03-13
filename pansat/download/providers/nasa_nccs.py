@@ -2,7 +2,7 @@
 pansat.download.providers.nasa_nccs
 ===================================
 
-This module provide a data provide for the NASA NCCS data portal.
+This module provides a data provider for the NASA NCCS data portal.
 """
 
 from copy import copy
