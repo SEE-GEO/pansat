@@ -223,6 +223,17 @@ class FileRecord:
             )
         return self
 
+    def open(self) -> xr.Dataset:
+        """
+        Load the data from the file this file record points to.
+
+        Return:
+             The data as returned by the product.open method.
+        """
+        rec = self
+        if self.local_path is None:
+            rec = self.get()
+        return rec.product.open(rec)
 
     def get(
             self,
