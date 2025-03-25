@@ -9,10 +9,13 @@ import re
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Tuple
 
+import numpy as np
 from PIL import Image
 from pyresample.geometry import AreaDefinition
+from pyproj import Proj, transform
+
 import satpy
 import xarray as xr
 
@@ -24,6 +27,30 @@ from pansat.geometry import Geometry, lonlats_to_polygon, MultiPolygon
 from pansat.time import TimeRange
 
 REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
+
+
+def get_lonlats(data: xr.Dataset) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Get longitude and latitude coordinates for GOES observations.
+    """
+    lon_0 = data["nominal_satellite_subpoint_lon"].data
+    height = data["nominal_satellite_height"].data
+    print(lon_0, height)
+    goes_proj = Proj(
+        proj='geos',
+        h=height * 1e3,
+        lon_0=lon_0,
+        sweep='x',
+        a=6378137.0,
+        b=6356752.31414,
+        unit="m"
+    )
+
+    R = 35786023.0
+    xx, yy = np.meshgrid(data.x.data, data.y.data)
+    lon, lat = goes_proj(R * xx, R * yy, inverse=True)
+
+    return lon, lat
 
 
 class GOESProduct(FilenameRegexpMixin, Product):
@@ -194,7 +221,12 @@ class GOESProduct(FilenameRegexpMixin, Product):
             raise RuntimeError(
                 f"The file {rec.filename} does not seem to be available locally."
             )
-        return xr.open_dataset(path)
+
+        data = xr.open_dataset(path)
+        lons, lats = get_lonlats(data)
+        data["longitude"] = (("y", "x"), lons)
+        data["latitude"] = (("y", "x"), lats)
+        return data
 
 
     def render_satpy(self, recs: Union[FileRecord, List[FileRecord]], dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
