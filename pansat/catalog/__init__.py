@@ -167,17 +167,16 @@ class Catalog:
             rec: A file record identifying a product file to add to the
                 catalog.
         """
-        index = Index.index(rec.product, [rec])
         pname = rec.product.name
         if self.indices is None:
-            self.indices = {pname: index}
-        elif pname not in self.indices:
-            self.indices[pname] = index
+            self.indices = {pname: Index(rec.product, [rec], db_path=self.db_path)}
         else:
-            self.indices[pname] += index
+            if pname not in self.indices:
+                self.indices[pname] = Index(rec.product, [rec], db_path=self.db_path)
+            else:
+                index = self.indices[pname]
+                index.insert(rec)
 
-        if self.db_path is not None:
-            index.save(self.db_path, append=True)
 
     def get_index(
             self,

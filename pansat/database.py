@@ -271,8 +271,6 @@ class IndexData:
                     conn.commit()
 
 
-
-
     def load(self, time_range: Optional[TimeRange] = None) -> geopandas.GeoDataFrame:
         """
         Load granule data from database.
@@ -376,20 +374,20 @@ class IndexData:
             A path object pointing to the local path or None if the file
             record isn't present in the database.
         """
-        self.load()
-        if self._data is not None:
-            inds = self._data.filename == file_record.filename
-            paths = np.unique(self._data.local_path.loc[inds])
+        #self.load()
+        #if self._data is not None:
+        #    inds = self._data.filename == file_record.filename
+        #    paths = np.unique(self._data.local_path.loc[inds])
 
-            if len(paths) == 0:
-                return None
+        #    if len(paths) == 0:
+        #        return None
 
-            if len(paths) > 1:
-                return ValueError(
-                    "Found more than one path for the given filename. Something "
-                    "seems wrong with this index."
-                )
-            return Path(paths[0])
+        #    if len(paths) > 1:
+        #        return ValueError(
+        #            "Found more than one path for the given filename. Something "
+        #            "seems wrong with this index."
+        #        )
+        #    return Path(paths[0])
 
         fname = file_record.filename
         table = self.table

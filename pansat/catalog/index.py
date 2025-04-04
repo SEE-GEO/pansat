@@ -430,10 +430,11 @@ class Index:
         if isinstance(granules, Granule):
             granules = [granules]
         elif isinstance(granules, FileRecord):
-            granules = Granule.from_file_record(granules)
+            granules = _get_index_data(granules.product, granules)
         new_data = _granules_to_dataframe(granules)
         if self.data is None:
             self.data = IndexData()
+        print("DATA :: ", type(self.data))
         self.data.insert(new_data)
 
     def __repr__(self):

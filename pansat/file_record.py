@@ -15,6 +15,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import numpy as np
+import xarray as xr
 
 
 from pansat.time import TimeRange
@@ -234,6 +235,19 @@ class FileRecord:
         if self.local_path is None:
             rec = self.get()
         return rec.product.open(rec)
+
+    def __eq__(self, other: "FileRecord") -> bool:
+        """
+        Two file records are equal when they point to the same file.
+        """
+        return self.filename == other.filename
+
+    def __lt__(self, other: "FileRecord") -> bool:
+        """
+        Compares file records by start time
+        """
+        return self.temporal_coverage.start < other.temporal_coverage.start
+
 
     def get(
             self,
