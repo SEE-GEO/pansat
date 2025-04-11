@@ -169,10 +169,12 @@ class Catalog:
         """
         pname = rec.product.name
         if self.indices is None:
-            self.indices = {pname: Index(rec.product, [rec], db_path=self.db_path)}
+            self.indices = {pname: Index.index(rec.product, [rec], db_path=self.db_path)}
         else:
             if pname not in self.indices:
-                self.indices[pname] = Index(rec.product, [rec], db_path=self.db_path)
+                new_index = Index.index(rec.product, [rec], db_path=self.db_path)
+                new_index.save(db_path=self.db_path)
+                self.indices[pname] = new_index
             else:
                 index = self.indices[pname]
                 index.insert(rec)

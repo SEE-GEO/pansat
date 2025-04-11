@@ -275,7 +275,7 @@ class Index:
         return indices
 
     @classmethod
-    def index(cls, product, files, n_processes=None):
+    def index(cls, product, files, n_processes=None, db_path: Optional[Path] = None):
         """
         Index data files.
 
@@ -334,7 +334,7 @@ class Index:
                 prog.refresh()
 
         data = _granules_to_dataframe(granules)
-        return cls(product, IndexData.from_geodataframe(product, data))
+        return cls(product, IndexData.from_geodataframe(product, data), db_path=db_path)
 
     def __init__(
             self,
@@ -434,7 +434,6 @@ class Index:
         new_data = _granules_to_dataframe(granules)
         if self.data is None:
             self.data = IndexData()
-        print("DATA :: ", type(self.data))
         self.data.insert(new_data)
 
     def __repr__(self):
