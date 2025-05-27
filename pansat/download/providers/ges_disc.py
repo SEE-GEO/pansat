@@ -157,7 +157,7 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
                 return False
             if product.variant.startswith("day"):
                 return False
-        return True
+        return product.name in GPM_PRODUCTS
 
     def find_files_by_day(self, product, time, roi=None):
         """
