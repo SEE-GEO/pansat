@@ -35,7 +35,6 @@ def get_lonlats(data: xr.Dataset) -> Tuple[np.ndarray, np.ndarray]:
     """
     lon_0 = data["nominal_satellite_subpoint_lon"].data
     height = data["nominal_satellite_height"].data
-    print(lon_0, height)
     goes_proj = Proj(
         proj='geos',
         h=height * 1e3,
@@ -45,11 +44,9 @@ def get_lonlats(data: xr.Dataset) -> Tuple[np.ndarray, np.ndarray]:
         b=6356752.31414,
         unit="m"
     )
-
     R = 35786023.0
     xx, yy = np.meshgrid(data.x.data, data.y.data)
     lon, lat = goes_proj(R * xx, R * yy, inverse=True)
-
     return lon, lat
 
 
