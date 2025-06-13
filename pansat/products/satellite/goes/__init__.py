@@ -7,6 +7,7 @@ products from the GOES series of geostationary satellites.
 """
 import re
 from datetime import datetime
+from functools import cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Union, List, Optional, Tuple
@@ -17,6 +18,7 @@ from pyresample.geometry import AreaDefinition
 from pyproj import Proj, transform
 
 import satpy
+import pyresample.geometry
 import xarray as xr
 
 import pansat
@@ -29,25 +31,94 @@ from pansat.time import TimeRange
 REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
 
 
+def radiance_to_reflectance(data: xr.Dataset) -> xr.DataArray:
+    """
+    Convert radiance to reflectance for GOES channels 1 to 6.
+
+    Args:
+         data: The xarray.Dataset containing the GOES observations for a given channel.
+
+    Return:
+         A data array containing the radiances converted to reflectance.
+    """
+    refl = 100.0 * data.kappa0 * data.Rad
+    return refl
+
+def radiance_to_brightness_temperature(data: xr.Dataset) -> xr.DataArray:
+    """
+    Convert radiance to brightness temperature for emissive GOES channels.
+
+    Args:
+         data: The xarray.Dataset containing the GOES observations for a given channel.
+
+    Return:
+         A data array containing the brightness temperatures.
+    """
+    fk1 = data.planck_fk1
+    fk2 = data.planck_fk2
+    bc1 = data.planck_bc1
+    bc2 = data.planck_bc2
+    tb = (fk2 / np.log(fk1 / data.Rad + 1.0) - bc1) / bc2
+    return tb
+
+@cache
+def get_lonlats_from_proj(
+        ncols: int,
+        nrows: int,
+        area_extent: Tuple[int, int],
+        lon_0: float,
+        a: float,
+        b: float,
+        h: float,
+        sweep_axis: str
+):
+    proj_dict = {"proj": "geos",
+                    "lon_0": float(lon_0),
+                    "a": float(a),
+                    "b": float(b),
+                    "h": h,
+                    "units": "m",
+                    "sweep": sweep_axis}
+    fg_area_def = pyresample.geometry.AreaDefinition(
+        "abi_geos",
+        "ABI file area",
+        "abi_fixed_grid",
+        proj_dict,
+        ncols,
+        nrows,
+        np.asarray(area_extent))
+    lons, lats = fg_area_def.get_lonlats()
+    return lons, lats
+
 def get_lonlats(data: xr.Dataset) -> Tuple[np.ndarray, np.ndarray]:
     """
     Get longitude and latitude coordinates for GOES observations.
     """
-    lon_0 = data["nominal_satellite_subpoint_lon"].data
-    height = data["nominal_satellite_height"].data
-    goes_proj = Proj(
-        proj='geos',
-        h=height * 1e3,
-        lon_0=lon_0,
-        sweep='x',
-        a=6378137.0,
-        b=6356752.31414,
-        unit="m"
-    )
-    R = 35786023.0
-    xx, yy = np.meshgrid(data.x.data, data.y.data)
-    lon, lat = goes_proj(R * xx, R * yy, inverse=True)
-    return lon, lat
+    projection = data["goes_imager_projection"]
+    a = projection.attrs["semi_major_axis"]
+    b = projection.attrs["semi_minor_axis"]
+    h = projection.attrs["perspective_point_height"]
+
+    lon_0 = projection.attrs["longitude_of_projection_origin"]
+    sweep_axis = projection.attrs["sweep_angle_axis"][0]
+
+    ncols = data.x.size
+    nrows = data.y.size
+
+    # compute x and y extents in m
+    h = np.float64(h)
+    x = data["x"]
+    y = data["y"]
+    x_l = x[0].values
+    x_r = x[-1].values
+    y_l = y[-1].values
+    y_u = y[0].values
+    x_half = (x_r - x_l) / (ncols - 1) / 2.
+    y_half = (y_u - y_l) / (nrows - 1) / 2.
+    area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
+    area_extent = tuple(np.round(h * val, 6) for val in area_extent)
+
+    return get_lonlats_from_proj(ncols, nrows, area_extent, lon_0, a, b, h, sweep_axis)
 
 
 class GOESProduct(FilenameRegexpMixin, Product):
@@ -213,6 +284,9 @@ class GOESProduct(FilenameRegexpMixin, Product):
         Return:
             An xarray.Dataset containing the loaded product data.
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
         path = rec.local_path
         if path is None:
             raise RuntimeError(
@@ -220,7 +294,9 @@ class GOESProduct(FilenameRegexpMixin, Product):
             )
 
         data = xr.open_dataset(path)
+        print("Loading coords")
         lons, lats = get_lonlats(data)
+        print("Done")
         data["longitude"] = (("y", "x"), lons)
         data["latitude"] = (("y", "x"), lats)
         return data
@@ -283,6 +359,16 @@ class GOES18L1BRadiances(GOESProduct):
         super().__init__("1b", 18, "ABI", "Rad", region, channel)
 
 
+for chan in range(1, 17):
+    for reg in ["F", "C", "M"]:
+        name = f"l1b_goes_16_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES16L1BRadiances(reg, chan)
+        name = f"l1b_goes_17_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES17L1BRadiances(reg, chan)
+        name = f"l1b_goes_18_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES18L1BRadiances(reg, chan)
+
+
 l1b_goes_16_rad_rgb_full_disk = GOES16L1BRadiances("F", [1, 2, 3])
 l1b_goes_16_rad_all_full_disk = GOES16L1BRadiances("F", list(range(1, 17)))
 l1b_goes_16_rad_rgb_conus = GOES16L1BRadiances("C", [1, 2, 3])
@@ -303,12 +389,3 @@ l1b_goes_18_rad_rgb_conus = GOES18L1BRadiances("C", [1, 2, 3])
 l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
 l1b_goes_18_rad_rgb_mese_scale_sector = GOES18L1BRadiances("M", [1, 2, 3])
 l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
-
-for chan in range(1, 17):
-    for reg in ["F", "C", "M"]:
-        name = f"l1b_goes_16_rad_c{chan:02}_{REGIONS[reg]}"
-        globals()[name] = GOES16L1BRadiances(reg, chan)
-        name = f"l1b_goes_17_rad_c{chan:02}_{REGIONS[reg]}"
-        globals()[name] = GOES17L1BRadiances(reg, chan)
-        name = f"l1b_goes_18_rad_c{chan:02}_{REGIONS[reg]}"
-        globals()[name] = GOES18L1BRadiances(reg, chan)
