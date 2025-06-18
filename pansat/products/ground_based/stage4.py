@@ -18,6 +18,7 @@ import xarray as xr
 import pansat
 from pansat import TimeRange, FileRecord
 from pansat.exceptions import MissingDependency
+from pansat.time import to_datetime64
 from pansat.geometry import LonLatRect
 from pansat.products import Product, FilenameRegexpMixin
 
@@ -63,7 +64,36 @@ def load_stage4_monthly_tar(tar_path: Path) -> xr.Dataset:
                 day_tar.extractall(path=tmpdir)
 
         # Loop over all hourly .Z files
-        for z_file in sorted(tmpdir.glob("ST4.*.01h.Z")):
+        for arch_file in sorted(tmpdir.glob("ST4.*.01h.*")):
+            # Decompress .Z file (system uncompress required)
+            grib_file = arch_file.with_suffix("")
+            if arch_file.suffix == ".Z":
+                subprocess.run(["uncompress", str(arch_file)], check=True)
+            elif arch_file.suffix == ".gz":
+                subprocess.run(["gunzip", str(arch_file)], check=True)
+            else:
+                raise ValueError(
+                    f"Encountered unknown file suffix {arch_file.suffix}."
+                )
+
+            # Try loading the decompressed GRIB file
+            try:
+                ds = xr.load_dataset(
+                    grib_file,
+                    engine="cfgrib",
+                    backend_kwargs={"indexpath": ""},
+                    decode_timedelta=False
+                )
+                ds = ds.rename(tp="surface_precip")
+                ds["surface_precip"] = ds.surface_precip.astype(np.float32)
+                # Add timestamp from filename
+                time = to_datetime64(datetime.strptime(grib_file.name.split(".")[1], "%Y%m%d%H"))
+                ds = ds.expand_dims(time=[time])
+                datasets.append(ds)
+            except Exception as e:
+                print(f"Skipping {grib_file.name}: {e}")
+
+        for z_file in sorted(tmpdir.glob("ST4.*.01h.gz")):
             # Decompress .Z file (system uncompress required)
             grib_file = z_file.with_suffix("")  # remove .Z extension
             subprocess.run(["uncompress", str(z_file)], check=True)
@@ -76,10 +106,10 @@ def load_stage4_monthly_tar(tar_path: Path) -> xr.Dataset:
                     backend_kwargs={"indexpath": ""}
                 )
                 ds = ds.rename(tp="surface_precip")
-                ds.surface_precip = ds.surface_precip.astype(np.float32)
+                ds["surface_precip"] = ds.surface_precip.astype(np.float32)
                 # Add timestamp from filename
-                timestamp = grib_file.name.split(".")[1]  # ST4.YYYYMMDDHH
-                ds = ds.expand_dims(time=[timestamp])
+                time = to_datetime64(datetime.strptime(grib_file.name.split(".")[1], "%Y%m%d%H"))
+                ds = ds.expand_dims(time=[time])
                 datasets.append(ds)
             except Exception as e:
                 print(f"Skipping {grib_file.name}: {e}")
