@@ -393,11 +393,8 @@ class IndexData:
         table = self.table
         stmt = select(table).where(table.c.filename == fname)
 
-        lock = FileLock(self.db_path.with_suffix(".lock"))
-        self._create_table()
-        with lock:
-            with self.engine.connect() as conn:
-                res = conn.execute(stmt).first()
+        with self.engine.connect() as conn:
+            res = conn.execute(stmt).first()
 
         if res is None:
             return res
