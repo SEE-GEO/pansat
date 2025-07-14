@@ -626,6 +626,7 @@ class ProductDescription(ConfigParser):
             else:
                 sizes = lons.shape
 
+
         granule_data = []
 
         outer_start = 0
@@ -763,6 +764,7 @@ def _geometry_from_coords(lons: np.ndarray, lats: np.ndarray) -> Geometry:
             lons[::-1, 0],
         ]
     )
+
     d_lon = np.abs(np.diff(lon_seq))
     if np.any(d_lon > 180):
         lons_r = lons.copy()
