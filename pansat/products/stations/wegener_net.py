@@ -81,7 +81,7 @@ class WegenerNetStationFile(FilenameRegexpMixin, Product):
         module = Path(__file__).parent
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace("/", ".")
-        return ".".join([prefix, self._name])
+        return ".".join([prefix, "wegener_net", self._name])
 
     def filename_to_date(self, filename):
         """

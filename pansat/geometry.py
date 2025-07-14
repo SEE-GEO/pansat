@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 import shapely
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon, Point
 from shapely.validation import make_valid
 from shapely.ops import unary_union
 from shapely.validation import make_valid
@@ -373,6 +373,16 @@ class MultiLineString(ShapelyGeometry):
 
     def __init__(self, coords):
         super().__init__(shapely.MultiLineString(coords))
+
+
+class Point(ShapelyGeometry):
+    """
+    A point geometry that internally uses a shapely point.
+    """
+
+    def __init__(self, x, y):
+        point = shapely.validation.make_valid(shapely.Point(x, y))
+        super().__init__(point)
 
 
 class Polygon(ShapelyGeometry):

@@ -57,10 +57,10 @@ class GLOBE(FilenameRegexpMixin, Product):
     """
     def __init__(self):
         """
-        Instantiate GLOB product.
+        Instantiate GLOBE product.
         """
         self.filename_regexp = re.compile(
-            rf"(\w)|(all)10g?\.t?gz"
+            r"((\w)|(all))10g?\.t?gz"
         )
         Product.__init__(self)
 

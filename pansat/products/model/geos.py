@@ -119,7 +119,7 @@ class GEOSForecastProduct(FilenameRegexpMixin, Product):
         super().__init__()
 
         self.filename_regexp = re.compile(
-            rf"GEOS\.fp\.fcst\.{collection}.(\d{{8}})_(\d{{2}})(\+|%2B)(\d{{8}})_(\d{{4}})\.V\d+\.nc4"
+            rf"GEOS\.fp\.fcst\.{collection}.(\d{{8}})_(\d{{2}})(\+)(\d{{8}})_(\d{{4}})\.V\d+\.nc4"
         )
 
     @property
@@ -130,7 +130,7 @@ class GEOSForecastProduct(FilenameRegexpMixin, Product):
         module = Path(__file__)
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace("/", ".")[:-3]
-        return ".".join([prefix, self.collection + "_fc"])
+        return ".".join([prefix, self.collection.lower() + "_fc"])
 
     @property
     def default_destination(self) -> Path:
@@ -150,10 +150,8 @@ class GEOSForecastProduct(FilenameRegexpMixin, Product):
             )
         date_1 = match.group(1)
         date_2 = match.group(2)
-        print(date_1, date_2)
         start_date = datetime.strptime(date_1 + date_2, "%Y%m%d%H")
         end_date = start_date + timedelta(hours=6)
-        print(start_date, end_date)
         return TimeRange(start_date, end_date)
 
     def get_spatial_coverage(self, rec: FileRecord) -> Geometry:

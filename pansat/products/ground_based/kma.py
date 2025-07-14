@@ -58,7 +58,7 @@ class KMARadarProduct(FilenameRegexpMixin, Product):
 
     @property
     def default_destination(self):
-        """Stores AMeDAS files in a folder called amedas."""
+        """Stores KMA files in a folder called amedas."""
         return Path("aws")
 
     @property
@@ -70,7 +70,7 @@ class KMARadarProduct(FilenameRegexpMixin, Product):
 
     def filename_to_date(self, filename):
         """
-        Extract data corresponding to MRMS file.
+        Extract data corresponding to KMA file.
         """
         name = Path(filename).stem.split("_")[-1]
         kst_time = datetime.strptime(name, "%Y%m%d%H%M")

@@ -66,9 +66,9 @@ class Granule:
         if self.primary_index_name == "":
             return None
         slcs = {}
-        slcs[self.primary_index_name] = slice(*self.primary_index_range)
+        slcs[self.primary_index_name] = slice([int(ind) for ind in self.primary_index_range])
         if self.secondary_index_name != "":
-            slcs[self.secondary_index_name] = slice(*self.secondary_index_range)
+            slcs[self.secondary_index_name] = slice([int(ind) for ind in self.secondary_index_range])
         return slcs
 
     def __eq__(self, other):

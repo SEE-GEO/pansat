@@ -139,6 +139,34 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
 
             return xr.Dataset(data)
 
+    def open_satpy(self, rec: FileRecord) -> satpy.Scene:
+        """
+        Open observations as satpy.Scene.
+
+        Args:
+            rec: A FileRecord pointing to a local SEVIRI file.
+
+        Return:
+            A satpy.Scene containing the loaded imagery.
+        """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+
+        with TemporaryDirectory() as tmp:
+            with ZipFile(rec.local_path, 'r') as zip_ref:
+                zip_ref.extractall(tmp)
+            files = list(Path(tmp).glob("*.nat"))
+            scene = satpy.Scene(files, reader="seviri_l1b_native")
+            scene.load([dataset])
+
+            if area is not None:
+                scene = scene.resample(area)
+
+            img_path = Path(tmp) / "dataset.png"
+            scene.save_dataset(dataset, str(img_path))
+            img = Image.open(img_path)
+            return img
+
 
     def render_satpy(self, rec: FileRecord, dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
         """
