@@ -157,15 +157,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
                 zip_ref.extractall(tmp)
             files = list(Path(tmp).glob("*.nat"))
             scene = satpy.Scene(files, reader="seviri_l1b_native")
-            scene.load([dataset])
-
-            if area is not None:
-                scene = scene.resample(area)
-
-            img_path = Path(tmp) / "dataset.png"
-            scene.save_dataset(dataset, str(img_path))
-            img = Image.open(img_path)
-            return img
+        return scene
 
 
     def render_satpy(self, rec: FileRecord, dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
