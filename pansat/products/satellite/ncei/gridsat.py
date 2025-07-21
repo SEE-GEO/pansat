@@ -133,6 +133,6 @@ class GridsatB1(GridsatProduct):
         )
 
 
-gridsat_goes = GridsatProduct("goes", timedelta(minutes=15))
-gridsat_conus = GridsatProduct(("conus"), timedelta(hours=1))
+gridsat_conus = GridsatProduct(("conus"), timedelta(minutes=15))
+gridsat_goes = GridsatProduct("goes", timedelta(hours=1))
 gridsat_b1 = GridsatB1()

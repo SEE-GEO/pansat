@@ -139,7 +139,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
 
             return xr.Dataset(data)
 
-    def open_satpy(self, rec: FileRecord) -> satpy.Scene:
+    def open_satpy(self, rec: FileRecord, tmp: TemporaryDirectory) -> satpy.Scene:
         """
         Open observations as satpy.Scene.
 
@@ -152,20 +152,11 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
         if isinstance(rec, (str, Path)):
             rec = FileRecord(rec)
 
-        with TemporaryDirectory() as tmp:
-            with ZipFile(rec.local_path, 'r') as zip_ref:
-                zip_ref.extractall(tmp)
-            files = list(Path(tmp).glob("*.nat"))
-            scene = satpy.Scene(files, reader="seviri_l1b_native")
-            scene.load([dataset])
-
-            if area is not None:
-                scene = scene.resample(area)
-
-            img_path = Path(tmp) / "dataset.png"
-            scene.save_dataset(dataset, str(img_path))
-            img = Image.open(img_path)
-            return img
+        with ZipFile(rec.local_path, 'r') as zip_ref:
+            zip_ref.extractall(tmp.name)
+        files = list(Path(tmp.name).glob("*.nat"))
+        scene = satpy.Scene(files, reader="seviri_l1b_native")
+        return scene
 
 
     def render_satpy(self, rec: FileRecord, dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
@@ -219,9 +210,6 @@ class MSGSeviriRapidScanL1BProduct(MSGSeviriL1BProduct):
         """
         super().__init__(location=location)
         self._name = "l1b_rs_msg_seviri"
-        self.filename_regexp = re.compile(
-            "MSG-R\d-SEVI-MSG\d*-0100-NA-(\d{14})\.\d*Z-NA(.nat)?"
-        )
 
         if location is not None:
             if location.lower() == "io":
