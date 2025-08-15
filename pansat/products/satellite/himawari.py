@@ -39,7 +39,12 @@ class HimawariProduct(FilenameRegexpMixin, Product):
         channel(``int``): The channel index.
     """
 
-    def __init__(self, series_index, channel):
+    def __init__(
+            self,
+            series_index,
+            channel,
+            domain="FLDK"
+    ):
         self.series_index = series_index
         self.channel = channel
         if type(channel) == list:
@@ -47,8 +52,18 @@ class HimawariProduct(FilenameRegexpMixin, Product):
         else:
             channels = f"B{channel:02}"
 
+        if not domain in ["FLDK", "Japan"]:
+            raise ValueError(
+                "'domain' should be one of ['FLDK', 'Japan']."
+            )
+        self.domain = domain
+
+        domain_pattern = domain
+        if domain == "Japan":
+            domain_pattern = "JP01"
+
         self.filename_regexp = re.compile(
-            rf"HS_H{self.series_index:02}_(\d{{8}})_(\d{{4}})_{channels}_FLDK_R\d\d_S\d{{4}}.DAT.bz2"
+            rf"HS_H{self.series_index:02}_(\d{{8}})_(\d{{4}})_{channels}_{domain_pattern}_R\d\d_S\d{{4}}.DAT.bz2"
         )
 
 
@@ -181,7 +196,17 @@ l1b_himawari8_all = HimawariProduct(
     8,
     list(range(1, 17))
 )
+l1b_himawari8_japan_all = HimawariProduct(
+    8,
+    list(range(1, 17)),
+    domain="Japan"
+)
 l1b_himawari9_all = HimawariProduct(
     9,
     list(range(1, 17))
+)
+l1b_himawari9_japan_all = HimawariProduct(
+    9,
+    list(range(1, 17)),
+    domain="Japan"
 )

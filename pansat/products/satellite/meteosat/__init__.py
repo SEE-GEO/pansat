@@ -139,7 +139,7 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
 
             return xr.Dataset(data)
 
-    def open_satpy(self, rec: FileRecord) -> satpy.Scene:
+    def open_satpy(self, rec: FileRecord, tmp: TemporaryDirectory) -> satpy.Scene:
         """
         Open observations as satpy.Scene.
 
@@ -211,9 +211,6 @@ class MSGSeviriRapidScanL1BProduct(MSGSeviriL1BProduct):
         """
         super().__init__(location=location)
         self._name = "l1b_rs_msg_seviri"
-        self.filename_regexp = re.compile(
-            "MSG-R\d-SEVI-MSG\d*-0100-NA-(\d{14})\.\d*Z-NA(.nat)?"
-        )
 
         if location is not None:
             if location.lower() == "io":

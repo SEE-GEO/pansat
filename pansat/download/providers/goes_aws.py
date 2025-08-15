@@ -17,6 +17,7 @@ from typing import List, Union, Optional
 
 import requests
 import boto3
+from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
 from botocore.config import Config
 import numpy as np
@@ -114,6 +115,7 @@ class GOESAWSProvider(DiscreteProviderDay):
                 product, self, url, url.split("/")[-1]
             )
             recs.append(rec)
+        self.cache.pop(prefix)
         return recs
 
     def _get_request_url(self, product, time, filename):
@@ -176,7 +178,10 @@ class GOESAWSProvider(DiscreteProviderDay):
             destination = destination / rec.filename
 
         with open(destination, "wb") as output_file:
-            self.client.download_fileobj(bucket, obj, output_file)
+            response = self.client.get_object(Bucket=bucket, Key=obj)
+            output_file.write(response['Body'].read())
+            #config = TransferConfig(use_threads=False)
+            #self.client.download_fileobj(bucket, obj, output_file, Config=config)
 
         new_rec = copy(rec)
         new_rec.local_path = destination

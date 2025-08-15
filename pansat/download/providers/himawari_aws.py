@@ -24,10 +24,6 @@ from pansat import FileRecord
 from pansat.time import to_datetime
 from pansat.download.providers.data_provider import DataProvider
 
-HIMAWARI_AWS_PRODUCTS = [
-    "AHI-L1b-FLDK",
-]
-
 
 class HimawariAWSProvider(DataProvider):
     """
@@ -47,18 +43,6 @@ class HimawariAWSProvider(DataProvider):
         self.client = boto3.client("s3", config=Config(signature_version=UNSIGNED))
         self.cache = {}
 
-
-    @classmethod
-    def get_available_products(cls):
-        """
-        Return the names of products available from this data provider.
-
-        Return:
-            A list of strings containing the names of the products that can
-            be downloaded from this data provider.
-        """
-        return HIMAWARI_AWS_PRODUCTS
-
     def provides(self, product):
         return product.name.startswith("satellite.himawari")
 
@@ -73,7 +57,7 @@ class HimawariAWSProvider(DataProvider):
         minute = date.minute
         minute = 10 * (minute // 10)
 
-        prefix = f"AHI-L1b-FLDK/{year:04}/{month:02}/{day:02}/{hour:02}{minute:02}"
+        prefix = f"AHI-L1b-{product.domain}/{year:04}/{month:02}/{day:02}/{hour:02}{minute:02}"
 
         bucket = self.bucket_name.format(series_index=product.series_index)
         kwargs = {"Bucket": bucket, "Prefix": prefix}

@@ -25,7 +25,7 @@ import pansat
 from pansat.products import Product, FilenameRegexpMixin
 from pansat.exceptions import NoAvailableProvider, MissingInformation
 from pansat.file_record import FileRecord
-from pansat.geometry import Geometry, lonlats_to_polygon, MultiPolygon
+from pansat.geometry import Geometry, lonlats_to_polygon, MultiPolygon, LonLatRect
 from pansat.time import TimeRange
 
 REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
@@ -61,34 +61,6 @@ def radiance_to_brightness_temperature(data: xr.Dataset) -> xr.DataArray:
     tb = (fk2 / np.log(fk1 / data.Rad + 1.0) - bc1) / bc2
     return tb
 
-@cache
-def get_lonlats_from_proj(
-        ncols: int,
-        nrows: int,
-        area_extent: Tuple[int, int],
-        lon_0: float,
-        a: float,
-        b: float,
-        h: float,
-        sweep_axis: str
-):
-    proj_dict = {"proj": "geos",
-                    "lon_0": float(lon_0),
-                    "a": float(a),
-                    "b": float(b),
-                    "h": h,
-                    "units": "m",
-                    "sweep": sweep_axis}
-    fg_area_def = pyresample.geometry.AreaDefinition(
-        "abi_geos",
-        "ABI file area",
-        "abi_fixed_grid",
-        proj_dict,
-        ncols,
-        nrows,
-        np.asarray(area_extent))
-    lons, lats = fg_area_def.get_lonlats()
-    return lons, lats
 
 def get_lonlats(data: xr.Dataset) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -119,6 +91,9 @@ def get_lonlats(data: xr.Dataset) -> Tuple[np.ndarray, np.ndarray]:
     area_extent = tuple(np.round(h * val, 6) for val in area_extent)
 
     return get_lonlats_from_proj(ncols, nrows, area_extent, lon_0, a, b, h, sweep_axis)
+
+
+_SPATIAL_COVERAGE = {}
 
 
 class GOESProduct(FilenameRegexpMixin, Product):
@@ -222,6 +197,7 @@ class GOESProduct(FilenameRegexpMixin, Product):
         end_time = datetime.strptime(match.group(3)[:-1], "%Y%j%H%M%S")
         return TimeRange(start_time, end_time)
 
+
     def _load_geometry_from_file(self, rec: FileRecord) -> Geometry:
         """
         Parse geometry object representing the spatial coverage of a
@@ -236,16 +212,19 @@ class GOESProduct(FilenameRegexpMixin, Product):
             A geometry object representing the spatial coverage of the
             file.
         """
-        try:
-            from satpy import Scene
-            scn = Scene(files=[rec.local_path])
-            lons, lats = scn.coarsest_area().get_lonlats()
-            return lonlats_to_polygon(lons, lats, n_points=8)
-        except ImportError:
-            raise RuntimeError(
-                "Parsing the spatial extent of a GOES meso-scale sector"
-                " file requires 'satpy' to be installed."
-            )
+        if self.series_index not in _SPATIAL_COVERAGE:
+            try:
+                from satpy import Scene
+                scn = Scene(files=[rec.local_path])
+                lons, lats = scn.coarsest_area().get_lonlats()
+                _SPATIAL_COVERAGE[self.series_index] = lonlats_to_polygon(lons, lats, n_points=8)
+                del scn
+            except ImportError:
+                raise RuntimeError(
+                    "Parsing the spatial extent of a GOES meso-scale sector"
+                    " file requires 'satpy' to be installed."
+                )
+        return _SPATIAL_COVERAGE[self.series_index]
 
     def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
@@ -294,9 +273,7 @@ class GOESProduct(FilenameRegexpMixin, Product):
             )
 
         data = xr.open_dataset(path)
-        print("Loading coords")
         lons, lats = get_lonlats(data)
-        print("Done")
         data["longitude"] = (("y", "x"), lons)
         data["latitude"] = (("y", "x"), lats)
         return data
