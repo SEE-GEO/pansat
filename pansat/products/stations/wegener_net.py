@@ -32,11 +32,10 @@ def get_station_data() -> xr.Dataset:
     global _STATION_DATA
     file_path = Path(__file__).parent / "files" / "wegener_stations.txt"
     if _STATION_DATA is None:
-        data_frame = pd.read_csv(file_path, parse_dates=["Valid from"])
+        data_frame = pd.read_csv(file_path, parse_dates=["Valid from"], index_col="Number")
         dataset = xr.Dataset.from_dataframe(data_frame)
         dataset = dataset.rename({
-            "index": "station",
-            "Number": "number",
+            "Number": "station",
             "Valid from": "valid_from",
             "Latitude [°]": "latitude",
             "Longitude [°]": "longitude",
@@ -70,7 +69,7 @@ class WegenerNetStationFile(FilenameRegexpMixin, Product):
         super().__init__()
 
         self.filename_regexp = re.compile(
-            rf"WN_L2_V._HD_St\d+_([\w\d\-]*)_([\w\d\-]*)_UTC.csv"
+            rf"WN_L2_V[\d_]*_H+D_St\d+_([\w\d\-]*)_([\w\d\-]*)_UTC.csv"
         )
 
     @property
@@ -157,22 +156,37 @@ class WegenerNetStationFile(FilenameRegexpMixin, Product):
 
         file_path = rec.local_path
 
-        data_frame = pd.read_csv(
-            file_path, parse_dates=["Time [YYYY-MM-DD HH:MM:SS UTC]"]
-        )
+        try:
+            data_frame = pd.read_csv(
+                file_path, parse_dates=["Time [YYYY-MM-DD HH:MM:SS UTC]"]
+            )
+        except ValueError:
+            data_frame = pd.read_csv(
+                file_path, parse_dates=["Time [YYYY-MM-DD HH:MM:SS]"]
+            )
+
         dataset = xr.Dataset.from_dataframe(data_frame)
-        dataset = dataset.rename(
-            {
-                "Station": "station",
-                "Time [YYYY-MM-DD HH:MM:SS UTC]": "time",
-                "Precipitation [mm]": "surface_precip",
-            }
-        )[["station", "time", "surface_precip"]]
+        if "Time [YYYY-MM-DD HH:MM:SS UTC]" in dataset:
+            dataset = dataset.rename(
+                {
+                    "Station": "station",
+                    "Time [YYYY-MM-DD HH:MM:SS UTC]": "time",
+                    "Precipitation [mm]": "surface_precip",
+                }
+            )[["station", "time", "surface_precip"]]
+        else:
+            dataset = dataset.rename(
+                {
+                    "Station": "station",
+                    "Time [YYYY-MM-DD HH:MM:SS]": "time",
+                    "Precipitation [mm]": "surface_precip",
+                }
+            )[["station", "time", "surface_precip"]]
         dataset = dataset.swap_dims({"index": "time"}).drop_vars("index")
         dataset["station"] = dataset["station"][0]
         dataset = dataset.set_coords("time")
 
-        station_data = get_station_data()[{"station": dataset.station}]
+        station_data = get_station_data().loc[{"station": dataset.station}]
         dataset["latitude"] = station_data.latitude.data
         dataset["longitude"] = station_data.longitude.data
         return dataset
