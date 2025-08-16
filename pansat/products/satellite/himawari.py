@@ -6,7 +6,7 @@ This module defines the Himawari product class, which is used to represent all
 products from the Himawari series of geostationary satellites.
 """
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Union, List, Optional
@@ -142,7 +142,7 @@ class HimawariProduct(FilenameRegexpMixin, Product):
 
         match = self.filename_regexp.match(rec.filename)
         start_time = datetime.strptime(match.group(1) + match.group(2), "%Y%m%d%H%M")
-        end_time = start_time + np.timedelta64(10, "m")
+        end_time = start_time + timedelta(minutes=10)
         return TimeRange(start_time, end_time)
 
     def get_spatial_coverage(self, rec: FileRecord) -> Geometry:

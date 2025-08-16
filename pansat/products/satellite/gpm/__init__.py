@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from itertools import dropwhile
 from pathlib import Path
 from traceback import print_exc
-from typing import Optional
+from typing import List, Optional
 import warnings
 
 import numpy as np
@@ -287,6 +287,18 @@ class GPMITEProduct(GPMProduct):
         return ".".join([prefix, name])
 
 
+class IMERGProduct(GPMProduct):
+    """
+    Specialization of GPM products for IMERG.
+    """
+
+    def get_granule(self, file_record: FileRecord) -> List[Granule]:
+        return Granule(
+            file_record,
+            file_record.temporal_coverage,
+            LonLatRect(-180, -90, 180, 90)
+        )
+
 def _extract_scantime(scantime_group, slcs=None):
     """
     Extract scan time as numpy object.
@@ -349,6 +361,17 @@ def _parse_products():
                         sensor,
                         algorithm,
                         ite_string,
+                        variant,
+                        description,
+                    )
+                elif "imerg" in filename.name:
+                    version = description.properties["version"]
+                    product = IMERGProduct(
+                        level,
+                        platform,
+                        sensor,
+                        algorithm,
+                        version,
                         variant,
                         description,
                     )

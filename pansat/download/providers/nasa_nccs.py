@@ -13,7 +13,7 @@ from typing import Optional
 import requests
 from requests.exceptions import HTTPError
 
-from pansat import cache, FileRecord
+from pansat import FileRecord
 from pansat.download import accounts
 from pansat.download.providers.discrete_provider import DiscreteProviderDay
 from pansat.products.model.geos import GEOSForecastProduct, GEOSAnalysisProduct
@@ -118,7 +118,7 @@ class NASANCCSProvider(DiscreteProviderDay):
         rel_url = time.strftime("/Y%Y/M%m/D%d/")
         url = base_url + rel_url
 
-        session = cache.get_session()
+        session = requests.Session()
         response = session.get(url)
 
         # 404 error likely means that no products are available for
@@ -171,13 +171,14 @@ class NASANCCSForecastProvider(NASANCCSProvider):
         """
         base_url = "https://portal.nccs.nasa.gov/datashare/gmao/geos-fp/forecast"
         time = to_datetime(time)
-        files = set()
+
+        recs = []
 
         for hour in [0, 6, 12, 18]:
             rel_url = time.strftime("/Y%Y/M%m/D%d/") + f"H{hour:02}"
 
             url = base_url + rel_url
-            session = cache.get_session()
+            session = requests.Session()
             response = session.get(url)
 
             # 404 error likely means that no products are available for
@@ -186,14 +187,16 @@ class NASANCCSForecastProvider(NASANCCSProvider):
                 response.raise_for_status()
             except HTTPError as exc:
                 if exc.response.status_code == 404:
-                    pass
+                    continue
 
+            files = set()
             for match in product.filename_regexp.finditer(response.text):
                 files.add(match.group(0))
-        recs = [
-            FileRecord.from_remote(product, self, url + f"/{fname}", fname)
-            for fname in files
-        ]
+
+            recs += [
+                FileRecord.from_remote(product, self, url + f"/{fname}", fname)
+                for fname in files
+            ]
         return recs
 
 

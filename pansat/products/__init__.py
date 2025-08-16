@@ -226,6 +226,7 @@ class Product(ABC):
         """
         time_range = TimeRange.to_time_range(time_range)
         files = self.find_files(time_range, roi=roi, provider=provider)
+        LOGGER.debug("Found files %s.", files)
         local = []
         for rec in files:
             local.append(rec.get(destination=destination))

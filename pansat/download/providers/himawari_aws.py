@@ -10,7 +10,7 @@ Reference
 ---------
 """
 from copy import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Union, Optional
 
@@ -100,9 +100,9 @@ class HimawariAWSProvider(DataProvider):
         """
         time = time_range.start
         files = []
-        while time <= time_range.end + np.timedelta64(5, "m"):
+        while time <= time_range.end + timedelta(minutes=5):
             files += [rec for rec in self._get_keys(product, time) if product.matches(rec)]
-            time += np.timedelta64(10, "m")
+            time += timedelta(minutes=10)
         return files
 
 

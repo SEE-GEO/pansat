@@ -152,10 +152,11 @@ class MSGSeviriL1BProduct(FilenameRegexpMixin, Product):
         if isinstance(rec, (str, Path)):
             rec = FileRecord(rec)
 
-        with ZipFile(rec.local_path, 'r') as zip_ref:
-            zip_ref.extractall(tmp.name)
-        files = list(Path(tmp.name).glob("*.nat"))
-        scene = satpy.Scene(files, reader="seviri_l1b_native")
+        with TemporaryDirectory() as tmp:
+            with ZipFile(rec.local_path, 'r') as zip_ref:
+                zip_ref.extractall(tmp)
+            files = list(Path(tmp).glob("*.nat"))
+            scene = satpy.Scene(files, reader="seviri_l1b_native")
         return scene
 
 
