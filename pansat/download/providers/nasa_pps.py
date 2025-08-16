@@ -39,10 +39,12 @@ LOGGER = logging.getLogger(__file__)
 
 class NASAPPSProvider(DiscreteProviderDay):
     """
-    Data provider for data available from https://ttps://arthurhouhttps.pps.eosdis.nasa.gov/gpmdata
+    Data provider for data available from https://arthurhouhttps.pps.eosdis.nasa.gov/gpmdata
     """
 
     def provides(self, product):
+        if not product.name.startswith("satellite.gpm"):
+            return False
         if product.level.startswith("1"):
             return True
         elif product.algorithm.startswith("GPROF"):

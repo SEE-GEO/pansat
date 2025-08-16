@@ -36,6 +36,9 @@ GOES_AWS_PRODUCTS = [
     "GOES-18-ABI-L1b-RadC",
     "GOES-18-ABI-L1b-RadF",
     "GOES-18-ABI-L1b-RadM",
+    "GOES-19-ABI-L1b-RadC",
+    "GOES-19-ABI-L1b-RadF",
+    "GOES-19-ABI-L1b-RadM",
 ]
 
 
@@ -192,3 +195,4 @@ class GOESAWSProvider(DiscreteProviderDay):
 goes_16_aws_provider = GOESAWSProvider(16)
 goes_17_aws_provider = GOESAWSProvider(17)
 goes_18_aws_provider = GOESAWSProvider(18)
+goes_19_aws_provider = GOESAWSProvider(19)

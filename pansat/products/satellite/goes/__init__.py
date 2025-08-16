@@ -335,6 +335,14 @@ class GOES18L1BRadiances(GOESProduct):
     def __init__(self, region, channel):
         super().__init__("1b", 18, "ABI", "Rad", region, channel)
 
+class GOES19L1BRadiances(GOESProduct):
+    """
+    Class representing GOES 18 L1 radiance products.
+    """
+
+    def __init__(self, region, channel):
+        super().__init__("1b", 19, "ABI", "Rad", region, channel)
+
 
 for chan in range(1, 17):
     for reg in ["F", "C", "M"]:
@@ -344,6 +352,8 @@ for chan in range(1, 17):
         globals()[name] = GOES17L1BRadiances(reg, chan)
         name = f"l1b_goes_18_rad_c{chan:02}_{REGIONS[reg]}"
         globals()[name] = GOES18L1BRadiances(reg, chan)
+        name = f"l1b_goes_19_rad_c{chan:02}_{REGIONS[reg]}"
+        globals()[name] = GOES19L1BRadiances(reg, chan)
 
 
 l1b_goes_16_rad_rgb_full_disk = GOES16L1BRadiances("F", [1, 2, 3])
@@ -366,3 +376,10 @@ l1b_goes_18_rad_rgb_conus = GOES18L1BRadiances("C", [1, 2, 3])
 l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
 l1b_goes_18_rad_rgb_mese_scale_sector = GOES18L1BRadiances("M", [1, 2, 3])
 l1b_goes_18_rad_all_mese_scale_sector = GOES18L1BRadiances("M", list(range(1, 17)))
+
+l1b_goes_19_rad_rgb_full_disk = GOES19L1BRadiances("F", [1, 2, 3])
+l1b_goes_19_rad_all_full_disk = GOES19L1BRadiances("F", list(range(1, 17)))
+l1b_goes_19_rad_rgb_conus = GOES19L1BRadiances("C", [1, 2, 3])
+l1b_goes_19_rad_all_mese_scale_sector = GOES19L1BRadiances("M", list(range(1, 17)))
+l1b_goes_19_rad_rgb_mese_scale_sector = GOES19L1BRadiances("M", [1, 2, 3])
+l1b_goes_19_rad_all_mese_scale_sector = GOES19L1BRadiances("M", list(range(1, 17)))
