@@ -172,16 +172,18 @@ class WegenerNetStationFile(FilenameRegexpMixin, Product):
                     "Station": "station",
                     "Time [YYYY-MM-DD HH:MM:SS UTC]": "time",
                     "Precipitation [mm]": "surface_precip",
+                    "Precipitation FP-of-Data [%]": "flagged_percentage",
                 }
-            )[["station", "time", "surface_precip"]]
+            )[["station", "time", "surface_precip", "flagged_percentage"]]
         else:
             dataset = dataset.rename(
                 {
                     "Station": "station",
                     "Time [YYYY-MM-DD HH:MM:SS]": "time",
                     "Precipitation [mm]": "surface_precip",
+                    "Precipitation FP-of-Data [%]": "flagged_percentage",
                 }
-            )[["station", "time", "surface_precip"]]
+            )[["station", "time", "surface_precip", "flagged_percentage"]]
         dataset = dataset.swap_dims({"index": "time"}).drop_vars("index")
         dataset["station"] = dataset["station"][0]
         dataset = dataset.set_coords("time")
