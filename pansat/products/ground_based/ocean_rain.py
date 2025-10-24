@@ -7,7 +7,7 @@ Functionality to read and index OceanRain data in NetCDF format.
 from datetime import datetime, timedelta
 from pathlib import Path
 import re
-from typing import Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import xarray as xr
@@ -16,6 +16,7 @@ import pansat
 from pansat import TimeRange, FileRecord
 from pansat.exceptions import MissingDependency
 from pansat.geometry import LonLatRect, LineString
+from pansat.granule import Granule
 from pansat.products import Product, FilenameRegexpMixin
 
 
@@ -48,7 +49,8 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
         module = Path(__file__).parent
         root = Path(pansat.products.__file__).parent
         prefix = str(module.relative_to(root)).replace("/", ".")
-        return ".".join([prefix, "ocean_rain", f"oean_rain_{self.ship_name}"])
+        ship_name = self.ship_name.lower().replace("-", "_")
+        return ".".join([prefix, "ocean_rain", f"oean_rain_{ship_name}"])
 
     def filename_to_date(self, filename: Union[str, Path, FileRecord]) -> TimeRange:
         """
@@ -94,27 +96,22 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
         with xr.open_dataset(rec.local_path) as data:
             data = data[["latitude", "longitude"]].load()
             for ind in range(0, data.time.size, 60):
-                ind_r = min(ind, data.time.size - 1)
-                start_time = data.time[ind]
-                end_time = data.time[ind_r]
+                ind_r = min(ind + 60, data.time.size - 1)
+                start_time = data.time[ind].data
+                end_time = data.time[ind_r].data
                 time_range = TimeRange(start_time, end_time)
-                lon_start = data.longitude[ind]
-                lon_end = data.longitude[ind_r]
+                lon_start = data.longitude[ind].item()
+                lon_end = data.longitude[ind_r].item()
                 lat_start = data.latitude[ind]
                 lat_end = data.latitude[ind_r]
                 geometry = LineString([[lon_start, lat_start], [lon_end, lat_end]])
-            data = data.resample(time="1h")
-            granule = Granule(
-                file_record=rec,
-                primary_index_name="time",
-                primary_index_range=(ind, ind_r),
-                time_range=time_range,
-                geometry=geometry
-            )
-
-        for granule_data in self.description.get_granule_data(
-                file_handle, globals() ):
-            granules.append(Granule(rec, *granule_data))
+                granules.append(Granule(
+                    file_record=rec,
+                    primary_index_name="time",
+                    primary_index_range=(ind, ind_r),
+                    time_range=time_range,
+                    geometry=geometry
+                ))
         return granules
 
     def get_spatial_coverage(self, rec: FileRecord):
@@ -126,7 +123,7 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
     def __str__(self):
         return self.name
 
-    def open(self, rec, slcs: Optional[Dict[str: slice]] = None):
+    def open(self, rec, slcs: Optional[Dict[str, slice]] = None):
         """
         Open OceanRain file.
 
@@ -141,3 +138,26 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
             with xr.open_dataset(rec.local_path) as data:
                 return data[slcs].load()
         return xr.load_dataset(rec.local_path)
+
+
+ocean_rain_ms_the_world = OceanRainProduct(
+    "MS-The-World"
+)
+ocean_rain_rv_investigator = OceanRainProduct(
+    "RV-Investigator"
+)
+ocean_rain_rv_maria_s_merian = OceanRainProduct(
+    "RV-Maria-S-Merian"
+)
+ocean_rain_rv_meteor = OceanRainProduct(
+    "RV-Meteor"
+)
+ocean_rv_polarstern = OceanRainProduct(
+    "RV-Polarstern"
+)
+ocean_rv_polarstern = OceanRainProduct(
+    "RV-Roger-Revelle"
+)
+ocean_sonne2 = OceanRainProduct(
+    "RV-SonneII"
+)
