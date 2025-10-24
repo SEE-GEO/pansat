@@ -5,7 +5,6 @@ pansat.database
 Implements an interface to store and load pansat indices into a SQLite
 database
 """
-import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 from tempfile import TemporaryDirectory
@@ -32,9 +31,6 @@ import shapely
 from pansat.products import Product
 from pansat.time import TimeRange, to_datetime
 from pansat.granule import Granule
-
-
-LOGGER = logging.getLogger(__name__)
 
 
 def get_engine(path: Path) -> Engine:
@@ -107,6 +103,7 @@ def get_dtypes() -> Dict[str, str]:
         "secondary_index_start": int,
         "secondary_index_end": int,
         "geometry": bytes
+        "geometry_compressed": bytes
     }
 
 def get_table_names(
@@ -224,7 +221,6 @@ class IndexData:
         Insert granule or granule data into database.
         """
         from pansat.catalog.index import _granules_to_dataframe
-        self._create_table()
         if isinstance(data, Granule):
             data_new = _granules_to_dataframe([data])
         else:
@@ -285,9 +281,36 @@ class IndexData:
         Return:
             A geopandas.Dataframe containing the granule data.
         """
-        self._create_table()
+<<<<<<< Updated upstream
         if self._data is None:
             expr = select(self.table)
+=======
+        expr = select(self.table)
+        if time_range is not None:
+            expr = expr.where(
+                not_(or_(
+                    (self.table.c.start_time > time_range.end),
+                    (self.table.c.end_time < time_range.start)
+                )
+                    )
+            )
+        data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
+        data = data.drop(columns=["key"])
+
+        if "geometry_compressed" in data:
+            data["geometry"] = data["geometry"].apply(
+                lambda x: shapely.wkb.loads(zlib.decompress(x))
+            )
+        else:
+            data["geometry"] = data["geometry"].apply(shapely.wkb.loads)
+            )
+        data = geopandas.GeoDataFrame(
+            data,
+            geometry="geometry",
+        )
+        return data
+>>>>>>> Stashed changes
+
             lock = FileLock(self.db_path.with_suffix(".lock"))
             with lock:
                 data = pd.read_sql(expr, self.engine, dtype=get_dtypes())
@@ -394,23 +417,15 @@ class IndexData:
         #        )
         #    return Path(paths[0])
 
-        lock = FileLock(self.db_path.with_suffix(".lock"))
-        with lock:
-            self._create_table()
-
         fname = file_record.filename
         table = self.table
         stmt = select(table).where(table.c.filename == fname)
 
-        try:
+        lock = FileLock(self.db_path.with_suffix(".lock"))
+        self._create_table()
+        with lock:
             with self.engine.connect() as conn:
                 res = conn.execute(stmt).first()
-        except Exception:
-            LOGGER.warning(
-                "Encountered an error when reading from database %s.",
-                self.db_path
-            )
-            return None
 
         if res is None:
             return res
