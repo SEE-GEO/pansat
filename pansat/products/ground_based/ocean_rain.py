@@ -68,13 +68,13 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
         if isinstance(rec, (str, Path)):
             rec = FileRecord(local_path=Path(rec))
 
-        match = self.filename_regexp.match(rec.name)
+        match = self.filename_regexp.match(rec.filename)
         if match is None:
             raise ValueError(
                 "Filename doesn't match expected filename pattern for "
                 "OceanRAIN files."
             )
-        time_str = match.groups(1)
+        time_str = match.group(1)
         start_time = datetime.strptime(time_str.split("-")[0], "%b%Y")
         end_time = datetime.strptime(time_str.split("-")[1], "%b%Y")
         return TimeRange(start_time, end_time)
@@ -141,23 +141,23 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
 
 
 ocean_rain_ms_the_world = OceanRainProduct(
-    "MS-The-World"
+    "MS-The-World",
 )
 ocean_rain_rv_investigator = OceanRainProduct(
-    "RV-Investigator"
+    "RV-Investigator",
 )
 ocean_rain_rv_maria_s_merian = OceanRainProduct(
-    "RV-Maria-S-Merian"
+    "RV-Maria-S-Merian",
 )
 ocean_rain_rv_meteor = OceanRainProduct(
-    "RV-Meteor"
+    "RV-Meteor",
 )
-ocean_rv_polarstern = OceanRainProduct(
+ocean_rain_rv_polarstern = OceanRainProduct(
     "RV-Polarstern"
 )
-ocean_rv_polarstern = OceanRainProduct(
+ocean_rain_rv_roger_revelle = OceanRainProduct(
     "RV-Roger-Revelle"
 )
-ocean_sonne2 = OceanRainProduct(
+ocean_rain_rv_sonneii = OceanRainProduct(
     "RV-SonneII"
 )
