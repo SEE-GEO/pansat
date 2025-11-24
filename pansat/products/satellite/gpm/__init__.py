@@ -291,13 +291,12 @@ class IMERGProduct(GPMProduct):
     """
     Specialization of GPM products for IMERG.
     """
-
-    def get_granule(self, file_record: FileRecord) -> List[Granule]:
-        return Granule(
+    def get_granules(self, file_record: FileRecord) -> List[Granule]:
+        return [Granule(
             file_record,
             file_record.temporal_coverage,
-            LonLatRect(-180, -90, 180, 90)
-        )
+            geometry.LonLatRect(-180, -90, 180, 90)
+        )]
 
 def _extract_scantime(scantime_group, slcs=None):
     """
