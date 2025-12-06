@@ -69,7 +69,7 @@ class MRMSProduct(FilenameRegexpMixin, Product):
         self.variable_name = variable_name
         mrms_name = PRODUCT_NAMES[self._name]
         self.filename_regexp = re.compile(
-            mrms_name + r"_00\.00_\d{8}-\d{6}.grib2\.?g?z?"
+            mrms_name + r"_00\.00_\d{8}-\d{6}.grib2(?:\.gz)?"
         )
         self.temporal_resolution = temporal_resolution
         Product.__init__(self)
