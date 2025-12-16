@@ -7,7 +7,7 @@ jobs:
   install_and_test_job:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/weekly_build
         env:
           PANSAT_PASSWORD: ${{ secrets.PANSAT_PASSWORD }}
