@@ -180,6 +180,7 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
         url = self.get_base_url(product) + rel_url
         auth = accounts.get_identity("GES DISC")
 
+
         session = cache.get_session()
         response = session.get(url, auth=auth)
 

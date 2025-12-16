@@ -291,13 +291,12 @@ class IMERGProduct(GPMProduct):
     """
     Specialization of GPM products for IMERG.
     """
-
-    def get_granule(self, file_record: FileRecord) -> List[Granule]:
-        return Granule(
+    def get_granules(self, file_record: FileRecord) -> List[Granule]:
+        return [Granule(
             file_record,
             file_record.temporal_coverage,
-            LonLatRect(-180, -90, 180, 90)
-        )
+            geometry.LonLatRect(-180, -90, 180, 90)
+        )]
 
 def _extract_scantime(scantime_group, slcs=None):
     """
@@ -419,8 +418,11 @@ class GPROFProduct(GPMProduct):
 
 
 l2a_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
+l2a_clim_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A", variant="CLIM")
 l2a_gprof_gpm_gmi_v07b = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07B")
+l2a_clim_gprof_gpm_gmi_v07b = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07B", variant="CLIM")
 l2a_gprof_gpm_gmi_v07c = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07C")
+l2a_clim_gprof_gpm_gmi_v07c = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07C", variant="CLIM")
 l2a_gprof_noaa18_mhs = GPROFProduct("GPROF2021v1", "NOAA18", "MHS", "07A")
 l2a_gprof_noaa19_mhs = GPROFProduct("GPROF2021v1", "NOAA19", "MHS", "07A")
 l2a_gprof_metopa_mhs = GPROFProduct("GPROF2021v1", "METOPA", "MHS", "07A")
@@ -431,6 +433,7 @@ l2a_clim_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A"
 l2a_clim_gprof_noaa20_atms_v07b = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07B", variant="CLIM")
 l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 l2a_gprof_gcomw1_amsr2 = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07A")
+l2a_gprof_gcomw1_amsr2_v07b = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07B")
 l2a_clim_gprof_gcomw1_amsr2 = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07A", variant="CLIM")
 l2a_clim_gprof_aqua_amsre = GPROFProduct("GPROF2021v1", "AQUA", "AMSRE", "07A", variant="CLIM")
 l2a_clim_gprof_f13_ssmi = GPROFProduct("GPROF2021v1", "F13", "SSMI", "07A", variant="CLIM")
