@@ -225,3 +225,6 @@ def _parse_products():
 
 
 _parse_products()
+
+# Create aliases for backward compatibility
+precip_rate = surface_precip

@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 import re
 
+import pansat
 from pansat import TimeRange, FileRecord
 from pansat.exceptions import NoAvailableProvider
 from pansat.products import Product, FilenameRegexpMixin

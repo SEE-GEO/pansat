@@ -53,7 +53,7 @@ class KMARadarProduct(FilenameRegexpMixin, Product):
         """
         Create KMA radar product.
         """
-        self.filename_regexp = re.compile("AWS_Interp_Resol1km_aug1_QC0_\d{12}.nc")
+        self.filename_regexp = re.compile(r"AWS_Interp_Resol1km_aug1_QC0_\d{12}.nc")
         Product.__init__(self)
 
     @property

@@ -18,7 +18,7 @@ import zipfile
 import pandas as pd
 
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.products import Product
 from pansat.exceptions import NoAvailableProvider
 
 

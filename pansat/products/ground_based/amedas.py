@@ -73,7 +73,7 @@ class AMeDASProduct(FilenameRegexpMixin, Product):
         Create AMeDAS product.
         """
         self.filename_regexp = re.compile(
-            "Z__C_RJTD_\d{14}_SRF_GPV_Ggis1km_Prr60lv_ANAL_grib2.bin"
+            r"Z__C_RJTD_\d{14}_SRF_GPV_Ggis1km_Prr60lv_ANAL_grib2.bin"
         )
         Product.__init__(self)
 
@@ -105,7 +105,7 @@ class AMeDASProduct(FilenameRegexpMixin, Product):
         return TimeRange(start_time, end_time)
 
     def get_spatial_coverage(self, rec: FileRecord):
-        return AMeDAS_DOMAIN
+        return AMEDAS_DOMAIN
 
     def __str__(self):
         return self.name
