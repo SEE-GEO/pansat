@@ -88,6 +88,7 @@ from dataclasses import dataclass
 import json
 import logging
 from pathlib import Path
+from typing import Any, Dict
 
 import numpy as np
 import xarray
@@ -97,6 +98,66 @@ from pansat.time import TimeRange
 
 
 LOGGER = logging.Logger(__file__)
+
+
+def _is_safe_attr_value(value: Any) -> bool:
+    """
+    Determine if attribute value is safe.
+
+    """
+    # Allow "JSON-ish" scalars
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return True
+
+    # Allow numpy scalars and small scalar-like arrays
+    if isinstance(value, (np.generic,)):
+        return True
+
+    # bytes is usually OK (xarray/netCDF encoders sometimes dislike it; up to you)
+    if isinstance(value, (bytes,)):
+        return True
+
+    # Allow lists/tuples of safe items
+    if isinstance(value, (list, tuple)):
+        return all(_is_safe_attr_value(x) for x in value)
+
+    # Allow dicts with string keys and safe values
+    if isinstance(value, dict):
+        return all(isinstance(k, str) and _is_safe_attr_value(x) for k, x in value.items())
+    return False
+
+
+def sanitize_hdf_attrs(attrs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Check mapping of attributes for sanity.
+
+    Args:
+        attrs: A mapping of attribute names to values.
+    attrs: h5py AttributeManager or dict-like
+    """
+    out = {}
+    for key in attrs.keys():
+        value = attrs[key]
+
+        # Convert numpy arrays with size 1 to scalar; decode bytes-ish
+        if isinstance(value, np.ndarray) and value.shape == ():
+            value = value.item()
+        elif isinstance(value, np.ndarray) and value.size == 1:
+            value = value.reshape(()).item()
+
+        # Optionally decode bytes arrays or bytes scalars
+        if isinstance(value, (bytes, np.bytes_)):
+            try:
+                value = value.decode("utf-8")
+            except Exception:
+                # keep bytes if not UTF-8
+                pass
+
+        if _is_safe_attr_value(value):
+            out[key] = value
+        else:
+            continue
+    return out
 
 
 class InconsistentDimensionsError(Exception):
@@ -222,9 +283,8 @@ class Variable:
             field = getattr(file_handle, self.field_name)
             if hasattr(field, "attrs"):
                 for key, value in field.attrs.items():
-                    if isinstance(value, bytes):
-                        value = value.decode()
                     attributes[key] = value
+        attributes = sanitize_hdf_attrs(attributes)
 
         if self.unit:
             attributes["unit"] = self.unit
