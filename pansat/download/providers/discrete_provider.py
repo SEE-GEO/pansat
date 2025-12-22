@@ -309,7 +309,7 @@ def find_files_in_range(product, time_range, find_files_fun, get_time_step_fun):
         List of filename that include the specified time range.
     """
     time = to_datetime(time_range.start)
-    time -= get_time_step_fun(time)
+    time = time - get_time_step_fun(time)
     end = time_range.end + get_time_step_fun(time)
 
     files = []
@@ -388,8 +388,13 @@ class DiscreteProviderMonth(DiscreteProviderBase):
         super().__init__()
 
     def get_time_step(self, time: datetime) -> timedelta:
-        days = monthrange(time.year, time.month)[-1]
-        return timedelta(days=days)
+        next_month = time.month + 1
+        next_year = time.year
+        if 12 < next_month:
+            next_month = 1
+            next_year += 1
+        day = min(time.day, monthrange(next_year, next_month)[1])
+        return datetime(next_year, next_month, day, time.hour, time.minute) - time
 
     @abstractmethod
     def find_files_by_month(
