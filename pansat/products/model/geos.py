@@ -99,6 +99,7 @@ inst3_2d_asm_nx = GEOSAnalysisProduct("inst3_2d_asm_Nx")
 tavg1_2d_lnd_nx = GEOSAnalysisProduct("tavg1_2d_lnd_Nx")
 tavg1_2d_flx_nx = GEOSAnalysisProduct("tavg1_2d_flx_Nx")
 tavg1_2d_rad_nx = GEOSAnalysisProduct("tavg1_2d_rad_Nx")
+i3nvasm = GEOSAnalysisProduct("inst3_2d_asm_Nx")
 
 
 class GEOSForecastProduct(FilenameRegexpMixin, Product):

@@ -14,7 +14,7 @@ import numpy as np
 
 from pansat.products.product_description import ProductDescription
 import pansat.download.providers as providers
-from pansat.products.product import Product
+from pansat.products import Product
 from pansat.exceptions import NoAvailableProvider
 
 

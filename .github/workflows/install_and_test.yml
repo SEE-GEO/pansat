@@ -5,15 +5,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [3.9, 3.10]
+        python: ["3.9", "3.10", "3.11"]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
                 miniforge-version: latest
                 miniforge-variant: mambaforge
+                python-version: ${{ matrix.python }}
                 channel-priority: strict
                 channels: conda-forge
                 show-channel-urls: true

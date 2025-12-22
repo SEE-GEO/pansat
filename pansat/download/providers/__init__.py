@@ -11,3 +11,4 @@ to download files of the data product.
 
 """
 from .data_provider import DataProvider
+# Note: IcareProvider and LAADSDAACProvider require additional dependencies like paramiko

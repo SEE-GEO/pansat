@@ -132,7 +132,7 @@ class Stage4RadarProduct(FilenameRegexpMixin, Product):
         """
         Create Stage IV radar product.
         """
-        self.filename_regexp = re.compile("stage4\.\d\d\d\d\d\d\.tar")
+        self.filename_regexp = re.compile(r"stage4\.\d\d\d\d\d\d\.tar")
         Product.__init__(self)
 
     @property
