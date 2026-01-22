@@ -241,9 +241,7 @@ def resample_data(
         resampled["latitude"] = (new_dims, lats_t)
         resampled["longitude"] = (new_dims, lons_t)
 
-    print("RESAMPLING :: ", dataset)
     for var in dataset:
-        print("RESAMPLING :: ", var)
         if var in ["latitude", "longitude"]:
             continue
         data = dataset[var].data

@@ -110,3 +110,15 @@ def test_download(tmp_path):
     assert start_date.year == 2023
     assert start_date.month == 6
     assert start_date.day == 1
+
+
+def test_prps_product():
+
+    fname = "TROPICS03.PRPS.L2B.Orbit03339.V04-02.ST20240101-122806.ET20240101-140311.CT20241002-143542.nc"
+
+    assert gpm.l2b_prps_tropics03_tms_v0402.matches(fname)
+    assert gpm.l2b_prps_tropics03_tms_v0402.name == "satellite.gpm.l2b_prps_tropics03_tms_v0402"
+
+    time_range = gpm.l2b_prps_tropics03_tms_v0402.get_temporal_coverage(fname)
+    assert time_range.start == datetime(2024, 1, 1, 12, 28, 6)
+    assert time_range.end == datetime(2024, 1, 1, 14, 3, 11)

@@ -417,6 +417,7 @@ class GPROFProduct(GPMProduct):
         )
 
 
+l2a_clim_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A", variant="CLIM")
 l2a_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
 l2a_clim_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A", variant="CLIM")
 l2a_gprof_gpm_gmi_v07b = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07B")
@@ -612,3 +613,171 @@ def parse_offsets(field, *args):
             c_name = f"{c})"
 
     return np.array(offs)
+
+################################################################################
+# PRPS
+################################################################################
+
+
+def _prps_parse_time(dataset, slices=None):
+    """
+    Helper function to convert time from PRPS files to numpy datetime.
+    """
+    year = dataset["Year"][:]
+    month = dataset["Month"][:]
+    day = dataset["Day"][:]
+    hour = dataset["Hour"][:]
+    minute = dataset["Minute"][:]
+    second = dataset["Second"][:]
+    milli_second = dataset["Millisecond"][:]
+    return pd.to_datetime(
+        pd.DataFrame(
+            {
+                "year": year,
+                "month": month,
+                "day": day,
+                "hour": hour,
+                "minute": minute,
+                "second": second,
+            }
+        )
+    )
+
+
+class PRPSProduct(FilenameRegexpMixin, Product):
+    """
+    PRPS Tropics precipitation retrieval data.
+    """
+    def __init__(
+        self,
+        platform: str,
+        sensor: str,
+        version: str,
+    ):
+        """
+        Args:
+            sensor: The sensor from which the retrieval are derived.
+        """
+        self.platform = platform
+        self.sensor = sensor
+        self.version = version
+        sensor = sensor
+        self.filename_regexp = re.compile(
+            rf"{platform.upper()}\.PRPS\.L2B\.Orbit\d\d\d\d\d\.V{version.upper()}\."
+            rf"ST(\d{{8}}-\d{{6}})\.ET(\d{{8}}-\d{{6}})\.CT\d{{8}}-\d{{6}}\.nc"
+        )
+        Product.__init__(self)
+
+    @property
+    def variables(self):
+        return []
+
+    @property
+    def description(self):
+        return self._description
+
+    @property
+    def name(self) -> str:
+        """
+        The product name that uniquely identifies the product within pansat.
+        """
+        module = Path(__file__).parent
+        root = Path(pansat.products.__file__).parent
+        prefix = str(module.relative_to(root)).replace("/", ".")
+
+        sensor = self.sensor
+        version = self.version.replace("-", "")
+        platform = self.platform
+        name = f"l2b_prps_{platform}_{sensor}_v{version}"
+
+        return ".".join([prefix, name])
+
+    def filename_to_date(self, filename):
+        """
+        Extract timestamp from filename.
+
+        Args:
+            filename(``str``): Filename of a GPM product.
+
+        Returns:
+            ``datetime`` object representing the timestamp of the
+            filename.
+        """
+        path = Path(filename)
+        match = self.filename_regexp.match(path.name)
+        start = datetime.strptime(match.groups(1), "%Y%m%d-%H%M%S")
+        end = datetime.strptime(match.groups(2), "%Y%m%d-%H%M%S")
+        return start + 0.5 * (end - start)
+
+    def get_temporal_coverage(self, rec: FileRecord) -> TimeRange:
+        """
+        Implements interface to extract temporal coverage of file.
+        """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(rec)
+        match = self.filename_regexp.match(rec.filename)
+        if match is None:
+            raise RuntimeError(
+                f"Provided file record with filename {rec.filename} doest not "
+                " match the products filename regexp "
+                f"{self.filename_regexp.pattern}. "
+            )
+        start = datetime.strptime(match.group(1), "%Y%m%d-%H%M%S")
+        end = datetime.strptime(match.group(2), "%Y%m%d-%H%M%S")
+        return TimeRange(start, end)
+
+    def get_spatial_coverage(self, rec: FileRecord) -> geometry.Geometry:
+        """
+        Implements interface to extract spatial coverage of file.
+        """
+        if rec.local_path is None:
+            raise ValueError(
+                "This products reuqires a local file is to determine "
+                " the spatial coverage."
+            )
+
+        with xr.open_dataset(rec.local_path, decode_times=False) as data:
+            lons = data.losLon.data
+            lats = data.losLat.data
+        poly = geometry.parse_swath(lons, lats, m=10)
+        return geometry.ShapelyGeometry(poly)
+
+    @property
+    def default_destination(self):
+        """
+        The default destination for GPM product is
+        ``GPM/<product_name>``>
+        """
+        return Path("gpm") / "2b" / self.platform / self.sensor
+
+    def __str__(self):
+        return self.name
+
+    def open(self, rec: FileRecord, slcs: Optional[dict[str, slice]] = None):
+        """
+        Open file as xarray dataset.
+
+        Args:
+            rec: A FileRecord whose local_path attribute points to a local
+                GPM file to open.
+            slcs: An optional dictionary of slices to use to subset the
+                data to load.
+
+        Return:
+            An xarray.Dataset containing the loaded data.
+        """
+        if slcs is None:
+            data = xr.load_dataset(rec.local_path, decode_times=False)
+            time = _prps_parse_time(data)
+            data["scan_time"] = (("scans",), time)
+
+        with xr.open_dataset(rec.local_path, decode_times=False) as data:
+            if slcs is not None:
+                data = data[slcs].compute()
+            time = _prps_parse_time(data)
+            data["scan_time"] = (("scans",), time)
+        return data
+
+
+l2b_prps_tropics03_tms_v0402 = PRPSProduct("tropics03", "tms", "04-02")
+l2b_prps_tropics06_tms_v0402 = PRPSProduct("tropics06", "tms", "04-02")
