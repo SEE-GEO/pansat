@@ -8,6 +8,7 @@ from math import ceil
 from typing import Tuple
 
 import numpy as np
+from pyproj import CRS
 from pyresample import AreaDefinition, SwathDefinition
 from pyresample import kd_tree
 import xarray as xr
@@ -106,6 +107,57 @@ def get_equal_area_grid(
     )
 
 
+def get_latlon_area_grid(
+    lon_min: float,
+    lat_min: float,
+    lon_max: float,
+    lat_max: float,
+    width: int,
+    height: int,
+    area_id="latlon",
+    description="Regular lat-lon grid",
+) -> AreaDefinition:
+    """
+    Create a pyresample AreaDefinition for a regular latitude–longitude grid.
+
+    The resulting grid uses a geographic (EPSG:4326) coordinate reference system
+    and is defined by evenly spaced longitude and latitude cell centers within
+    the specified bounds.
+
+    Args:
+        lon_min (float): Western longitude bound in degrees.
+        lon_max (float): Eastern longitude bound in degrees.
+        lat_min (float): Southern latitude bound in degrees.
+        lat_max (float): Northern latitude bound in degrees.
+        width (int): Number of grid points in the longitudinal (x) direction.
+        height (int): Number of grid points in the latitudinal (y) direction.
+        area_id (str, optional): Identifier for the area definition.
+            Defaults to "latlon".
+        description (str, optional): Human-readable description of the area.
+            Defaults to "Regular lat-lon grid".
+
+    Returns:
+        pyresample.geometry.AreaDefinition: Area definition describing the
+        regular lat/lon grid.
+    """
+    # Geographic CRS (longitude/latitude in degrees)
+    crs = CRS.from_epsg(4326)
+
+    # Area extent is defined in projection coordinates:
+    # (xmin, ymin, xmax, ymax)
+    area_extent = (lon_min, lat_min, lon_max, lat_max)
+
+    return AreaDefinition(
+        area_id=area_id,
+        description=description,
+        proj_id="epsg4326",
+        projection=crs,
+        width=width,
+        height=height,
+        area_extent=area_extent,
+    )
+
+
 def resample_data(
         dataset: xr.Dataset,
         target_grid: AreaDefinition,
@@ -189,8 +241,9 @@ def resample_data(
         resampled["latitude"] = (new_dims, lats_t)
         resampled["longitude"] = (new_dims, lons_t)
 
-
+    print("RESAMPLING :: ", dataset)
     for var in dataset:
+        print("RESAMPLING :: ", var)
         if var in ["latitude", "longitude"]:
             continue
         data = dataset[var].data
