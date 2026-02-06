@@ -134,6 +134,9 @@ class OceanRainProduct(FilenameRegexpMixin, Product):
         Return:
              An xarray dataset containing the data in the file.
         """
+        if isinstance(rec, (str, Path)):
+            rec = FileRecord(local_path=Path(rec))
+
         if slcs is not None:
             with xr.open_dataset(rec.local_path) as data:
                 return data[slcs].load()
