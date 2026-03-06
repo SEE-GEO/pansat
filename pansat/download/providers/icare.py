@@ -7,8 +7,9 @@ class for downloading data from the
 `Icare datacenter <https://www.icare.univ-lille.fr/>`_.
 """
 from datetime import datetime
-from ftplib import FTP
 import logging
+
+import paramiko
 
 from pansat.download.providers.discrete_provider import DiscreteProvider
 from pansat.download.accounts import get_identity
@@ -49,7 +50,7 @@ class IcareProvider(DiscreteProvider):
     Base class for data products available from the ICARE ftp server.
     """
 
-    base_url = "ftp.icare.univ-lille1.fr"
+    base_url = "sftp.icare.univ-lille.fr"
 
     def __init__(self, product):
         """
@@ -88,19 +89,21 @@ class IcareProvider(DiscreteProvider):
 
         """
         if not path in self.cache:
-            with FTP(IcareProvider.base_url) as ftp:
-                user, password = get_identity("Icare")
-                ftp.login(user=user, passwd=password)
-                try:
-                    ftp.cwd(path)
-                    listing = ftp.nlst()
-                    listing = [item_type(l) for l in listing]
-                except:
-                    LOGGER.exception(
-                        "An error was encountered when listing files on "
-                        "ICARE ftp server."
-                    )
-                    listing = []
+            transport = paramiko.Transport((IcareProvider.base_url, 22))
+            user, password = get_identity("Icare")
+            transport.connect(username=user, password=password)
+            sftp = paramiko.SFTPClient.from_transport(transport)
+            try:
+                listing = sftp.listdir(path)
+                listing = [item_type(l) for l in listing]
+            except:
+                LOGGER.exception(
+                    "An error was encountered when listing files on "
+                    "ICARE sftp server."
+                )
+                listing = []
+            sftp.close()
+            transport.close()
 
             self.cache[path] = listing
         return self.cache[path]
@@ -148,9 +151,11 @@ class IcareProvider(DiscreteProvider):
         date = self.product.filename_to_date(filename)
         path = "/".join([self.product_path, str(date.year), date.strftime("%Y_%m_%d")])
 
+        transport = paramiko.Transport((self.base_url, 22))
         user, password = get_identity("Icare")
-        with FTP(self.base_url) as ftp:
-            ftp.login(user=user, passwd=password)
-            ftp.cwd(path)
-            with open(destination, "wb") as file:
-                ftp.retrbinary("RETR " + filename, file.write)
+        transport.connect(username=user, password=password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        sftp.chdir(path)
+        sftp.get(filename, destination)
+        sftp.close()
+        transport.close()
