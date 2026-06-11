@@ -5,7 +5,7 @@ pansat.utils
 Miscellaneous utility functions.
 """
 from math import ceil
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from pyproj import CRS
@@ -157,26 +157,12 @@ def get_latlon_area_grid(
         area_extent=area_extent,
     )
 
-
-def resample_data(
+def get_resample_info(
         dataset: xr.Dataset,
         target_grid: AreaDefinition,
         radius_of_influence: float = 5e3,
-        new_dims: Tuple[str, str] = ("latitude", "longitude"),
-        unique: bool = False
-) -> xr.Dataset:
-    """
-    Resample xarray.Dataset data to a given target grid.
-
-    Args:
-        dataset: xr.Dataset containing data to resample to global grid.
-        target_grid: A pyresample.AreaDefinition defining the global grid
-            to which to resample the data.
-
-    Return:
-        An xarray.Dataset containing the give dataset resampled to
-        the global grid.
-    """
+        unique: bool = False,
+):
     lons = dataset.longitude.data
     lats = dataset.latitude.data
 
@@ -225,13 +211,90 @@ def resample_data(
         info = kd_tree.get_neighbour_info(
             target, swath, radius_of_influence=radius_of_influence, neighbours=1
         )
-        ind_in, ind_out, inds, _ = info
     else:
         info = kd_tree.get_neighbour_info(
             swath, target, radius_of_influence=radius_of_influence, neighbours=1
         )
-        ind_in, ind_out, inds, _ = info
 
+    return info
+
+
+def resample_data(
+        dataset: xr.Dataset,
+        target_grid: AreaDefinition,
+        radius_of_influence: float = 5e3,
+        new_dims: Tuple[str, str] = ("latitude", "longitude"),
+        unique: bool = False,
+        info: Optional[Tuple[np.ndarray]] = None
+) -> xr.Dataset:
+    """
+    Resample xarray.Dataset data to a given target grid.
+
+    Args:
+        dataset: xr.Dataset containing data to resample to global grid.
+        target_grid: A pyresample.AreaDefinition defining the global grid
+            to which to resample the data.
+        radius_of_influence: The maximum acceptable different between matched grid points.
+        new_dims: Names of the new dimensions to use.
+        unique: Enfore unique mapping of input points to output points.
+        info: Optional precomputed resampling data.
+
+    Return:
+        An xarray.Dataset containing the give dataset resampled to
+        the global grid.
+    """
+    if info is None:
+        info = get_resample_info(
+            dataset,
+            target_grid,
+            radius_of_influence,
+            unique
+        )
+
+    lons = dataset.longitude.data
+    lats = dataset.latitude.data
+
+    if ("latitude" in dataset.dims) and ("longitude" in dataset.dims):
+        dataset = dataset.transpose("latitude", "longitude", ...)
+        lons, lats = np.meshgrid(lons, lats)
+    else:
+        spatial_dims = dataset.latitude.dims
+        dataset = dataset.transpose(*spatial_dims, ...)
+
+    if isinstance(target_grid, tuple):
+        lons_t, lats_t = target_grid
+        shape = lons_t.shape
+    else:
+        lons_t, lats_t = target_grid.get_lonlats()
+        shape = target_grid.shape
+
+    lon_min = np.nanmin(lons) - radius_of_influence / 100e3
+    lon_max = np.nanmax(lons) + radius_of_influence / 100e3
+    lat_min = np.nanmin(lats) - radius_of_influence / 100e3
+    lat_max = np.nanmax(lats) + radius_of_influence / 100e3
+    valid_pixels_target = (
+        (lon_min <= lons_t)
+        * (lons_t <= lon_max)
+        * (lat_min <= lats_t)
+        * (lats_t <= lat_max)
+    )
+
+    lon_min_t = np.nanmin(lons_t) - radius_of_influence / 100e3
+    lon_max_t = np.nanmax(lons_t) + radius_of_influence / 100e3
+    lat_min_t = np.nanmin(lats_t) - radius_of_influence / 100e3
+    lat_max_t = np.nanmax(lats_t) + radius_of_influence / 100e3
+    valid_pixels_source = (
+        (lon_min_t <= lons)
+        * (lons <= lon_max_t)
+        * (lat_min_t <= lats)
+        * (lats <= lat_max_t)
+    )
+    n_valid_source = valid_pixels_source.sum()
+    n_valid_target = valid_pixels_target.sum()
+
+    swath = SwathDefinition(lons=lons[valid_pixels_source], lats=lats[valid_pixels_source])
+    target = SwathDefinition(lons=lons_t[valid_pixels_target], lats=lats_t[valid_pixels_target])
+    ind_in, ind_out, inds, _ = info
 
     resampled = {}
     if lats_t.ndim > 1 and np.isclose(lats_t[:, 0], lats_t[:, 1]).all():
