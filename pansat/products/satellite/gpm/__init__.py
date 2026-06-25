@@ -416,7 +416,6 @@ class GPROFProduct(GPMProduct):
             "2A", platform, sensor, gprof_algorithm, version, variant, description
         )
 
-
 l2a_clim_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A", variant="CLIM")
 l2a_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A")
 l2a_clim_gprof_gpm_gmi_v07a = GPROFProduct("GPROF2021v1", "GPM", "GMI", "07A", variant="CLIM")
@@ -435,9 +434,29 @@ l2a_clim_gprof_noaa20_atms_v07b = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", 
 l2a_gprof_npp_atms = GPROFProduct("GPROF2021v1", "NPP", "ATMS", "07A")
 l2a_gprof_gcomw1_amsr2 = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07A")
 l2a_gprof_gcomw1_amsr2_v07b = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07B")
+l2a_gprof_gcomw1_amsr2_v08a = GPROFProduct("GPROFNNv1", "GCOMW1", "AMSR2", "08A")
 l2a_clim_gprof_gcomw1_amsr2 = GPROFProduct("GPROF2021v1", "GCOMW1", "AMSR2", "07A", variant="CLIM")
 l2a_clim_gprof_aqua_amsre = GPROFProduct("GPROF2021v1", "AQUA", "AMSRE", "07A", variant="CLIM")
 l2a_clim_gprof_f13_ssmi = GPROFProduct("GPROF2021v1", "F13", "SSMI", "07A", variant="CLIM")
+
+
+class GPROFV08Product(GPMProduct):
+    """
+    Specialization of GPM product for GPROF products, which all have the same
+    data format.
+    """
+
+    def __init__(self, gprof_algorithm, platform, sensor, version, variant=""):
+        module_path = Path(__file__).parent
+        description = ProductDescription(module_path / "gprof_v08.ini")
+        super().__init__(
+            "2A", platform, sensor, gprof_algorithm, version, variant, description
+        )
+
+
+l2a_gprof_gpm_gmi_v08a = GPROFV08Product("GPROFNNv1", "GPM", "GMI", "08A")
+l2a_clim_gprof_gpm_gmi_v08a = GPROFV08Product("GPROFNNv1", "GPM", "GMI", "08A", variant="CLIM")
+l2a_gprof_gcomw1_amsr2_v08a = GPROFV08Product("GPROFNNv1", "GCOMW1", "AMSR2", "08A")
 
 
 ################################################################################
