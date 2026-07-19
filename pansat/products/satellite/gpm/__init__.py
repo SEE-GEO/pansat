@@ -457,6 +457,7 @@ class GPROFV08Product(GPMProduct):
 l2a_gprof_gpm_gmi_v08a = GPROFV08Product("GPROFNNv1", "GPM", "GMI", "08A")
 l2a_clim_gprof_gpm_gmi_v08a = GPROFV08Product("GPROFNNv1", "GPM", "GMI", "08A", variant="CLIM")
 l2a_gprof_gcomw1_amsr2_v08a = GPROFV08Product("GPROFNNv1", "GCOMW1", "AMSR2", "08A")
+l2a_clim_gprof_gcomw1_amsr2_v08a = GPROFV08Product("GPROFNNv1", "GCOMW1", "AMSR2", "08A", variant="CLIM")
 
 
 ################################################################################
