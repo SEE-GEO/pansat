@@ -343,7 +343,7 @@ def _parse_products():
     module_path = Path(__file__).parent
     for filename in module_path.iterdir():
         try:
-            if filename.match("*.ini") and filename.name != "gprof.ini":
+            if filename.match("*.ini") and not filename.name.startswith("gprof"):
                 description = ProductDescription(filename)
                 python_name = description.properties.name
                 level = description.properties["level"]
