@@ -47,9 +47,9 @@ class NASAPPSProvider(DiscreteProviderDay):
             return False
         if product.level.startswith("1"):
             return True
-        elif product.algorithm.startswith("GPROF"):
+        elif product.algorithm.startswith("gprof"):
             return True
-        elif product.algorithm.startswith("3IMERG"):
+        elif product.algorithm.startswith("3imerg"):
             return True
         return False
 
@@ -128,7 +128,6 @@ class NASAPPSProvider(DiscreteProviderDay):
             )
 
         url = "https://arthurhouhttps.pps.eosdis.nasa.gov/gpmdata" + rel_url
-
         auth = accounts.get_identity("NASA PPS")
 
         session = cache.get_session()
@@ -141,6 +140,7 @@ class NASAPPSProvider(DiscreteProviderDay):
         except HTTPError as exc:
             if exc.response.status_code == 404:
                 pass
+
 
         files = set()
         for match in product.filename_regexp.finditer(response.text):
