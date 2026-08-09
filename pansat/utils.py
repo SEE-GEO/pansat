@@ -8,12 +8,13 @@ from math import ceil
 from typing import Optional, Tuple
 
 import numpy as np
-from pyproj import CRS
+from pyproj import CRS, Transformer
 from pyresample import AreaDefinition, SwathDefinition
 from pyresample import kd_tree
 import xarray as xr
 
 from pansat import geometry
+
 
 
 def parse_polygon(
@@ -362,6 +363,187 @@ def resample_data(
         data_full[valid_pixels_target] = data_r
         resampled[var] = (new_dims + dataset[var].dims[valid_pixels_source.ndim:], data_full)
 
+
+    return xr.Dataset(resampled)
+
+
+def resample_data_binned(
+    dataset: xr.Dataset,
+    target_grid: AreaDefinition,
+    new_dims: Tuple[str, str] = ("latitude", "longitude"),
+) -> xr.Dataset:
+    """
+    Resample data from a 2-D source grid to an AreaDefinition by binning.
+
+    All source pixels whose centers fall inside a target-grid cell are
+    aggregated by taking their mean. NaN values are ignored independently
+    for each variable and trailing dimension.
+
+    Args:
+        dataset:
+            Dataset containing 2-D ``latitude`` and ``longitude`` coordinates.
+        target_grid:
+            Pyresample AreaDefinition defining the target grid.
+        new_dims:
+            Names of the spatial dimensions in the returned dataset.
+
+    Returns:
+        Dataset containing the binned data on the target grid.
+    """
+
+    lons = dataset.longitude.data
+    lats = dataset.latitude.data
+
+    if lons.ndim != 2 or lats.ndim != 2:
+        raise ValueError(
+            "This function requires 2-D latitude and longitude coordinates."
+        )
+
+    spatial_dims = dataset.latitude.dims
+    if dataset.longitude.dims != spatial_dims:
+        raise ValueError(
+            "latitude and longitude must have the same dimensions."
+        )
+
+    # Put spatial dimensions first.
+    dataset = dataset.transpose(*spatial_dims, ...)
+
+    #
+    # Transform source coordinates to the target projection.
+    #
+    target_crs = CRS.from_user_input(target_grid.proj_dict)
+
+    transformer = Transformer.from_crs(
+        CRS.from_epsg(4326),
+        target_crs,
+        always_xy=True,
+    )
+
+    x, y = transformer.transform(lons, lats)
+
+    #
+    # Determine the target-grid pixel containing each source point.
+    #
+    x_min, y_min, x_max, y_max = target_grid.area_extent
+    height, width = target_grid.shape
+
+    dx = (x_max - x_min) / width
+    dy = (y_max - y_min) / height
+
+    # AreaDefinition rows normally run from north to south.
+    cols = np.floor((x - x_min) / dx).astype(np.int64)
+    rows = np.floor((y_max - y) / dy).astype(np.int64)
+
+    valid_source = (
+        np.isfinite(x)
+        & np.isfinite(y)
+        & (cols >= 0)
+        & (cols < width)
+        & (rows >= 0)
+        & (rows < height)
+    )
+
+    # Flattened target-cell index.
+    bin_indices = rows[valid_source] * width + cols[valid_source]
+    n_bins = height * width
+
+    #
+    # Target coordinates.
+    #
+    lons_t, lats_t = target_grid.get_lonlats()
+
+    resampled = {}
+
+    # Preserve 1-D latitude/longitude coordinates when possible.
+    if (
+        lats_t.ndim == 2
+        and np.allclose(lats_t, lats_t[:, :1], equal_nan=True)
+        and np.allclose(lons_t, lons_t[:1, :], equal_nan=True)
+    ):
+        resampled["latitude"] = (new_dims[0], lats_t[:, 0])
+        resampled["longitude"] = (new_dims[1], lons_t[0, :])
+    else:
+        resampled["latitude"] = (new_dims, lats_t)
+        resampled["longitude"] = (new_dims, lons_t)
+
+    #
+    # Bin each variable.
+    #
+    for var in dataset.data_vars:
+
+        data_array = dataset[var]
+
+        if data_array.ndim == 0:
+            resampled[var] = data_array.data
+            continue
+
+        # Only variables containing both spatial dimensions are resampled.
+        if not all(dim in data_array.dims for dim in spatial_dims):
+            resampled[var] = data_array
+            continue
+
+        # Make sure spatial dimensions are first.
+        other_dims = tuple(
+            dim for dim in data_array.dims if dim not in spatial_dims
+        )
+        data_array = data_array.transpose(*spatial_dims, *other_dims)
+
+        data = data_array.data
+        trailing_shape = data.shape[2:]
+
+        # Select only source pixels falling inside target area.
+        data = data[valid_source]
+
+        # Flatten trailing dimensions so each column can be aggregated
+        # independently.
+        if trailing_shape:
+            data = data.reshape(data.shape[0], -1)
+        else:
+            data = data.reshape(-1, 1)
+
+        #
+        # Calculate mean for every target bin.
+        #
+        # Floating output is intentional because averaging integer-valued
+        # variables generally produces non-integer results.
+        #
+        data = data.astype(np.float64, copy=False)
+
+        n_features = data.shape[1]
+        data_binned = np.full(
+            (n_bins, n_features),
+            np.nan,
+            dtype=np.float64,
+        )
+
+        for ind in range(n_features):
+            values = data[:, ind]
+            valid = np.isfinite(values)
+
+            sums = np.bincount(
+                bin_indices[valid],
+                weights=values[valid],
+                minlength=n_bins,
+            )
+
+            counts = np.bincount(
+                bin_indices[valid],
+                minlength=n_bins,
+            )
+
+            has_data = counts > 0
+            data_binned[has_data, ind] = (
+                sums[has_data] / counts[has_data]
+            )
+
+        data_binned = data_binned.reshape(
+            (height, width) + trailing_shape
+        )
+
+        resampled[var] = (
+            new_dims + other_dims,
+            data_binned,
+        )
 
     return xr.Dataset(resampled)
 
