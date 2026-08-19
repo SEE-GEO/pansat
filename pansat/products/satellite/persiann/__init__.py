@@ -23,7 +23,9 @@ from pansat.time import TimeRange
 
 DTYPES = {
     "ccs": ">i2",
-    "cdr": "f4"
+    "cdr": "f4",
+    "pdi": "i2",
+    "pun": "i2",
 }
 
 
@@ -39,6 +41,7 @@ class PersiannProduct(FilenameRegexpMixin, Product):
             temporal_resolution: timedelta
     ):
         self._name = name
+        self.file_prefix = file_prefix
         self.filename_regexp = re.compile(
             rf"{file_prefix}[\w\d]*\.bin\.gz"
         )
@@ -83,8 +86,11 @@ class PersiannProduct(FilenameRegexpMixin, Product):
         elif self.temporal_resolution >= timedelta(days=1):
             date = datetime.strptime(filename.split(".")[0][-5:], "%y%j")
         else:
-            date = datetime.strptime(filename.split(".")[0][-7:], "%y%j%H")
-
+            date_str = filename[len(self.file_prefix):].split(".")[0]
+            if len(date_str) == 7:
+                date = datetime.strptime(date_str, "%y%j%H")
+            else:
+                date = datetime.strptime(date_str, "%y%m%d%H")
         return TimeRange(date - self.temporal_resolution, date)
 
 
@@ -136,8 +142,12 @@ class PersiannProduct(FilenameRegexpMixin, Product):
 
         time_range = self.get_temporal_coverage(rec)
 
-        if self._name.startswith("ccs"):
-            data = data / 100
+        if (
+                self.file_prefix.startswith("rgccs") or
+                self.file_prefix.startswith("PUnet") or
+                self.file_prefix.startswith("pdirnow")
+        ):
+            data = (data / 100.0).astype(np.float32)
         data[data < 0] = np.nan
 
         dataset = xr.Dataset(
@@ -154,8 +164,11 @@ class PersiannProduct(FilenameRegexpMixin, Product):
 cdr_daily = PersiannProduct("cdr_daily", "aB1_", timedelta(days=1))
 cdr_monthly = PersiannProduct("cdr_monthly", "aB1_", timedelta(days=30))
 cdr_yearly = PersiannProduct("cdr_yearly", "aB1_", timedelta(days=365))
-ccs_3h = PersiannProduct("ccs_3h", "rgccs", timedelta(hours=3))
-ccs_6h = PersiannProduct("ccs_6h", "rgccs", timedelta(hours=6))
+ccs_1h = PersiannProduct("ccs_1h", "rgccs1h", timedelta(hours=1))
+ccs_3h = PersiannProduct("ccs_3h", "rgccs3h", timedelta(hours=3))
+ccs_6h = PersiannProduct("ccs_6h", "rgccs6h", timedelta(hours=6))
 ccs_daily = PersiannProduct("ccs_daily", "rgccs", timedelta(days=1))
 ccs_monthly = PersiannProduct("ccs_monthly", "rgccs", timedelta(days=30))
 ccs_yearly = PersiannProduct("ccs_yearly", "rgccs", timedelta(days=365))
+pdirnow_hourly = PersiannProduct("pdirnow_hourly", "pdirnow1h", timedelta(hours=1))
+punet_hourly = PersiannProduct("punet_hourly", "PUnet1h", timedelta(hours=1))
