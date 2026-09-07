@@ -31,11 +31,14 @@ URLS = {
     "satellite.persiann.cdr_daily":  BASE_URL + "PERSIANN-CDR/daily",
     "satellite.persiann.cdr_monthly":  BASE_URL + "PERSIANN-CDR/mthly",
     "satellite.persiann.cdr_yearly":  BASE_URL + "PERSIANN-CDR/yearly",
-    "satellite.persiann.ccs_3h":  BASE_URL + "PERSIANN-CSS/3hrly",
-    "satellite.persiann.ccs_6h":  BASE_URL + "PERSIANN-CSS/6hrly",
+    "satellite.persiann.ccs_1h":  BASE_URL + "PERSIANN-CCS/hrly",
+    "satellite.persiann.ccs_3h":  BASE_URL + "PERSIANN-CCS/3hrly",
+    "satellite.persiann.ccs_6h":  BASE_URL + "PERSIANN-CCS/6hrly",
     "satellite.persiann.ccs_daily":  BASE_URL + "PERSIANN-CSS/daily",
     "satellite.persiann.css_monthly":  BASE_URL + "PERSIANN-CCS/mthly",
     "satellite.persiann.ccs_yearly":  BASE_URL + "PERSIANN-CCS/yearly",
+    "satellite.persiann.punet_hourly":  BASE_URL + "PUnet/PUnet1hourly/",
+    "satellite.persiann.pdirnow_hourly":  BASE_URL + "PDIRNow/PDIRNow1hourly/",
 }
 
 
@@ -105,6 +108,10 @@ class UCIProvider(DiscreteProviderYear):
         """
         date = to_datetime(time)
         url = URLS[product.name]
+        if product.temporal_resolution < timedelta(days=1):
+            year = to_datetime(time).year
+            url = url + f"/{year}/"
+
         recs = self.get_file_records(product, url)
         time_range = TimeRange(
             datetime(year=date.year, month=1, day=1),
@@ -112,8 +119,11 @@ class UCIProvider(DiscreteProviderYear):
         )
         within_year = []
         for rec in recs:
-            if rec.temporal_coverage.covers(time_range):
-                within_year.append(rec)
+            try:
+                if rec.temporal_coverage.covers(time_range):
+                    within_year.append(rec)
+            except ValueError:
+                pass
         return within_year
 
 
