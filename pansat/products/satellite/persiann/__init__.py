@@ -91,7 +91,7 @@ class PersiannProduct(FilenameRegexpMixin, Product):
                 date = datetime.strptime(date_str, "%y%j%H")
             else:
                 date = datetime.strptime(date_str, "%y%m%d%H")
-        return TimeRange(date - self.temporal_resolution, date)
+        return TimeRange(date, date + self.temporal_resolution)
 
 
     def get_spatial_coverage(self, rec: FileRecord) -> TimeRange:
