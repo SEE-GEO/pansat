@@ -14,6 +14,7 @@ from typing import Optional
 import requests
 from pansat.download.providers.discrete_provider import (
     DataProvider,
+    DiscreteProviderDay,
     DiscreteProviderYear,
     DiscreteProviderMonth,
 )
@@ -49,6 +50,13 @@ PRODUCTS_YEAR = {
 
 PRODUCTS_ALL = {
     "isccp_hgm": "international-satellite-cloud-climate-project-isccp-h-series-data/access/isccp-basic/hgm/",
+}
+
+PRODUCTS_DAY = {
+    "cmorph_8km_30min": (
+        "{year}/{month:02}/{day:02}/",
+        "cmorph-high-resolution-global-precipitation-estimates/access/30min/8km",
+    ),
 }
 
 LINK_REGEX = re.compile(r'<a href="([^"]*\.nc)">')
@@ -252,9 +260,54 @@ class NOAANCEIProviderMonth(NOAANCEIProviderBase, DiscreteProviderMonth):
         return recs
 
 
+class NOAANCEIProviderDay(NOAANCEIProviderBase, DiscreteProviderDay):
+    def __init__(self):
+        NOAANCEIProviderBase.__init__(self)
+        DiscreteProviderDay.__init__(self)
+
+    def provides(self, product: "pansat.Product") -> bool:
+        is_ncei_product = super().provides(product)
+        is_daily = product.name.split(".")[-1] in PRODUCTS_DAY
+        return is_ncei_product and is_daily
+
+    def find_files_by_day(self, product, time, roi=None):
+        """
+        Get files available for a given day.
+
+        Args:
+            product: The product whose files to retrieve.
+            time: A datetime object specifying the day.
+            roi: Optional region of interest (unused, CMORPH is global).
+
+        Return:
+            A list of file records pointing to the available files.
+        """
+        time = to_datetime(time)
+        year = time.year
+        month = time.month
+        day = time.day
+
+        ncei_name = product.name.split(".")[-1]
+        yearmonthday, path = PRODUCTS_DAY[ncei_name]
+        url = f"{BASE_URL}/{path}/{yearmonthday.format(year=year, month=month, day=day)}"
+        session = cache.get_session()
+        response = session.get(url)
+        links = LINK_REGEX.findall(response.text)
+
+        recs = []
+        for link in links:
+            filename = link.split("/")[-1]
+            remote_path = url + filename
+            rec = FileRecord.from_remote(product, self, remote_path, filename)
+            if product.matches(rec):
+                recs.append(rec)
+        return recs
+
+
 noaa_ncei_provider_all = NOAANCEIProviderAll()
 noaa_ncei_provider_year = NOAANCEIProviderYear()
 noaa_ncei_provider_month = NOAANCEIProviderMonth()
+noaa_ncei_provider_day = NOAANCEIProviderDay()
 
 
 class NOAAGlobeProvider(DataProvider):
