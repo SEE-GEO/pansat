@@ -9,6 +9,7 @@ This module contains a data provider for data from currently operational
 Reference
 ---------
 """
+from contextlib import contextmanager
 from copy import copy
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +22,7 @@ from boto3.s3.transfer import TransferConfig
 from botocore import UNSIGNED
 from botocore.config import Config
 import numpy as np
+import s3fs
 
 from pansat.download.providers.discrete_provider import DiscreteProviderDay
 from pansat.time import to_datetime
@@ -114,8 +116,10 @@ class GOESAWSProvider(DiscreteProviderDay):
 
         recs = []
         for url in self.cache[prefix]:
+            cloud_path = f"s3://{bucket}/{url}/"
             rec = FileRecord.from_remote(
-                product, self, url, url.split("/")[-1]
+                product, self, url, url.split("/")[-1],
+                cloud_path=cloud_path
             )
             recs.append(rec)
         self.cache.pop(prefix)
@@ -190,6 +194,13 @@ class GOESAWSProvider(DiscreteProviderDay):
         new_rec.local_path = destination
 
         return new_rec
+
+    @contextmanager
+    def open_remote(self, rec: FileRecord):
+        fs = s3fs.S3FileSystem(anon=True)
+        with fs.open(rec.cloud_path, "rb") as data:
+            yield data
+
 
 
 goes_16_aws_provider = GOESAWSProvider(16)

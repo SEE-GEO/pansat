@@ -6,6 +6,7 @@ This module defines the GOES product class, which is used to represent all
 products from the GOES series of geostationary satellites.
 """
 import re
+from contextlib import contextmanager
 from datetime import datetime
 from functools import cache
 from pathlib import Path
@@ -28,6 +29,7 @@ from pansat.file_record import FileRecord
 from pansat.geometry import Geometry, lonlats_to_polygon, MultiPolygon, LonLatRect
 from pansat.time import TimeRange
 
+
 REGIONS = {"F": "full_disk", "M": "meso_scale_sector", "C": "conus"}
 
 
@@ -43,6 +45,7 @@ def radiance_to_reflectance(data: xr.Dataset) -> xr.DataArray:
     """
     refl = 100.0 * data.kappa0 * data.Rad
     return refl
+
 
 def radiance_to_brightness_temperature(data: xr.Dataset) -> xr.DataArray:
     """
@@ -258,7 +261,7 @@ class GOESProduct(FilenameRegexpMixin, Product):
         Open file as xarray Dataset.
 
         Args:
-            filename(``pathlib.Path`` or ``str``): The GOES file to open.
+            rec(``FileRecord``): A file record object pointing to the local file to open.
 
         Return:
             An xarray.Dataset containing the loaded product data.
@@ -277,6 +280,30 @@ class GOESProduct(FilenameRegexpMixin, Product):
         data["longitude"] = (("y", "x"), lons)
         data["latitude"] = (("y", "x"), lats)
         return data
+
+    @contextmanager
+    def open_remote(self, rec: FileRecord) -> xr.Dataset:
+        """
+        Open file as xarray Dataset.
+
+        Args:
+            rec(``FileRecord``): A file record object with the 'cloud_path' attribute set.
+
+        Return:
+            An xarray.Dataset containing the loaded product data.
+        """
+        cloud_path = rec.cloud_path
+        if cloud_path is None:
+            raise RuntimeError(
+                f"The file {rec.filename} does not have an associated cloud path."
+            )
+        try:
+            print(rec)
+            with rec.provider.open_remote(rec) as remote_data:
+                data = xr.open_dataset(remote_data, engine="h5netcdf")
+                yield data
+        finally:
+            data.close()
 
 
     def render_satpy(self, recs: Union[FileRecord, List[FileRecord]], dataset: str, area: Optional[AreaDefinition] = None) -> xr.Dataset:
