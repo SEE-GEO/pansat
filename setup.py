@@ -24,6 +24,7 @@ setuptools.setup(
         "filelock",
         "requests",
         "requests-cache",
+        "geopandas",
         "xarray",
         "tomlkit",
         "pyproj",
