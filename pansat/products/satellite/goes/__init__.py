@@ -298,7 +298,6 @@ class GOESProduct(FilenameRegexpMixin, Product):
                 f"The file {rec.filename} does not have an associated cloud path."
             )
         try:
-            print(rec)
             with rec.provider.open_remote(rec) as remote_data:
                 data = xr.open_dataset(remote_data, engine="h5netcdf")
                 yield data
