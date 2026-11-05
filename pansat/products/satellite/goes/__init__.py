@@ -137,6 +137,11 @@ class GOESProduct(FilenameRegexpMixin, Product):
                 rf"OR_{instr_str}-L{level}-{product_name}{region}-\w\wC{channels}"
                 r"_\w\w\w_s(\d*)_e(\d*)_c(\d*).nc"
             )
+        elif channel is None:
+            self.filename_regexp = re.compile(
+                rf"OR_{instr_str}-L{level}-{product_name}{region}-\w\w"
+                rf"_\w\w\w_s(\d*)_e(\d*)_c(\d*).nc"
+            )
         else:
             self.filename_regexp = re.compile(
                 rf"OR_{instr_str}-L{level}-{product_name}{region}-\w\wC"
@@ -160,20 +165,22 @@ class GOESProduct(FilenameRegexpMixin, Product):
 
         if isinstance(self.channel, list):
             if len(self.channel) == 16:
-                channel_str = "all"
+                channel_str = "_all_"
             elif set(self.channel) == {1, 2, 3}:
-                channel_str = "rgb"
+                channel_str = "_rgb_"
             else:
-                channel_str = "c" + "".join([f"{chan:02}" for chan in self.channel])
+                channel_str = "_c" + "".join([f"{chan:02}" for chan in self.channel]) + "_"
+        elif self.channel is None:
+            channel_str = ""
         else:
-            channel_str = f"c{self.channel:02}"
+            channel_str = f"_c{self.channel:02}_"
 
         region_str = REGIONS[self.region]
         prod_str = self.product_name.lower()
 
         name = (
             f"{prefix}.l{self.level}_goes{self.series_index}_{prod_str}"
-            f"_{channel_str}_{region_str}"
+            f"{channel_str}{region_str}"
         )
         return name
 
@@ -225,6 +232,7 @@ class GOESProduct(FilenameRegexpMixin, Product):
                     " file requires 'satpy' to be installed."
                 )
         return _SPATIAL_COVERAGE[self.series_index]
+
 
     def get_spatial_coverage(self, rec: FileRecord) -> Geometry:
         """
@@ -383,3 +391,16 @@ l1b_goes_19_rad_rgb_conus = GOES19L1BRadiances("C", [1, 2, 3])
 l1b_goes_19_rad_all_mese_scale_sector = GOES19L1BRadiances("M", list(range(1, 17)))
 l1b_goes_19_rad_rgb_mese_scale_sector = GOES19L1BRadiances("M", [1, 2, 3])
 l1b_goes_19_rad_all_mese_scale_sector = GOES19L1BRadiances("M", list(range(1, 17)))
+
+
+l2b_goes_16_mcmip_f = GOESProduct(
+    "2", 16, "ABI", "MCMIP", "F", None
+)
+
+l2b_goes_18_mcmip_f = GOESProduct(
+    "2", 18, "ABI", "MCMIP", "F", None
+)
+
+l2b_goes_19_mcmip_f = GOESProduct(
+    "2", 19, "ABI", "MCMIP", "F", None
+)

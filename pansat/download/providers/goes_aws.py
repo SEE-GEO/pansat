@@ -93,7 +93,7 @@ class GOESAWSProvider(DiscreteProviderDay):
 
         instr_str = product.instrument.upper()
         lvl_str = f"L{product.level}"
-        prod_str = f"{product.product_name.capitalize()}"
+        prod_str = f"{product.product_name}"
         reg_str = product.region.upper()
         prefix = f"{instr_str}-{lvl_str}-{prod_str}{reg_str}/{year}/{day:03}"
         kwargs = {"Bucket": bucket, "Prefix": prefix}
@@ -119,6 +119,7 @@ class GOESAWSProvider(DiscreteProviderDay):
             )
             recs.append(rec)
         self.cache.pop(prefix)
+        print(recs)
         return recs
 
     def _get_request_url(self, product, time, filename):
