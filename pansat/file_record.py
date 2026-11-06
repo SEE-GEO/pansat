@@ -44,6 +44,7 @@ class FileRecord:
         provider: "pansat.DataProvider",
         remote_path: str,
         filename: str,
+        cloud_path: Optional[str] = None
     ):
         """
         Create file record from a remote file.
@@ -61,19 +62,28 @@ class FileRecord:
         rec.remote_path = remote_path
         rec.filename = filename
         rec.provider = provider
+        rec.cloud_path = cloud_path
         return rec
 
     def __init__(
-        self, local_path, product=None, filename=None, provider=None, remote_path=None
+        self,
+        local_path: Union[str, Path],
+        product: Optional[Union[str, Path]] = None,
+        filename: Optional[Union[str, Path]] = None,
+        provider: Optional["Provider"] =None,
+        remote_path: Optional[str] = None,
+        cloud_path: Optional[str] = None
     ):
         """
         Create file record from product and local file path.
 
         Args:
+            local_path: A path object or string pointing to the local file.
             product: A pansat product representing the data product.
-            local_path: The local path of the file.
             filename: The name of the file. This needs to be provided if
                 no local path is given.
+            provider: A provider object from which the file can be downloaded.
+            cloud_path: An optional cloud path that can be used to open the file.
         """
         if local_path is not None:
             local_path = Path(local_path)
@@ -90,6 +100,7 @@ class FileRecord:
         self.product = product
         self.provider = provider
         self.remote_path = remote_path
+        self.cloud_path = cloud_path
 
     @property
     def temporal_coverage(self) -> TimeRange:
