@@ -131,7 +131,7 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.icare
     import pansat.download.providers.pmm_gv
     import pansat.download.providers.ecmwf
-    #import pansat.download.providers.nasa_pps
+    import pansat.download.providers.esa_maap
     import pansat.download.providers.ncar_stage4
     #import pansat.download.providers.copernicus_dem_aws
     import pansat.environment as penv
