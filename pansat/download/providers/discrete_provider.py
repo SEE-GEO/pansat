@@ -323,6 +323,62 @@ def find_files_in_range(product, time_range, find_files_fun, get_time_step_fun):
     return files
 
 
+class DiscreteProviderHour(DiscreteProviderBase):
+    """
+    This provider class provides helper functions for data providers
+    which organize available files by hour.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def find_files_by_hour(
+        self, product: "pansat.Product", time: Time, roi: Optional[Geometry] = None
+    ) -> list[FileRecord]:
+        """
+        Compile a list of file records available for a given hour.
+
+        Args:
+            product: A 'pansat.Product' object representing the product
+                whose data files to find.
+            time: A time object specifying the hour for which to return
+            roi: If given, return only files covering the region represented
+                by the given geometry object.
+
+        Return:
+            A list of file records identifying the files available at this
+            hour.
+        """
+        pass
+
+    def get_time_step(self, *args):
+        return timedelta(hours=1)
+
+    def find_files(
+        self,
+        product: "pansat.Product",
+        time_range: TimeRange,
+        roi: Optional[Geometry] = None,
+    ) -> list[FileRecord]:
+        """
+        Compile a list of file records available for a given time range.
+
+        Args:
+            time_range: A time range object specifying the time range for
+                which to find files.
+            roi: If given, return only files covering the region represented
+                by the given geometry object.
+
+        Return:
+            A list of file records identifying the files available at this
+            hour.
+        """
+        return find_files_in_range(
+            product, time_range, self.find_files_by_hour, self.get_time_step
+        )
+
+
 class DiscreteProviderDay(DiscreteProviderBase):
     """
     This provider class provides helper functions for data providers
