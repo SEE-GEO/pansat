@@ -21,7 +21,9 @@ from pansat.products import Product
 from .data_provider import DataProvider
 
 PRODUCT_TYPES = {
-    "satellite.earth_care.l2b_acm_cap": 'ACM_CAP_2B'
+    "satellite.earth_care.l2b_ac_tc": 'AC__TC__2B',
+    "satellite.earth_care.l2b_acm_cap": 'ACM_CAP_2B',
+    "satellite.earth_care.l2b_acm_clp": 'ACM_CLP_2B',
 }
 
 class ESAMAAPProvider(DataProvider):
@@ -35,9 +37,7 @@ class ESAMAAPProvider(DataProvider):
         self.product_regexp = re.compile(rf"satellite.earth_care\..*")
 
     def provides(self, product):
-        print(product.name, self.product_regexp.match(product.name))
         return self.product_regexp.match(product.name) is not None
-
 
     @cached_property
     def token(self) -> str:
@@ -112,13 +112,30 @@ class ESAMAAPProvider(DataProvider):
         prod_type = PRODUCT_TYPES.get(product.name)
         catalog = Client.open(self.catalog_url)
         EC_COLLECTION = ['EarthCAREL2Validated_MAAP']
-        search = catalog.search(
-            collections=EC_COLLECTION,
-            filter=f"productType = '{prod_type}'",
-            bbox = [-180, -90, 180, 90],
-            datetime = [start_time, end_time],
-            method = 'GET',
-        )
+
+        if roi is not None:
+            lon_min, lat_min, lon_max, lat_max = roi.bounding_box_corners
+        else:
+            lon_min, lat_min, lon_max, lat_max = (-180, -90, 180, 90)
+
+        for attempt in range(3):
+            try:
+                search = catalog.search(
+                    collections=EC_COLLECTION,
+                    filter=f"productType = '{prod_type}'",
+                    bbox=[lon_min, lat_min, lon_max, lat_max],
+                    datetime = [start_time, end_time],
+                    method = 'GET',
+                )
+                break
+            except APIError:
+                LOGGER.info(
+                    "Encoutered API error when getting products from ESA MAAP."
+                )
+                if attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
+
         items = list(search.items())
 
         recs = []
