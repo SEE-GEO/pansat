@@ -163,6 +163,33 @@ class EarthCAREProduct(FilenameRegexpMixin, GranuleProduct):
         return self.description.to_xarray_dataset(
                 file_handle, context=globals(), slcs=granule.get_slices())
 
+
+def _calculate_profile_time(handle, slcs) -> np.ndarray:
+    """
+    Calculate profile time as np.datetime64 objects.
+
+    Args:
+        handle: File handle to the data file.
+        slcs: Optional tuple of slices to subset the data to load.
+
+    Return:
+        A numpy.ndarray containing the profiles times represented
+        in datetime64 format.
+    """
+    start_time = np.datetime64("2000-01-01T00:00:00")
+    profile_time = handle[slcs]
+    return start_time + profile_time.astype("timedelta64[s]")
+
+
+def _mask_invalid(handle, slcs) -> np.ndarray:
+    """
+    Mask values exceeding 1e30.
+    """
+    data = handle[slcs]
+    data[1e30 < data] = np.nan
+    return data
+
+
 def _parse_products():
     module_path = Path(__file__).parent
     for filename in module_path.iterdir():

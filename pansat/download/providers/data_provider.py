@@ -136,7 +136,7 @@ def get_providers() -> List["DataProvider"]:
     import pansat.download.providers.esa_maap
     import pansat.download.providers.ncar_stage4
     #import pansat.download.providers.copernicus_dem_aws
-    import pansat.download.providers.gportal
+    #import pansat.download.providers.gportal
     import pansat.environment as penv
 
     return ALL_PROVIDERS + [penv.get_active_registry()]

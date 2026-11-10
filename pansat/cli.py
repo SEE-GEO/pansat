@@ -65,7 +65,7 @@ def list_accounts():
 
     table.add_column("Provider name", justify="left", style="cyan")
     table.add_column("user name", style="magenta", justify="left")
-    table.add_column("password", justify="left", style="green")
+    table.add_column("password", justify="left", style="green", overflow="fold")
 
     for provider in identities.keys():
         if provider == "pansat":

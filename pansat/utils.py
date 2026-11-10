@@ -410,11 +410,6 @@ def resample_data_binned(
     lons = dataset.longitude.data
     lats = dataset.latitude.data
 
-    if lons.ndim != 2 or lats.ndim != 2:
-        raise ValueError(
-            "This function requires 2-D latitude and longitude coordinates."
-        )
-
     spatial_dims = dataset.latitude.dims
     if dataset.longitude.dims != spatial_dims:
         raise ValueError(
@@ -505,7 +500,7 @@ def resample_data_binned(
         data_array = data_array.transpose(*spatial_dims, *other_dims)
 
         data = data_array.data
-        trailing_shape = data.shape[2:]
+        trailing_shape = data.shape[len(spatial_dims):]
 
         # Select only source pixels falling inside target area.
         data = data[valid_source]

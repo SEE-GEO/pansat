@@ -8,6 +8,7 @@ from copy import copy
 from functools import cached_property
 from pathlib import Path
 import re
+import time
 from typing import Optional, List
 
 import requests
@@ -21,7 +22,9 @@ from pansat.products import Product
 from .data_provider import DataProvider
 
 PRODUCT_TYPES = {
-    "satellite.earth_care.l2b_acm_cap": 'ACM_CAP_2B'
+    "satellite.earth_care.l2b_ac_tc": 'AC__TC__2B',
+    "satellite.earth_care.l2b_acm_cap": 'ACM_CAP_2B',
+    "satellite.earth_care.l2b_acm_clp": 'ACM_CLP_2B',
 }
 
 class ESAMAAPProvider(DataProvider):
@@ -35,9 +38,7 @@ class ESAMAAPProvider(DataProvider):
         self.product_regexp = re.compile(rf"satellite.earth_care\..*")
 
     def provides(self, product):
-        print(product.name, self.product_regexp.match(product.name))
         return self.product_regexp.match(product.name) is not None
-
 
     @cached_property
     def token(self) -> str:
@@ -110,15 +111,35 @@ class ESAMAAPProvider(DataProvider):
         start_time = time_range.start.strftime("%Y-%m-%dT%H:%M:%SZ")
         end_time = time_range.end.strftime("%Y-%m-%dT%H:%M:%SZ")
         prod_type = PRODUCT_TYPES.get(product.name)
-        catalog = Client.open(self.catalog_url)
+
+        for attempt in range(3):
+            try:
+                catalog = Client.open(self.catalog_url)
+                break
+            except Exception:
+                LOGGER.infor(
+                    "Encoutered an error when getting products from ESA MAAP. Retrying %s times.",
+                    2 - attempt
+                )
+                if attempt == 2:
+                    raise
+                time.sleep(2 ** attempt)
+
         EC_COLLECTION = ['EarthCAREL2Validated_MAAP']
+
+        if roi is not None:
+            lon_min, lat_min, lon_max, lat_max = roi.bounding_box_corners
+        else:
+            lon_min, lat_min, lon_max, lat_max = (-180, -90, 180, 90)
+
         search = catalog.search(
             collections=EC_COLLECTION,
             filter=f"productType = '{prod_type}'",
-            bbox = [-180, -90, 180, 90],
+            bbox=[lon_min, lat_min, lon_max, lat_max],
             datetime = [start_time, end_time],
             method = 'GET',
         )
+
         items = list(search.items())
 
         recs = []
