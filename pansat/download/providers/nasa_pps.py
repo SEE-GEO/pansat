@@ -45,7 +45,7 @@ class NASAPPSProvider(DiscreteProviderDay):
     def provides(self, product):
         if not product.name.startswith("satellite.gpm"):
             return False
-        if product.level.startswith("1"):
+        if hasattr(product, "level") and product.level.startswith("1"):
             return True
         elif product.algorithm.startswith("gprof"):
             return True

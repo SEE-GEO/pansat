@@ -166,8 +166,9 @@ class MRMSProduct(FilenameRegexpMixin, Product):
         else:
             dataset = xr.load_dataset(path, engine="cfgrib")
 
-        lons = dataset.longitude.data
+        lons = dataset.longitude.data.copy()
         lons[lons > 180] -= 360.0
+        dataset = dataset.assign_coords(longitude=lons)
 
         dataset = dataset.rename(
             {

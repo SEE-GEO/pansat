@@ -71,7 +71,7 @@ class CmorphProduct(FilenameRegexpMixin, Product):
             # YYYYMMDD (daily)
             dt = datetime(int(ts[:4]), int(ts[4:6]), int(ts[6:8]))
             half_width = timedelta(hours=12)
-        return TimeRange(dt - half_width, dt + half_width)
+        return TimeRange(dt, dt +  2 * half_width)
 
     def get_spatial_coverage(self, rec: FileRecord) -> LonLatRect:
         """Global coverage."""

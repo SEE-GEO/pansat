@@ -437,6 +437,7 @@ l2a_clim_gprof_noaa20_atms = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07A"
 l2a_clim_gprof_noaa20_atms_v07b = GPROFProduct("GPROF2021v1", "NOAA20", "ATMS", "07B", variant="CLIM")
 l2a_clim_gprof_f16_ssmis_v07a = GPROFProduct("GPROF2021v1", "F16", "SSMIS", "07A", variant="CLIM")
 l2a_clim_gprof_f17_ssmis_v07a = GPROFProduct("GPROF2021v1", "F17", "SSMIS", "07A", variant="CLIM")
+l2a_clim_gprof_f17_ssmis_v07b = GPROFProduct("GPROF2021v1", "F17", "SSMIS", "07B", variant="CLIM")
 l2a_clim_gprof_f17_ssmis_v08a = GPROFProduct("GPROFNNv1", "F17", "SSMIS", "08A", variant="CLIM")
 l2a_clim_gprof_f18_ssmis_v07a = GPROFProduct("GPROF2021v1", "F18", "SSMIS", "07A", variant="CLIM")
 l2a_clim_gprof_f18_ssmis_v08a = GPROFProduct("GPROFNNv1", "F18", "SSMIS", "08A", variant="CLIM")

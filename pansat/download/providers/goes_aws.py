@@ -123,7 +123,6 @@ class GOESAWSProvider(DiscreteProviderDay):
             )
             recs.append(rec)
         self.cache.pop(prefix)
-        print(recs)
         return recs
 
     def _get_request_url(self, product, time, filename):
