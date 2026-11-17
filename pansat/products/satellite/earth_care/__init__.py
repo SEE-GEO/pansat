@@ -43,7 +43,7 @@ class EarthCAREProduct(FilenameRegexpMixin, GranuleProduct):
         self.description = description
         name = level.upper() + "-" + product_name.upper()
         self.filename_regexp = re.compile(
-            rf"ECA_EXBA_{self.product_name}_{self.level.upper()}_(\d{{8}}T\d{{6}}Z)"
+            rf"ECA_\w\w\w\w_{self.product_name}_{self.level.upper()}_(\d{{8}}T\d{{6}}Z)"
             rf"_(\d{{8}}T\d{{6}}Z)_\w+.h5"
         )
         super().__init__()

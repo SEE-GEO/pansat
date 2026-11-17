@@ -21,7 +21,6 @@ from typing import List, Optional
 import xml.etree.ElementTree as ET
 
 import requests
-from requests.exceptions import HTTPError
 
 from pansat import cache, FileRecord
 from pansat.download import accounts
@@ -185,11 +184,9 @@ class GesDiscProviderDay(GesDiscProviderBase, DiscreteProviderDay):
 
         # 404 error likely means that no products are available for
         # this day.
-        try:
-            response.raise_for_status()
-        except HTTPError as exc:
-            if exc.response.status_code == 404:
-                pass
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
 
         files = set()
         for match in product.filename_regexp.finditer(response.text):
@@ -226,11 +223,9 @@ class GesDiscProviderMonth(GesDiscProviderBase, DiscreteProviderMonth):
         auth = accounts.get_identity("GES DISC")
         session = cache.get_session()
         response = session.get(url, auth=auth)
-        try:
-            response.raise_for_status()
-        except HTTPError as exc:
-            if exc.response.status_code == 404:
-                pass
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
 
         files = set()
         for match in product.filename_regexp.finditer(response.text):
@@ -270,11 +265,9 @@ class GesDiscProviderYear(GesDiscProviderBase, DiscreteProviderYear):
         auth = accounts.get_identity("GES DISC")
         session = cache.get_session()
         response = session.get(url, auth=auth)
-        try:
-            response.raise_for_status()
-        except HTTPError as exc:
-            if exc.response.status_code == 404:
-                pass
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
 
         files = set()
         for match in product.filename_regexp.finditer(response.text):
@@ -378,11 +371,9 @@ class MerraProvider(GesDiscProviderBase, DiscreteProviderMonth):
 
         # 404 error likely means that no products are available for
         # this day.
-        try:
-            response.raise_for_status()
-        except HTTPError as exc:
-            if exc.response.status_code == 404:
-                pass
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
 
         files = set()
         for match in product.filename_regexp.finditer(response.text):
@@ -467,11 +458,9 @@ class MerraConstantProvider(MerraProvider):
 
         # 404 error likely means that no products are available for
         # this day.
-        try:
-            response.raise_for_status()
-        except HTTPError as exc:
-            if exc.response.status_code == 404:
-                pass
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
 
         files = set()
         for match in product.filename_regexp.finditer(response.text):
