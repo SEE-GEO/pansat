@@ -29,6 +29,9 @@ PRODUCTS = {
     "satellite.gpm.l2a_slh_dpr_v07a": ('GPM_2HSLH', '07'),
     "satellite.gpm.l2a_slh_dpr_v07b": ('GPM_2HSLH', '07'),
     "satellite.gpm.l2a_slh_dpr_v07c": ('GPM_2HSLH', '07'),
+    "satellite.gpm.l2a_clim_gprofnnv1_gcomw1_amsr2_v08a": ('GPM_2AGPROFGCOMW1AMSR2_CLIM', '08'),
+    "satellite.gpm.l1c_r_xcal2016c_gpm_gmi_v08a": ('GPM_1CGPMGMI_R', '08'),
+    "satellite.gpm.l1c_xcal2016v_gcomw1_amsr2_v08a": ('GPM_1CGCOMW1AMSR2', '08'),
 }
 
 
